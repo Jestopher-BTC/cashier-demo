@@ -1,0 +1,15 @@
+# /etc/caddy/Caddyfile
+#
+# Caddy gets the TLS certificate for boltda.sh on its own. The cashier sits
+# under /cashier so the rest of the domain is untouched. handle_path strips the
+# prefix, and the app only uses relative URLs, so it does not care where it runs.
+
+boltda.sh {
+	redir /cashier /cashier/
+
+	handle_path /cashier/* {
+		reverse_proxy 127.0.0.1:8080
+	}
+
+	# ...whatever else already lives on this domain...
+}

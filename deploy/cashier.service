@@ -1,0 +1,23 @@
+# /etc/systemd/system/cashier.service
+[Unit]
+Description=Amboss cashier conference demo
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=cashier
+WorkingDirectory=/opt/cashier
+EnvironmentFile=/opt/cashier/.env
+ExecStart=/usr/bin/node server/server.js
+Restart=always
+RestartSec=3
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/cashier
+
+[Install]
+WantedBy=multi-user.target

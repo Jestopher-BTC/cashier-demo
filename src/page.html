@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="format-detection" content="telephone=no" />
+<title>Cashier · Amboss Payments</title>
+<style>
+  :root {
+    --bg: #070C17; --chrome: #0C1424; --panel: #111B2D; --panel-alt: #16223A;
+    --line: #22304C; --fg: #E8EEF9; --muted: #8394B1; --faint: #5C6E8D;
+    --accent: #14C58F; --accent-ink: #04231A; --accent-soft: rgba(20,197,143,0.13);
+    --warn: #FFB020; --btc: #F7931A; --danger: #FF6A5E;
+    --code-key: #7FB2FF; --code-str: #7DDCA9; --code-num: #FFC46B; --code-com: #5C6E8D;
+    --code-tag: #FF9AA7; --code-fn: #8ED9FF;
+    --shadow: 0 18px 40px rgba(0,0,0,0.45);
+  }
+  html[data-theme="light"] {
+    --bg: #EEF2F8; --chrome: #FFFFFF; --panel: #FFFFFF; --panel-alt: #F5F8FC;
+    --line: #DCE3EF; --fg: #0C1626; --muted: #566783; --faint: #8493AB;
+    --accent: #0C9F73; --accent-ink: #FFFFFF; --accent-soft: rgba(12,159,115,0.11);
+    --warn: #B5730A; --btc: #D97A06; --danger: #D92D20;
+    --code-key: #1D4ED8; --code-str: #067A54; --code-num: #A45B00; --code-com: #8493AB;
+    --code-tag: #B32654; --code-fn: #0B6E99;
+    --shadow: 0 14px 34px rgba(15,32,63,0.10);
+  }
+
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body, #root { height: 100%; }
+  body {
+    margin: 0; background: var(--bg); color: var(--fg);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased; -webkit-text-size-adjust: 100%;
+    overscroll-behavior: none;
+  }
+  button { font-family: inherit; cursor: pointer; }
+  pre, code, .mono { font-family: Menlo, Monaco, Consolas, "Courier New", monospace; }
+
+  .app { display: flex; flex-direction: column; height: 100%; }
+
+  /* ---- top bar ---- */
+  .topbar {
+    display: flex; align-items: center; padding: 10px 16px;
+    background: var(--chrome); border-bottom: 1px solid var(--line); flex: 0 0 auto;
+  }
+  .brand { display: flex; align-items: center; min-width: 190px; }
+  .glyph {
+    width: 30px; height: 30px; border-radius: 9px; background: var(--accent); color: var(--accent-ink);
+    font-weight: 800; font-size: 16px; text-align: center; line-height: 30px; margin-right: 9px;
+  }
+  .brand-text { display: block; line-height: 1.15; }
+  .brand-text strong { display: block; font-size: 15px; }
+  .brand-text em { display: block; font-style: normal; font-size: 11px; color: var(--faint); margin-top: 2px; }
+
+  .modes { display: flex; margin: 0 auto; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 4px; }
+  .mode {
+    position: relative; background: transparent; border: 0; color: var(--muted);
+    font-size: 15px; font-weight: 650; padding: 10px 22px; border-radius: 9px; min-height: 44px;
+  }
+  .mode.on { background: var(--panel-alt); color: var(--fg); box-shadow: inset 0 0 0 1px var(--line); }
+  .mode-dot {
+    display: inline-block; width: 7px; height: 7px; border-radius: 50%;
+    background: var(--danger); margin-left: 8px; vertical-align: middle;
+  }
+
+  .btn {
+    background: var(--panel-alt); border: 1px solid var(--line); color: var(--fg);
+    border-radius: 10px; padding: 9px 14px; font-size: 14px; font-weight: 600; min-height: 40px;
+    margin-left: 8px;
+  }
+  .btn.primary { background: var(--accent); border-color: transparent; color: var(--accent-ink); }
+  .btn.icon { width: 42px; padding: 0; font-size: 16px; }
+  .btn.big { padding: 14px 22px; font-size: 16px; margin: 12px 0 0; }
+  .grow { flex: 1 1 auto; }
+
+  /* ---- stage ---- */
+  .content { flex: 1 1 auto; min-height: 0; display: flex; }
+  .stage {
+    flex: 1 1 auto; overflow-y: auto; -webkit-overflow-scrolling: touch;
+    padding: 16px 16px 40px; display: block; text-align: center;
+  }
+  .phone {
+    position: relative; width: 420px; max-width: 100%; margin: 0 auto; text-align: left;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 20px;
+    padding: 18px; box-shadow: var(--shadow); overflow: hidden;
+  }
+  .stage-note {
+    max-width: 420px; margin: 14px auto 0; font-size: 12px; line-height: 1.55; color: var(--faint);
+    text-align: center;
+  }
+
+  .offline-card {
+    width: 420px; max-width: 100%; margin: 40px auto; text-align: left;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 18px; padding: 24px;
+  }
+  .offline-card h2 { margin: 0 0 10px; font-size: 18px; }
+  .offline-card p { margin: 0 0 10px; font-size: 14px; line-height: 1.55; color: var(--muted); }
+  .offline-card .dim { color: var(--faint); font-size: 13px; }
+
+  /* ---- live bar ---- */
+  .livebar {
+    width: 420px; max-width: 100%; margin: 0 auto 12px; display: flex; align-items: center;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 8px 10px;
+    text-align: left;
+  }
+  .live-dot {
+    width: 9px; height: 9px; border-radius: 50%; background: var(--danger); margin-right: 8px;
+    box-shadow: 0 0 0 0 rgba(255,106,94,0.6); animation: pulse 1.8s infinite;
+  }
+  @keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(255,106,94,0.55); }
+    70% { box-shadow: 0 0 0 9px rgba(255,106,94,0); }
+    100% { box-shadow: 0 0 0 0 rgba(255,106,94,0); }
+  }
+  .live-label { font-size: 12px; font-weight: 750; letter-spacing: .04em; margin-right: 10px; }
+  .live-caps { font-size: 11.5px; color: var(--faint); }
+  .livenotice {
+    width: 420px; max-width: 100%; margin: 0 auto 12px; text-align: left;
+    background: rgba(255,176,32,0.12); color: var(--warn);
+    border-radius: 10px; padding: 9px 12px; font-size: 12.5px;
+  }
+
+  /* ---- code mode ---- */
+  .code-mode { flex: 1 1 auto; display: flex; flex-direction: column; min-height: 0; padding: 12px 14px 0; }
+  .chips { display: flex; overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 10px; flex: 0 0 auto; }
+  .chip {
+    white-space: nowrap; background: var(--panel); border: 1px solid var(--line); color: var(--muted);
+    border-radius: 999px; padding: 9px 15px; font-size: 13.5px; font-weight: 650; margin-right: 7px; min-height: 40px;
+  }
+  .chip.on { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); }
+
+  .note { background: var(--panel); border: 1px solid var(--line); border-bottom: 0; border-radius: 14px 14px 0 0; padding: 12px 15px; flex: 0 0 auto; }
+  .note-head { display: flex; align-items: center; }
+  .note-head h2 { margin: 0 10px 0 0; font-size: 16px; }
+  .note p { margin: 8px 0 0; font-size: 13px; line-height: 1.5; color: var(--muted); max-width: 90ch; }
+  .tag { font-size: 10.5px; font-weight: 750; letter-spacing: .04em; text-transform: uppercase; border-radius: 999px; padding: 4px 9px; }
+  .tag.replace { background: var(--accent-soft); color: var(--accent); }
+  .tag.seam { background: rgba(255,176,32,.14); color: var(--warn); }
+  .tag.vendor { background: rgba(247,147,26,.13); color: var(--btc); }
+  .tag.keep { background: var(--panel-alt); color: var(--faint); }
+
+  .codewrap {
+    flex: 1 1 auto; min-height: 0; overflow: auto; -webkit-overflow-scrolling: touch;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 0 0 14px 14px;
+  }
+  pre.code { margin: 0; font-size: 12.5px; line-height: 1.6; }
+  pre.code table { border-collapse: collapse; width: 100%; }
+  td.ln { width: 1%; text-align: right; padding: 0 12px 0 14px; color: var(--faint); opacity: .6; white-space: nowrap; vertical-align: top; -webkit-user-select: none; user-select: none; }
+  td.src { padding: 0 16px 0 0; white-space: pre; vertical-align: top; }
+  .k { color: var(--code-key); } .s { color: var(--code-str); } .n { color: var(--code-num); }
+  .c { color: var(--code-com); font-style: italic; } .t { color: var(--code-tag); } .f { color: var(--code-fn); }
+
+  /* ---- narrow screens and portrait ---- */
+  @media (max-width: 820px) {
+    .brand { min-width: 0; }
+    .brand-text { display: none; }
+    .mode { padding: 10px 14px; font-size: 14px; }
+  }
+  @media (max-width: 480px) {
+    .topbar { flex-wrap: wrap; }
+    .modes { width: 100%; margin: 8px 0 0; }
+    .mode { flex: 1 1 0; padding: 10px 6px; }
+  }
+
+  #boot-error {
+    display: none; margin: 60px auto; max-width: 460px; padding: 22px;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 16px;
+    font-size: 14px; line-height: 1.6; color: var(--muted);
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<div id="boot-error">
+  <strong style="color:var(--fg)">This browser is too old for the app.</strong>
+  <p>Open the diagnostics page at <code>check.html</code> to see what is missing, or run the demo from a newer device.</p>
+</div>
+<script>window.__CASHIER__ = __HOST_CONFIG__;</script>
+__BOOTSTRAP__
+</body>
+</html>

@@ -1,0 +1,21 @@
+{
+  "name": "cashier-demo",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "start": "node server/server.js",
+    "dev": "MOCK_AMBOSS=1 node server/server.js"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.24.0",
+    "@babel/preset-env": "^7.24.0",
+    "esbuild": "^0.21.0",
+    "jsdom": "^30.0.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "dependencies": {
+    "regenerator-runtime": "^0.14.1"
+  }
+}

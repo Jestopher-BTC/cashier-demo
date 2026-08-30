@@ -1,15 +1,26 @@
-# /etc/caddy/Caddyfile
+# Caddy route for the cashier. boltda.sh already has a block for Bolt Dash —
+# do NOT paste this as a second `boltda.sh { }` block, Caddy will refuse to
+# have two. Instead, open /etc/caddy/Caddyfile and add just the two lines
+# below (redir + handle_path) inside the existing boltda.sh block, then
+# `systemctl reload caddy`.
 #
-# Caddy gets the TLS certificate for boltda.sh on its own. The cashier sits
-# under /cashier so the rest of the domain is untouched. handle_path strips the
-# prefix, and the app only uses relative URLs, so it does not care where it runs.
+# The cashier only uses relative URLs, so it doesn't care that it's served
+# from a path instead of its own domain. handle_path strips the /cashier
+# prefix before proxying.
 
-boltda.sh {
 	redir /cashier /cashier/
 
 	handle_path /cashier/* {
 		reverse_proxy 127.0.0.1:8080
 	}
 
-	# ...whatever else already lives on this domain...
-}
+# --- for reference, what the full block looks like once merged -------------
+#
+# boltda.sh {
+# 	... whatever Bolt Dash's routes already are ...
+#
+# 	redir /cashier /cashier/
+# 	handle_path /cashier/* {
+# 		reverse_proxy 127.0.0.1:8080
+# 	}
+# }

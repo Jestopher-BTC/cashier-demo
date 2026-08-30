@@ -84,117 +84,186 @@ invoices settle without a node, so you can walk the whole flow at your desk.
 
 ---
 
-## 3. Droplet
+## 3. Server setup (one time)
 
-Ubuntu 22.04 or newer, Node 20+, Caddy for TLS.
+This is a single sequential runbook. Run the blocks in order, top to bottom,
+on a fresh box. Skip straight to **3.6** if the server already exists and you
+just need to add the cashier to it (that's the actual situation for
+`boltda.sh`: it already runs Bolt Dash, already has Node and Caddy, and you
+already have working SSH access to it via your `boltdash` alias).
 
-**On the droplet**, once:
+Filled in below: domain `boltda.sh`, path `/cashier`, app dir `/opt/cashier`,
+system user `cashier`, repo `Jestopher-BTC/cashier-demo`. Deploying this for
+someone else's booth or a different iGaming company's server means swapping
+those four things and nothing else — everything downstream (systemd unit,
+Caddy route, deploy script) already reads from the checkout, not from
+hardcoded values.
+
+**What a "deploy key" is**, since it's the one unfamiliar piece: it's a second,
+separate SSH keypair that lives only on this server, is registered on GitHub
+as read-only access to this one repo, and can't do anything else — not push,
+not touch your other repos, not log in as you. If the server were ever
+compromised, the blast radius is "someone can read the cashier's source code,"
+nothing more. It exists so the server can `git pull` on its own, on a
+schedule or on demand, without you copying your personal GitHub key onto a
+box that sits at a conference booth.
+
+### 3.1 Log in and confirm the basics
 
 ```bash
-curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && apt install -y nodejs
+ssh boltdash
+node -v          # want 20 or newer
+caddy version     # already installed if Bolt Dash is running
+whoami            # note this — you'll need it for the next block if it isn't root
+```
+
+If Node is missing or older than 20:
+
+```bash
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo bash - && sudo apt install -y nodejs
+```
+
+### 3.2 Create the `cashier` system user
+
+Still on the server. Use `sudo` in front of each line below if `whoami` above
+wasn't `root`.
+
+```bash
 adduser --system --group --home /opt/cashier cashier
 mkdir -p /opt/cashier
+chown cashier:cashier /opt/cashier
 ```
 
-**From your laptop**, from inside the unpacked project directory:
+This user owns nothing but `/opt/cashier` and can't log in interactively
+(`--system` gives it no password and no shell). It exists so the cashier's
+files, process, and GitHub deploy key are isolated from the `boltdash` user
+running the game next to it.
+
+### 3.3 Generate the deploy key and register it on GitHub
 
 ```bash
-cd ~/wherever/you/unpacked/cashier-demo    # ls should show package.json and server/
-npm run build
-./deploy/push.sh                            # defaults to root@boltda.sh:/opt/cashier
-```
-
-`push.sh` checks it is standing in the project and that a build exists before it
-copies anything, and it proves it can log in before it starts. Override the
-target if you need to:
-
-```bash
-HOST=youruser@boltda.sh ./deploy/push.sh
-SSH_KEY=~/.ssh/id_ed25519 ./deploy/push.sh
-```
-
-Do not run a bare `rsync ... ./ host:/opt/cashier/` without checking your working
-directory first. From a home directory that copies your home directory, keys and
-all, to a public server.
-
-**Back on the droplet** (after either `push.sh` or the GitHub clone below):
-
-```bash
-cd /opt/cashier
-npm install --omit=dev      # skip this if you used the GitHub path; npm ci already ran
-cp .env.example .env && $EDITOR .env          # paste the key, wallet id, pin
-chown -R cashier:cashier /opt/cashier
-chmod 600 .env
-
-cp deploy/cashier.service /etc/systemd/system/
-systemctl enable --now cashier
-systemctl status cashier --no-pager
-```
-
-### Alternative: deploy from GitHub instead of rsync
-
-The cashier now lives in its own repo (`Jestopher-BTC/cashier-demo`, private).
-Instead of pushing files from your laptop, the droplet can pull the repo
-itself over a read-only deploy key. This sidesteps needing your personal
-laptop-to-droplet SSH key to work at all; it only needs to work once, to add
-the deploy key.
-
-**Once, on the droplet:**
-
-```bash
-sudo -u cashier ssh-keygen -t ed25519 -f /opt/cashier-deploy-key -N ""
-cat /opt/cashier-deploy-key.pub
-```
-
-Paste that public key into the GitHub repo: **Settings → Deploy keys → Add
-deploy key**. Leave "Allow write access" unchecked; the droplet only ever
-reads.
-
-```bash
-sudo -u cashier git -C /opt/cashier init 2>/dev/null || true
+sudo -u cashier ssh-keygen -t ed25519 -f /opt/cashier/.ssh/deploy_key -N "" -C "cashier-demo@boltda.sh"
 sudo -u cashier mkdir -p /opt/cashier/.ssh
+sudo cat /opt/cashier/.ssh/deploy_key.pub
+```
+
+Copy that output (one line, starts `ssh-ed25519`). In a browser, on your
+laptop: open `github.com/Jestopher-BTC/cashier-demo` → **Settings → Deploy
+keys → Add deploy key**. Paste the key, give it a title like "boltda.sh
+cashier", and leave **Allow write access** unchecked — read-only is all this
+server ever needs. Click **Add key**.
+
+Back on the server, tell SSH to use that key specifically when talking to
+GitHub for this user:
+
+```bash
 sudo -u cashier bash -c 'cat > /opt/cashier/.ssh/config' <<'EOF'
 Host github.com
-  IdentityFile /opt/cashier-deploy-key
+  IdentityFile /opt/cashier/.ssh/deploy_key
   IdentitiesOnly yes
 EOF
+sudo chmod 600 /opt/cashier/.ssh/deploy_key
+sudo chmod 700 /opt/cashier/.ssh
+sudo chown -R cashier:cashier /opt/cashier/.ssh
+```
 
-# first clone (directory must be empty or absent)
+### 3.4 Clone the repo
+
+```bash
 sudo -u cashier git clone git@github.com:Jestopher-BTC/cashier-demo.git /opt/cashier
 ```
 
-**Every deploy after that**, from an SSH session on the droplet (or from your
-laptop's terminal once its own SSH access works, running a remote command):
+If this is the very first thing landing in `/opt/cashier`, `git clone` needs
+the directory empty (not just owned by `cashier` — actually empty). If step
+3.2 already created it empty, this just works.
+
+### 3.5 Secrets, build, and the systemd service
 
 ```bash
-cd /opt/cashier && ./deploy/pull-deploy.sh
+cd /opt/cashier
+sudo -u cashier cp .env.example .env
+sudo -u cashier $EDITOR .env          # paste the Amboss key, wallet id, operator pin
+sudo chmod 600 /opt/cashier/.env
+
+sudo -u cashier npm ci                # full install, the build step needs devDependencies
+sudo -u cashier npm run build
+
+sudo cp deploy/cashier.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now cashier
+sudo systemctl status cashier --no-pager
 ```
 
-`pull-deploy.sh` does `git fetch` + `git reset --hard origin/main`, `npm ci`,
-`npm run build`, then restarts the `cashier` service. It never touches `.env`.
-Because the build now happens on the droplet, it needs the full dependency
-list (`npm ci`, not `--omit=dev`) — plan for that the first time you set this
-up, even though runtime itself needs nothing beyond Node and `server/`.
+### 3.6 Add the Caddy route
 
-### If ssh says `Permission denied (publickey)`
+`boltda.sh` already has a Caddy block for Bolt Dash. Don't add a second
+`boltda.sh { }` block — open `/etc/caddy/Caddyfile` and add these two lines
+*inside* the existing one (they're also in `deploy/Caddyfile` in the repo, as
+a copy-paste reference):
 
-The host is fine, the key is not. In order:
+```
+	redir /cashier /cashier/
+	handle_path /cashier/* {
+		reverse_proxy 127.0.0.1:8080
+	}
+```
+
+Bolt Dash listens on port 3000; the cashier defaults to 8080. No collision.
+
+```bash
+sudo systemctl reload caddy
+curl -s https://boltda.sh/cashier/healthz | jq
+```
+
+`ok: true` means the API answered, the wallet is ready, and the rate source is
+alive. Anything else prints which check failed and why.
+
+## Every deploy after the first
+
+From wherever you're editing (your laptop, or here):
+
+```bash
+git push
+```
+
+Then on the server:
+
+```bash
+ssh boltdash
+sudo /opt/cashier/deploy/pull-deploy.sh
+```
+
+That script does `git fetch` + `git reset --hard origin/main`, `npm ci`,
+`npm run build`, and restarts the `cashier` service, running the git/npm steps
+as the `cashier` user (so file ownership stays correct) and the restart as
+root (systemd needs it). It never touches `.env`.
+
+### Fallback: pushing files directly instead of through GitHub
+
+If GitHub is ever unreachable from the server, or you just want to push a
+one-off build straight from your laptop without touching the repo, the old
+path still works: `npm run build` locally, then `./deploy/push.sh` (defaults
+to `root@boltda.sh:/opt/cashier` — override with `HOST=cashier@boltda.sh
+./deploy/push.sh` to go straight to the app user; it needs write access to
+`/opt/cashier`, so check that user actually has a login-capable key first).
+It refuses to run from your home directory and proves it can log in before it
+copies anything.
+
+### If ssh ever says `Permission denied (publickey)`
+
+Not the current situation on `boltda.sh` — your `boltdash` alias already
+works — but useful the next time you set this up on a fresh box:
 
 ```bash
 ssh-add -l                       # is any key loaded?
 ssh-add ~/.ssh/id_ed25519        # load it if not
-
-ssh -v root@boltda.sh 2>&1 | grep -Ei 'offering|authentications|denied'
+ssh -v root@thathost 2>&1 | grep -Ei 'offering|authentications|denied'
 ```
 
-That last line shows which keys get offered and what the server will accept. If
-it offers a key and still gets refused, the droplet does not have that public
-key for that user. Two likely causes: the droplet was built with a sudo user
-rather than root, so try `HOST=youruser@boltda.sh`, or the key lives on a
-different machine.
-
-To fix it from scratch, use the DigitalOcean web console (Droplet → Access →
-Launch Console), log in there, and add your key by hand:
+If it offers a key and still gets refused, the box doesn't have that public
+key for that user yet. Fix it from the cloud provider's web console (for
+DigitalOcean: Droplet → Access → Launch Console), log in there, and add the
+key by hand:
 
 ```bash
 mkdir -p ~/.ssh && chmod 700 ~/.ssh
@@ -203,25 +272,6 @@ chmod 600 ~/.ssh/authorized_keys
 grep PermitRootLogin /etc/ssh/sshd_config     # want prohibit-password
 systemctl reload ssh
 ```
-
-Get the public key from your laptop with `cat ~/.ssh/id_ed25519.pub`.
-
-Over the `push.sh` path, the build output ships in `public/`, so the droplet
-needs no build toolchain — run `npm run build` on your laptop and
-`./deploy/push.sh` again after a UI change. Over the GitHub path, the droplet
-builds it itself; `git push` then `./deploy/pull-deploy.sh` on the droplet.
-
-Then merge `deploy/Caddyfile` into `/etc/caddy/Caddyfile` and
-`systemctl reload caddy`.
-
-Check it:
-
-```bash
-curl -s https://boltda.sh/cashier/healthz | jq
-```
-
-`ok: true` means the API answered, the wallet is ready, and the rate source is
-alive. Anything else prints which check failed and why.
 
 ---
 

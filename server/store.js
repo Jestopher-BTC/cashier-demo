@@ -7,10 +7,9 @@ import { config, round2 } from "./config.js";
 
 let cached = { usdPerBtc: config.usdPerBtc, at: 0, source: "config" };
 
-export async function getRate() {
-  if (config.asset !== "BTC") return { usdPerBtc: 1, source: "n/a" };
+async function fetchBtcUsdRate() {
   if (config.rateSource === "static") return { usdPerBtc: config.usdPerBtc, source: "static" };
-  if (Date.now() - cached.at < 60000) return cached;
+  if (Date.now() - cached.at < 60000 && cached.source !== "config") return cached;
 
   try {
     const ctrl = new AbortController();
@@ -28,6 +27,26 @@ export async function getRate() {
     /* Keep the last good rate. If there never was one, fall back to config. */
     return { usdPerBtc: cached.usdPerBtc || config.usdPerBtc, at: cached.at, source: "stale" };
   }
+}
+
+/* For a stablecoin wallet, a dollar amount IS the settlement amount -- no BTC
+   rate needed, so this returns the "1" shortcut. Used for deposit/withdraw
+   amounts that are already denominated in dollars. */
+export async function getRate() {
+  if (config.asset !== "BTC") return { usdPerBtc: 1, source: "n/a" };
+  return fetchBtcUsdRate();
+}
+
+/* Always a REAL BTC/USD market rate, regardless of the wallet's settlement
+   asset. A BOLT11 invoice is sat-denominated no matter what the wallet
+   settles in, so pricing one in dollars needs the real rate even on a
+   stablecoin wallet. Using the getRate() "1" shortcut here was a real bug: it
+   let an invoice worth hundreds of real dollars pass a $1-$100 cap check that
+   thought it cost a fraction of a cent, because 1,000,000 sats / 1e8 * 1 came
+   out to $0.01 instead of ~$811 at the real rate. See HANDOFF.md if this file
+   moves. */
+export async function getInvoiceUsdRate() {
+  return fetchBtcUsdRate();
 }
 
 /* ------------------------------------------------------------ sessions --- */

@@ -8,6 +8,7 @@ import { amboss as liveAmboss } from "./amboss.js";
 import { mockAmboss } from "./mock-amboss.js";
 import {
   getRate,
+  getInvoiceUsdRate,
   newSession,
   getSession,
   fundSession,
@@ -256,13 +257,20 @@ async function handleApi(req, res, url) {
     if (dest.kind === "address" && !addressPayouts.supported)
       return fail(res, 400, "This wallet pays invoices only. Ask for an invoice with an amount on it.");
 
-    const { usdPerBtc } = await getRate();
     let amountUsd;
+    let usdPerBtc;
     if (dest.kind === "invoice") {
+      /* A BOLT11 invoice is sat-denominated no matter what the wallet
+         settles in -- always price it against the real BTC/USD rate, never
+         the stablecoin "1" shortcut. Getting this wrong previously let an
+         invoice worth hundreds of real dollars pass the cap check thinking
+         it cost a fraction of a cent. */
+      ({ usdPerBtc } = await getInvoiceUsdRate());
       amountUsd = round2((dest.satAmount / 1e8) * usdPerBtc);
     } else {
       amountUsd = round2(Number(body.amountUsd));
       if (!isFinite(amountUsd) || amountUsd <= 0) return fail(res, 400, "Enter an amount.");
+      ({ usdPerBtc } = await getRate());
     }
 
     if (amountUsd < config.minWithdrawUsd || amountUsd > config.maxWithdrawUsd)

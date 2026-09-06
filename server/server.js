@@ -3,7 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { config, assertReady, money, round2 } from "./config.js";
+import { config, assertReady, money, addressSendAmounts, round2 } from "./config.js";
 import { amboss as liveAmboss } from "./amboss.js";
 import { mockAmboss } from "./mock-amboss.js";
 import {
@@ -301,7 +301,8 @@ async function handleApi(req, res, url) {
       return fail(res, 400, "This wallet pays invoices only. Ask for an invoice with an amount on it.");
 
     let amountUsd;
-    let usdPerBtc;
+    let walletRate;
+    let btcUsdRate = null;
     if (dest.kind === "invoice") {
       /* A BOLT11 invoice is sat-denominated no matter what the wallet
          settles in -- always price it against the real BTC/USD rate, never
@@ -309,7 +310,7 @@ async function handleApi(req, res, url) {
          invoice worth hundreds of real dollars pass the cap check thinking
          it cost a fraction of a cent. */
       try {
-        ({ usdPerBtc } = await getInvoiceUsdRate());
+        ({ usdPerBtc: btcUsdRate } = await getInvoiceUsdRate());
       } catch (e) {
         return fail(
           res,
@@ -317,11 +318,27 @@ async function handleApi(req, res, url) {
           "No usable exchange rate right now. Invoice cash-outs are blocked so we do not send the wrong amount."
         );
       }
-      amountUsd = round2((dest.satAmount / 1e8) * usdPerBtc);
+      amountUsd = round2((dest.satAmount / 1e8) * btcUsdRate);
+      ({ usdPerBtc: walletRate } = await getRate());
     } else {
       amountUsd = round2(Number(body.amountUsd));
       if (!isFinite(amountUsd) || amountUsd <= 0) return fail(res, 400, "Enter an amount.");
-      ({ usdPerBtc } = await getRate());
+      ({ usdPerBtc: walletRate } = await getRate());
+      /* Cashtag / Lightning address sends go through LNURL. The SDK field
+         is amountSats, so we need a real BTC/USD rate even on USDT — not
+         to price the player's dollars, but to express those dollars in sats.
+         Wallet minor units stay separate ($1 USDT → 1_000_000). */
+      if (dest.kind === "address") {
+        try {
+          ({ usdPerBtc: btcUsdRate } = await getInvoiceUsdRate());
+        } catch (e) {
+          return fail(
+            res,
+            503,
+            "No usable exchange rate right now. Cash-outs are blocked so we do not send the wrong amount."
+          );
+        }
+      }
     }
 
     if (amountUsd < config.minWithdrawUsd || amountUsd > config.maxWithdrawUsd)
@@ -350,7 +367,7 @@ async function handleApi(req, res, url) {
           ? await api.sendBolt11({ bolt11: dest.bolt11, idempotencyKey, metadata: { demo: "cashier" } })
           : await api.sendAddress({
               lightningAddress: dest.address,
-              amountMinor: money.usdToMinor(amountUsd, usdPerBtc),
+              ...addressSendAmounts(amountUsd, walletRate, btcUsdRate ?? walletRate),
               idempotencyKey,
               metadata: { demo: "cashier" },
             });

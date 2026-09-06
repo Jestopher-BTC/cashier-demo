@@ -58,8 +58,8 @@ export const mockAmboss = {
     return send(String(bolt11).length, idempotencyKey);
   },
 
-  async sendAddress({ amountMinor, idempotencyKey }) {
-    return send(Number(amountMinor), idempotencyKey);
+  async sendAddress({ amountMinor, amountSats, idempotencyKey }) {
+    return send(Number(amountMinor), idempotencyKey, amountSats);
   },
 
   async sendReady() {
@@ -89,7 +89,7 @@ export const mockAmboss = {
   },
 };
 
-function send(amountMinor, idempotencyKey) {
+function send(amountMinor, idempotencyKey, amountSats) {
   const txId = id("tx");
   const tx = {
     id: txId,
@@ -100,6 +100,7 @@ function send(amountMinor, idempotencyKey) {
     exchange_rate: null,
     error: null,
     idempotencyKey,
+    amountSats: amountSats != null ? String(amountSats) : undefined,
     settleAt: Date.now() + 1200,
   };
   txs.set(txId, tx);

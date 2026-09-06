@@ -64,9 +64,9 @@ async function fetchBtcUsdRate() {
 }
 
 /* For a stablecoin wallet, a dollar amount IS the settlement amount -- no BTC
-   rate needed, so this returns the "1" shortcut. Used for deposit/withdraw
-   amounts that are already denominated in dollars. Never use this to price a
-   BOLT11 invoice or to populate /healthz. */
+   rate needed, so this returns the "1" shortcut. Used for deposit amounts and
+   wallet-minor-unit math. Never use this to price a BOLT11 invoice, to
+   populate /healthz, or as SDK amountSats on a Lightning address send. */
 export async function getRate() {
   if (config.asset !== "BTC") return { usdPerBtc: 1, source: "n/a" };
   return fetchBtcUsdRate();

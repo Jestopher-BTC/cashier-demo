@@ -70,10 +70,7 @@ function MockMode({ theme }) {
       <PaymentsProvider defaultTheme={theme} demo={true} initialBalanceUsd={1247.85}>
         <Screens />
       </PaymentsProvider>
-      <p className="stage-note">
-        Amboss Payments cashier for iGaming. Deposit and cash out in dollars. Demo controls skip the
-        wait.
-      </p>
+      <p className="stage-note">Amboss Payments cashier for iGaming. Deposit and cash out in dollars.</p>
     </div>
   );
 }

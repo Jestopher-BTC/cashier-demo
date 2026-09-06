@@ -1529,9 +1529,9 @@ export function WalletView({ onDeposit, onWithdraw }) {
           Withdrawable balance
         </span>
         <div style={{ fontSize: 38, fontWeight: 700, color: theme.text, marginTop: 10, ...NUM }}>{usd(balance)}</div>
-        <div style={{ fontSize: 12, color: theme.muted, marginTop: 6, lineHeight: 1.45 }}>Available to play or cash out</div>
+        <div style={{ fontSize: 12, color: theme.muted, marginTop: 8, lineHeight: 1.45 }}>Available to play or cash out</div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 20 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 24 }}>
           <Button theme={theme} onClick={onDeposit} full>
             Deposit
           </Button>
@@ -1821,9 +1821,6 @@ export function WithdrawFlow({ onExit, onDone }) {
     return (
       <div className="amb-rise">
         <BackBar theme={theme} title="Cash out" onBack={onExit} />
-        <div style={{ color: theme.muted, fontSize: 13.5, lineHeight: 1.5, marginBottom: 20 }}>
-          Cashtag, Lightning address, or invoice.
-        </div>
 
         <div
           style={{

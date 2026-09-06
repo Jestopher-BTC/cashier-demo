@@ -9,6 +9,7 @@ import {
 } from "./AmbossCashierMock.jsx";
 import { SECTIONS, SOURCE } from "./generated-sections.js";
 import { highlight } from "./highlight.js";
+import { AmbossLogo } from "./AmbossLogo.jsx";
 import { createLiveApi } from "./live-api.js";
 
 const HOST = (typeof window !== "undefined" && window.__CASHIER__) || { live: false };
@@ -70,10 +71,7 @@ function MockMode({ theme }) {
       <PaymentsProvider defaultTheme={theme} demo={true} initialBalanceUsd={1247.85}>
         <Screens />
       </PaymentsProvider>
-      <p className="stage-note">
-        Nothing here touches a network. Demo controls under each screen drive the states you would
-        otherwise have to wait for.
-      </p>
+      <p className="stage-note">Amboss Payments cashier for iGaming. Deposit and cash out in dollars.</p>
     </div>
   );
 }
@@ -225,12 +223,15 @@ function PinDialog({ value, error, busy, onChange, onCancel, onSubmit }) {
         }}
       >
         <h2 id="pin-title">Operator PIN</h2>
-        <p>Needed only to fund this visitor. Anyone can look at Live UI without it.</p>
+        <p>Needed to fund this visitor. Live UI stays open without it.</p>
         <input
           className="pin-input"
           type="password"
           inputMode="numeric"
+          pattern="[0-9]*"
           autoComplete="one-time-code"
+          autoCapitalize="none"
+          autoCorrect="off"
           autoFocus
           value={value}
           disabled={busy}
@@ -368,7 +369,7 @@ function LiveMode({ theme }) {
       <div className="stage">
         <div className="offline-card">
           <h2>Connecting</h2>
-          <p className="dim">Opening a session against the Payments API.</p>
+          <p className="dim">Connecting to Amboss Payments.</p>
         </div>
       </div>
     );
@@ -440,7 +441,7 @@ function LiveMode({ theme }) {
       </PaymentsProvider>
 
       <p className="stage-note">
-        Real invoices, real payouts, real money. Tap New visitor between demos to clear the balance.
+        Live deposit and cash out through Amboss Payments. Tap New visitor between demos.
       </p>
 
       {pinOpen ? (
@@ -477,7 +478,7 @@ export default function App() {
       <Styles />
       <header className="topbar">
         <div className="brand">
-          <span className="glyph">$</span>
+          <AmbossLogo gid="amboss-grad-brand" className="brand-logo" />
           <span className="brand-text">
             <strong>Cashier</strong>
             <em>Amboss Payments</em>
@@ -523,6 +524,18 @@ export default function App() {
           <LiveMode theme={theme} />
         )}
       </main>
+
+      {mode !== "code" ? (
+        <footer className="booth-foot">
+          <AmbossLogo gid="amboss-grad-foot" className="booth-foot-logo" />
+          <p>
+            Powered by Amboss Payments · Get started at{" "}
+            <a href="https://amboss.tech" target="_blank" rel="noopener noreferrer">
+              amboss.tech
+            </a>
+          </p>
+        </footer>
+      ) : null}
     </div>
   );
 }

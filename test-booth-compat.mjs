@@ -63,6 +63,8 @@ check("dialog copy", txt().includes("Operator PIN") && txt().includes("Live UI")
 
 const pinInput = d.querySelector(".pin-input");
 check("pin field present", Boolean(pinInput));
+check("pin inputmode numeric", pinInput && pinInput.inputMode === "numeric", pinInput && pinInput.inputMode);
+check("pin pattern digits", pinInput && pinInput.getAttribute("pattern") === "[0-9]*", pinInput && pinInput.getAttribute("pattern"));
 await type(pinInput, "0000");
 await click(Array.from(d.querySelectorAll("button")).find((b) => b.textContent.indexOf("Unlock") !== -1), 600);
 check("wrong pin stays in dialog", Boolean(d.querySelector(".pin-overlay")));

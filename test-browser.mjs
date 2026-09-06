@@ -51,7 +51,11 @@ check("deposit screen", txt().includes("How much do you want to add"));
 await type(d.querySelector("input"), "3");
 await click(btn("Continue"), 900);
 check("real invoice returned", /lnbc\d+n1p/i.test(d.querySelector(".codewrap, .phone").textContent) || d.querySelectorAll("svg[role='img']").length > 0);
-check("QR rendered", d.querySelectorAll("svg[role='img']").length === 1);
+check(
+  "QR rendered",
+  d.querySelectorAll('svg[aria-label="Lightning invoice QR code"]').length === 1,
+  "qr=" + d.querySelectorAll('svg[aria-label="Lightning invoice QR code"]').length + " img=" + d.querySelectorAll("svg[role='img']").length
+);
 check("amount in dollars", txt().includes("$3.00"));
 check("sats hint present", /may show this as 3,000 sats/.test(txt()), txt().match(/may show[^.]*/));
 

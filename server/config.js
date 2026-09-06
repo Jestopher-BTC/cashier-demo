@@ -29,6 +29,12 @@ export const config = {
   graphqlUrl: env("AMBOSS_GRAPHQL_URL", "https://app.amboss.tech/graphql"),
   apiKey: env("AMBOSS_API_KEY", ""),
   walletId: env("AMBOSS_WALLET_ID", ""),
+  /* Team password for the official Payments SDK send path. Decrypts the node
+     macaroon in-process; never sent to the API. Required for live payouts.
+     TEAM_PASSWORD is accepted as an alias. */
+  teamPassword: env("AMBOSS_TEAM_PASSWORD", "") || env("TEAM_PASSWORD", ""),
+  /* Optional Argon2 salt override. The SDK reads team_id from the wallet. */
+  teamId: env("AMBOSS_TEAM_ID", ""),
 
   asset,
   /* BTC counts in sats (precision 8). Stablecoins count in micro-units (6). */
@@ -58,6 +64,14 @@ export const config = {
   live: true,
 };
 
+export function isSandboxApiKey(key = config.apiKey) {
+  return String(key || "").startsWith("amb_test_");
+}
+
+export function isLiveApiKey(key = config.apiKey) {
+  return String(key || "").startsWith("amb_live_");
+}
+
 export function assertReady() {
   if (config.mock) return;
   const missing = [];
@@ -66,6 +80,13 @@ export function assertReady() {
   if (missing.length)
     throw new Error(
       `Missing ${missing.join(" and ")}. Set them in .env, or run with MOCK_AMBOSS=1 to work without the API.`
+    );
+  /* Live payouts go through payments.transactions.send, which decrypts the
+     node macaroon with the team password. Sandbox keys (amb_test_) settle
+     server-side and do not need it. */
+  if (!config.teamPassword && !isSandboxApiKey())
+    throw new Error(
+      "Missing AMBOSS_TEAM_PASSWORD. Live payouts use the Amboss Payments SDK send path, which needs the team password to decrypt wallet credentials. Set it in .env. The API key must also have WALLET_CREDENTIALS: READ (and WALLETS: READ, PAYMENTS: WRITE), scoped to AMBOSS_WALLET_ID."
     );
   if (config.asset === "BTC" && config.rateSource === "static" && config.usdPerBtc === 100000)
     console.warn("[warn] RATE_SOURCE=static with the default USD_PER_BTC. Set a real rate.");

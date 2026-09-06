@@ -147,6 +147,7 @@ console.log("\nhealth");
 const health = await fetch(BASE + "/healthz");
 const hj = await health.json();
 check("healthz ok in mock", health.status === 200 && hj.ok === true, hj);
+check("healthz send path is ready in mock", hj.checks.send && hj.checks.send.ok === true, hj.checks.send);
 check(
   "healthz rate is a real BTC/USD figure, not the $1/n/a shortcut",
   hj.checks.rate.ok === true && hj.checks.rate.usdPerBtc === 100000 && hj.checks.rate.source === "static",

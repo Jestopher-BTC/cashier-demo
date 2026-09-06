@@ -354,7 +354,7 @@ async function handleApi(req, res, url) {
               idempotencyKey,
               metadata: { demo: "cashier" },
             });
-      if (dest.kind === "address") {
+      if (dest.kind === "address" && String(tx.status || "").toLowerCase() === "completed") {
         addressPayouts.supported = true;
         addressPayouts.verified = true;
         addressPayouts.lastError = null;
@@ -454,6 +454,12 @@ async function health(res) {
   } catch (e) {
     out.checks.wallet = { ok: false, error: e.message };
   }
+  try {
+    const send = await api.sendReady();
+    out.checks.send = send;
+  } catch (e) {
+    out.checks.send = { ok: false, error: e.message };
+  }
   out.ok = Object.values(out.checks).every((c) => c.ok);
   return send(res, out.ok ? 200 : 503, out);
 }
@@ -499,6 +505,15 @@ server.listen(config.port, () => {
   console.log(`cashier demo on :${config.port}`);
   console.log(`  asset            ${config.asset}${config.mock ? " (mock Amboss)" : ""}`);
   console.log(`  address payouts  ${config.addressPayouts ? "on" : "off, invoices only"}`);
+  console.log(
+    `  send path        ${
+      config.mock
+        ? "mock"
+        : config.teamPassword
+          ? "SDK + team password"
+          : "SDK (sandbox, no password)"
+    }`
+  );
   console.log(`  caps             deposit $${config.maxDepositUsd}, cash out $${config.maxWithdrawUsd}`);
   console.log(`  daily float      $${config.dailyFloatUsd}`);
 });

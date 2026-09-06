@@ -19,7 +19,7 @@ Everything below is built, tested, and packaged. Nothing is half-finished.
 | Cashier components | `src/AmbossCashierMock.jsx` (2,055 lines, single file) | done |
 | Three-mode booth app | `src/shell.jsx` → `public/` | done |
 | Offline single file | `offline/cashier-offline.html` | done |
-| Demo server | `server/` | done, zero dependencies |
+| Demo server | `server/` | done; live payouts use `@ambosstech/payments` |
 | Deploy kit | `deploy/`, `DEPLOY.md` | done |
 | Address-payout probe | `probe-address-payout.mjs` | written, **never run against the real API** |
 
@@ -71,7 +71,7 @@ src/
   generated-sections.js   BUILD ARTEFACT. Never edit; build.mjs rewrites it.
 server/
   server.js               routes, caps, session gate, capability detection
-  amboss.js               GraphQL client, four operations
+  amboss.js               GraphQL receive/poll + official SDK send path
   config.js               every env knob, plus minor-unit maths
   store.js                rate cache, sessions, daily float
   mock-amboss.js          fake API for dry runs (MOCK_AMBOSS=1)
@@ -96,6 +96,8 @@ changes. This is the demo's punchline. Protect it.
 1. `createInvoice({ amountUsd, usdPerBtc })` → `{ id, invoice, satAmount, amountUsd, expiresAt }`
 2. `watchInvoice(request, onPaid)` → returns an unsubscribe function
 3. `sendPayment({ amountUsd, destination })` → `{ status: complete | pending | failed }`
+   Live implementation calls `@ambosstech/payments` `transactions.send` with
+   `AMBOSS_TEAM_PASSWORD`. GraphQL `create_send` alone does not pay a live wallet.
 4. `loadState()` optional → `{ balanceUsd, transactions }`. When present the
    provider treats the server as authoritative and stops doing its own
    arithmetic. `resetSession()` pairs with it.
@@ -119,13 +121,14 @@ production path and are worth mentioning to prospects, but do not add them here.
   (The send-payments page shows `rails.amboss.tech` in one curl sample; the
   integrate and wallets pages say `app.amboss.tech`. We use `app`, overridable
   via `AMBOSS_GRAPHQL_URL`.)
-- **Key permissions: `PAYMENTS: WRITE` plus `WALLETS: READ`, scoped to the
-  wallet id.** `create_send` and `create_receive` both sit under `PAYMENTS`.
-  `WALLET_CREDENTIALS` is read-only, gates only `wallet.node_permissions`
-  (encrypted macaroons for driving LND yourself), and granting it would *break*
-  the key: it forces wallet scoping plus a team password and an Argon2id
-  `password_hash` on every request, which we do not send. This came up once
-  already; the reasoning is in DEPLOY.md section 2.
+- **Key permissions: `PAYMENTS: WRITE`, `WALLETS: READ`, and
+  `WALLET_CREDENTIALS: READ`, scoped to the wallet id.** Receive invoices only
+  need `PAYMENTS`. Live *sends* use `@ambosstech/payments` `transactions.send`,
+  which decrypts `wallet.node_permissions` with the team password and pays the
+  node. That is the same path as the Amboss Payments UI. `AMBOSS_TEAM_PASSWORD`
+  is required for `amb_live_` keys. Do not skip `WALLET_CREDENTIALS` — a
+  previous writeup claimed it would break the key; the opposite is true, and
+  omitting it is why cashier-demo payouts failed while the Amboss UI succeeded.
 - Amounts are **decimal strings in minor units**. BTC precision 8 (sats), USDT
   and USDC precision 6. The validator regex is `/^[1-9]\d*$/`, so `"0"` and
   leading zeros are rejected. Never send JS numbers.

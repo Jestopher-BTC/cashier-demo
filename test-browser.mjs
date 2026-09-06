@@ -42,7 +42,7 @@ check("chips render", d.querySelectorAll(".chip").length >= 12, d.querySelectorA
 const seam = Array.from(d.querySelectorAll(".chip")).find((c) => c.textContent === "SDK seams");
 await click(seam);
 check("seam section opens", d.querySelector(".note h2").textContent === "SDK seams");
-check("seam code shown", d.querySelector(".codewrap").textContent.includes("createInvoice"));
+check("seam code shown", d.querySelector(".mock-source .codewrap").textContent.includes("createInvoice"));
 check("line numbers", d.querySelector("td.ln").textContent.trim().length > 0);
 
 console.log("\nlive mode");

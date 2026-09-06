@@ -25,8 +25,9 @@ console.log("\ndefault cheat-sheet");
 await click(btn("Code View"));
 check("official SDK heading", txt().includes("Official SDK"));
 check("createReceive shown", txt().includes("createReceive"));
-check("transactions.send shown", txt().includes("transactions.send"));
-check("webhooks.verify shown", txt().includes("webhooks.verify"));
+check("send tab present", Boolean(d.querySelector('[data-sdk-tab="send"]')));
+check("webhook tab present", Boolean(d.querySelector('[data-sdk-tab="webhook"]')));
+check("inactive send code collapsed", !d.querySelector('[data-snippet="send"] .codewrap'));
 check("sandbox metadata", txt().includes("amb_sandbox_behavior"));
 check("map line", txt().includes("mockApi.createInvoice") && txt().includes("payments.transactions.createReceive"));
 check("full walkthrough CTA", Boolean(d.querySelector('a.sdk-cta')) && /getting-started/.test(d.querySelector("a.sdk-cta").href));
@@ -40,8 +41,11 @@ check("copy buttons on snippets", Array.from(d.querySelectorAll("[data-snippet] 
 console.log("\ntabs");
 await click(d.querySelector('[data-sdk-tab="send"]'));
 check("send tab highlights send", d.querySelector('[data-snippet="send"]').getAttribute("data-active") === "true");
+check("send code shown", txt().includes("transactions.send") && txt().includes("lightningAddress"));
+check("receive code collapsed", !d.querySelector('[data-snippet="receive"] .codewrap'));
 await click(d.querySelector('[data-sdk-tab="webhook"]'));
 check("webhook tab highlights webhook", d.querySelector('[data-snippet="webhook"]').getAttribute("data-active") === "true");
+check("webhook code shown", txt().includes("webhooks.verify"));
 
 console.log("\ncollapsed mock source");
 await click(btn("Show full mock source"));

@@ -120,7 +120,7 @@ function DocLinks({ links }) {
   );
 }
 
-function SnippetCard({ snippet, active, copied, onCopy }) {
+function SnippetCard({ snippet, active, copied, onCopy, onSelect }) {
   const html = useMemo(
     function () {
       return highlight(snippet.code.replace(/\s+$/, "")).split("\n");
@@ -133,6 +133,9 @@ function SnippetCard({ snippet, active, copied, onCopy }) {
       className={"sdk-card" + (active ? " on" : "")}
       data-snippet={snippet.id}
       data-active={active ? "true" : "false"}
+      onClick={function () {
+        if (!active && onSelect) onSelect(snippet.id);
+      }}
     >
       <div className="sdk-card-head">
         <h3>{snippet.title}</h3>
@@ -149,21 +152,23 @@ function SnippetCard({ snippet, active, copied, onCopy }) {
         </button>
       </div>
       {snippet.note ? <p className="sdk-card-note">{snippet.note}</p> : null}
-      <div className="codewrap sdk-card-code">
-        <pre className="code">
-          <table>
-            <tbody>
-              {html.map(function (line, i) {
-                return (
-                  <tr key={i}>
-                    <td className="src" dangerouslySetInnerHTML={{ __html: line || " " }} />
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </pre>
-      </div>
+      {active ? (
+        <div className="codewrap sdk-card-code">
+          <pre className="code">
+            <table>
+              <tbody>
+                {html.map(function (line, i) {
+                  return (
+                    <tr key={i}>
+                      <td className="src" dangerouslySetInnerHTML={{ __html: line || " " }} />
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </pre>
+        </div>
+      ) : null}
     </article>
   );
 }
@@ -290,7 +295,7 @@ function CodeMode({ focusAction }) {
       var card = root.querySelector('[data-snippet="' + active + '"]');
       if (card && card.scrollIntoView) {
         try {
-          card.scrollIntoView({ block: "nearest", behavior: "smooth" });
+          card.scrollIntoView({ block: "start" });
         } catch (e) {
           card.scrollIntoView(true);
         }
@@ -373,6 +378,7 @@ function CodeMode({ focusAction }) {
               active={active === s.id}
               copied={copied}
               onCopy={copy}
+              onSelect={setActive}
             />
           );
         })}

@@ -206,9 +206,11 @@ export const amboss = {
   },
 
   /* Seam 3b. Pay a Lightning address / cashtag via the same SDK send path.
-     amountSats is the SDK field name; the value is the wallet asset's minor
-     units (sats on BTC, micro-units on USDT), same as GraphQL address.amount. */
-  async sendAddress({ lightningAddress, amountMinor, idempotencyKey, metadata }) {
-    return sdkSend({ lightningAddress, amountSats: String(amountMinor) }, idempotencyKey, metadata);
+     The SDK field is amountSats and LNURL is sat-denominated. Pass sats
+     here, never USDT/USDC micro-units — $1 as 1_000_000 is 0.01 BTC. */
+  async sendAddress({ lightningAddress, amountSats, amountMinor, idempotencyKey, metadata }) {
+    const sats = amountSats != null ? amountSats : amountMinor;
+    if (sats == null) throw new Error("sendAddress requires amountSats");
+    return sdkSend({ lightningAddress, amountSats: String(sats) }, idempotencyKey, metadata);
   },
 };

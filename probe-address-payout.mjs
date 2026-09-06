@@ -12,10 +12,10 @@
  * you whether it actually routes.
  */
 
-import { config, assertReady, money } from "./server/config.js";
+import { config, assertReady, addressSendAmounts } from "./server/config.js";
 import { amboss as liveAmboss } from "./server/amboss.js";
 import { mockAmboss } from "./server/mock-amboss.js";
-import { getRate } from "./server/store.js";
+import { getRate, getInvoiceUsdRate } from "./server/store.js";
 
 /* MOCK_AMBOSS=1 exercises the script itself without spending anything. */
 const amboss = config.mock ? mockAmboss : liveAmboss;
@@ -65,9 +65,11 @@ if (!armed) {
   process.exit(0);
 }
 
-const { usdPerBtc } = await getRate();
-const amountMinor = money.usdToMinor(usd, usdPerBtc);
-line("sending", amountMinor + " minor units");
+const { usdPerBtc: walletRate } = await getRate();
+const { usdPerBtc: btcUsdRate } = await getInvoiceUsdRate();
+const { amountMinor, amountSats } = addressSendAmounts(usd, walletRate, btcUsdRate);
+line("wallet minor units", amountMinor + (config.asset === "BTC" ? " (sats)" : ""));
+line("LNURL sats", amountSats);
 
 const started = Date.now();
 let tx;
@@ -77,6 +79,7 @@ try {
   tx = await amboss.sendAddress({
     lightningAddress: to,
     amountMinor,
+    amountSats,
     idempotencyKey: `probe-${Date.now()}`,
     metadata: { probe: "address-payout" },
   });
@@ -112,7 +115,7 @@ console.log("Lightning address send from a " + config.asset + " wallet");
 console.log("  endpoint      " + config.graphqlUrl);
 console.log("  wallet        " + config.walletId);
 console.log("  destination   " + to);
-console.log("  amount        " + amountMinor + " minor units ($" + usd.toFixed(2) + ")");
+console.log("  amount        " + amountMinor + " wallet minor / " + amountSats + " sats ($" + usd.toFixed(2) + ")");
 console.log("  result        " + status + " in " + elapsed + "s");
 if (thrown) console.log("  message       " + thrown.message);
 else if (final.error) console.log("  message       " + final.error);

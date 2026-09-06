@@ -112,8 +112,13 @@ const tag = await call("/api/withdraw", {
 });
 check("cashtag send accepted on USDT wallet", tag.status === 200, tag.json);
 check(
-  "cashtag send uses USDT micro-units ($2 -> 2000000), not sats priced at $1/BTC",
+  "cashtag send keeps USDT micro-units ($2 -> 2000000) for wallet math",
   sent[0] && sent[0].lightningAddress === "jestopher@cash.app" && sent[0].amountMinor === 2000000,
+  sent[0]
+);
+check(
+  "cashtag SDK amountSats is $2 in sats at the static rate (2000), not 2000000 micro-USDT",
+  sent[0] && sent[0].amountSats === 2000,
   sent[0]
 );
 
@@ -123,8 +128,13 @@ const addr = await call("/api/withdraw", {
 });
 check("Lightning address send accepted on USDT wallet", addr.status === 200, addr.json);
 check(
-  "Lightning address send uses the same dollar minor units",
+  "Lightning address send keeps the same dollar minor units",
   sent[1] && sent[1].lightningAddress === "player@walletofsatoshi.com" && sent[1].amountMinor === 1000000,
+  sent[1]
+);
+check(
+  "Lightning address SDK amountSats is $1 in sats (1000), not 1000000 micro-USDT",
+  sent[1] && sent[1].amountSats === 1000,
   sent[1]
 );
 

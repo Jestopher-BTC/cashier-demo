@@ -24,7 +24,7 @@ Everything below is built, tested, and packaged. Nothing is half-finished.
 | Address-payout probe | `probe-address-payout.mjs` | written, **never run against the real API** |
 
 Tests, all green: `test-api` 23, `test-browser` 19, `test-session` 7,
-`test-theme` 7.
+`test-theme` 7, `test-usdt-send-amount` (USDT $1 cash-out units).
 
 ---
 
@@ -178,10 +178,11 @@ npm run build          # rewrites generated-sections.js, public/, offline/
 npm run dev            # MOCK_AMBOSS=1, no key, no money, port 8080
 npm start              # real API, needs .env
 
-node test-api.mjs      # server flow: caps, credits, refunds, validation
-node test-browser.mjs  # three modes in jsdom against a live server
-node test-session.mjs  # a reload resumes the balance
-node test-theme.mjs    # chrome and card switch theme together
+node test-api.mjs              # server flow: caps, credits, refunds, validation
+node test-browser.mjs          # three modes in jsdom against a live server
+node test-session.mjs          # a reload resumes the balance
+node test-theme.mjs            # chrome and card switch theme together
+node test-usdt-send-amount.mjs # $1 USDT cash-out is 1e6 minor units, not btc/100
 
 # settle a mock deposit by hand while in dev
 curl -X POST localhost:8080/api/dev/settle/all -H 'content-type: application/json' -d '{}'
@@ -224,6 +225,12 @@ there means the section banners stopped reassembling into the source.
 - **rsync from the wrong directory.** The original deploy line used `./`, which
   from a home directory would upload the home directory. `deploy/push.sh` now
   guards this. Keep the guard.
+- **USDT cash-out `amountSats` is sats, not micro-USDT.** `usdToMinor($1)` is
+  `1_000_000` on a USDT wallet (correct for `create_receive`). The Live SDK
+  field `amountSats` is LNURL satoshis. Passing `1_000_000` there is 0.01 BTC
+  and Amboss RFQ-quotes it to ~$800 USDT. Convert dollars to sats with the
+  real BTC/USD rate for address sends; never multiply a USDT amount by
+  `usdPerBtc`.
 
 ---
 

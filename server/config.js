@@ -95,7 +95,9 @@ export function assertReady() {
 /* --------------------------------------------------------------- money --- */
 
 export const money = {
-  /* USD to the wallet asset's minor unit. */
+  /* USD to the wallet asset's minor unit. USDT/USDC ignore the BTC rate:
+     $1 → 1_000_000 (precision 6). Never multiply a stablecoin cash-out by
+     usdPerBtc — that is how $1 became ~btcPrice/100 on the live wallet. */
   usdToMinor(amountUsd, rate) {
     if (config.asset === "BTC") return Math.round((amountUsd / rate) * 1e8);
     return Math.round(amountUsd * 10 ** config.precision);
@@ -105,11 +107,30 @@ export const money = {
     if (config.asset === "BTC") return round2((n / 1e8) * rate);
     return round2(n / 10 ** config.precision);
   },
+  /* Satoshis for a dollar amount. Lightning addresses resolve over LNURL,
+     which is sat-denominated even when the wallet settles in USDT. The SDK
+     field is amountSats; passing USDT micro-units (1_000_000 for $1) is
+     read as 1e6 sats = 0.01 BTC ≈ $800. Requires a real BTC/USD rate. */
+  usdToSats(amountUsd, usdPerBtc) {
+    if (!isFinite(usdPerBtc) || usdPerBtc <= 1000)
+      throw new Error("usdToSats requires a real BTC/USD rate");
+    return Math.round((amountUsd / usdPerBtc) * 1e8);
+  },
   /* What the payer's wallet will show. Only knowable for a BTC wallet; for a
      stablecoin wallet Amboss picks the sats amount at settlement. */
   satsForDisplay(amountUsd, rate) {
     return config.asset === "BTC" ? Math.round((amountUsd / rate) * 1e8) : null;
   },
 };
+
+/* Wallet minor units plus the sats figure the Live SDK send path needs.
+   amountMinor is what create_receive and session math use ($1 USDT → 1e6).
+   amountSats is what transactions.send puts on address.amount (LNURL sats). */
+export function addressSendAmounts(amountUsd, walletRate, btcUsdRate) {
+  return {
+    amountMinor: money.usdToMinor(amountUsd, walletRate),
+    amountSats: money.usdToSats(amountUsd, btcUsdRate),
+  };
+}
 
 export const round2 = (n) => Math.round(n * 100) / 100;

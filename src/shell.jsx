@@ -9,7 +9,7 @@ import {
 } from "./AmbossCashierMock.jsx";
 import { SECTIONS, SOURCE } from "./generated-sections.js";
 import { highlight } from "./highlight.js";
-import { AmbossLogo } from "./AmbossLogo.jsx";
+import { AmbossLetter, AmbossLogo } from "./AmbossLogo.jsx";
 import { createLiveApi } from "./live-api.js";
 
 const HOST = (typeof window !== "undefined" && window.__CASHIER__) || { live: false };
@@ -478,10 +478,9 @@ export default function App() {
       <Styles />
       <header className="topbar">
         <div className="brand">
-          <AmbossLogo gid="amboss-grad-brand" className="brand-logo" />
+          <AmbossLetter gid="amboss-grad-brand" className="brand-logo" />
           <span className="brand-text">
             <strong>Cashier</strong>
-            <em>Amboss Payments</em>
           </span>
         </div>
 

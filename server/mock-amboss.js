@@ -62,6 +62,10 @@ export const mockAmboss = {
     return send(Number(amountMinor), idempotencyKey);
   },
 
+  async sendReady() {
+    return { ok: true, prepared: true, mock: true };
+  },
+
   /* Test hooks. */
   settle(txId, opts = {}) {
     const tx = txs.get(txId);

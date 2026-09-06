@@ -337,6 +337,7 @@ function LiveMode({ theme }) {
         defaultTheme={theme}
         demo={false}
         initialBalanceUsd={0}
+        usdPerBtc={config.usdPerBtc > 1000 ? config.usdPerBtc : undefined}
         capabilities={{ addressPayouts: config.addressPayouts }}
         limits={{
           depositMin: config.minDepositUsd,

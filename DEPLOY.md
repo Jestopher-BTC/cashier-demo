@@ -55,29 +55,36 @@ Do this a day early. A live wallet needs about 30 minutes before `is_ready` flip
 
 1. Create a **LIVE** environment at `app.amboss.tech/pay`.
 2. Create a wallet on that environment for your chosen asset.
-3. Mint a service API key with `PAYMENTS: WRITE` and `WALLETS: READ`, scoped to
-   the wallet id from step 2. The plaintext key is shown once.
-
-   Why exactly those two:
+3. Mint a service API key **scoped to the wallet id** from step 2, with all
+   three of these permissions. The plaintext key is shown once.
 
    | What the server calls | Permission |
    |---|---|
    | `transaction.create_receive` (deposit invoice) | `PAYMENTS: WRITE` |
-   | `transaction.create_send` (the payout) | `PAYMENTS: WRITE` |
+   | `transaction.create_send` (the payout record) | `PAYMENTS: WRITE` |
    | `transaction.find_one` (polling both) | implied, `WRITE` includes `READ` |
    | `wallet.find_one` (`/healthz`) | `WALLETS: READ` |
+   | `wallet.node_permissions` (live send) | `WALLET_CREDENTIALS: READ` |
 
-   **`WALLET_CREDENTIALS` is not needed and should not be granted.** It gates one
-   read-only field, `wallet.node_permissions`, which hands back encrypted node
-   macaroons for driving LND directly. This server never talks to a daemon. Worse,
-   a key carrying it must be wallet-scoped *and* the team must have a team
-   password, with an Argon2id `password_hash` sent on every request. We send no
-   such header, so granting it would break the key rather than empower it.
+   **`WALLET_CREDENTIALS: READ` is required for live payouts.** The official
+   Payments SDK `transactions.send` — the same path the Amboss Payments UI uses
+   — decrypts the node admin macaroon in-process with the team password, then
+   pays the node's REST endpoint. `create_send` alone only creates a pending
+   transaction; without this step the giveaway never leaves the wallet.
 
-   Scoping to a single `wallet_id` is worth doing on its own: a key that leaks at
-   a conference can then only touch the demo wallet.
-4. Fund the wallet with a little more than `DAILY_FLOAT_USD`.
-5. Wait for `is_ready`, then confirm with `curl https://boltda.sh/cashier/healthz`.
+   That means the `.env` on the droplet also needs `AMBOSS_TEAM_PASSWORD` (the
+   team password from the Amboss account). The SDK derives an Argon2id
+   `password_hash` locally and never sends the raw password. `TEAM_PASSWORD` is
+   accepted as an alias.
+
+   A key with `WALLET_CREDENTIALS` must be scoped to a single `wallet_id`. That
+   is what you want at a booth anyway.
+4. Put `AMBOSS_API_KEY`, `AMBOSS_WALLET_ID`, and `AMBOSS_TEAM_PASSWORD` in
+   `/opt/cashier/.env`. `chmod 600` that file.
+5. Fund the wallet with a little more than `DAILY_FLOAT_USD`.
+6. Wait for `is_ready`, then confirm with `curl https://boltda.sh/cashier/healthz`.
+   `checks.send.ok` must be true — that is the credentialed send path, not just
+   the wallet balance.
 
 Rehearse against a **SANDBOX** environment first with the same code. Sandbox
 invoices settle without a node, so you can walk the whole flow at your desk.
@@ -215,8 +222,11 @@ sudo systemctl reload caddy
 curl -s https://boltda.sh/cashier/healthz | jq
 ```
 
-`ok: true` means the API answered, the wallet is ready, and the rate source is
-alive. Anything else prints which check failed and why.
+`ok: true` means the API answered, the wallet is ready, and a real BTC/USD
+spot is available (Coinbase, then CoinGecko). That rate is required even when
+`AMBOSS_ASSET=USDT`, because BOLT11 invoice cash-outs are sat-denominated.
+`usdPerBtc: 1` with `source: "n/a"` is a bug, not a stablecoin shortcut.
+Anything else prints which check failed and why.
 
 ## Every deploy after the first
 

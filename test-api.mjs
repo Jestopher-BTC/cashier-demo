@@ -10,7 +10,7 @@ process.env.MAX_WITHDRAW_USD = "5";
 process.env.RATE_SOURCE = "static";
 process.env.USD_PER_BTC = "100000";
 
-const { server } = await import("./server/server.js");
+const { server, parseDestination, addressSendLooksUnsupported } = await import("./server/server.js");
 const { mockAmboss } = await import("./server/mock-amboss.js");
 
 const BASE = `http://127.0.0.1:${process.env.PORT}`;
@@ -124,10 +124,37 @@ check("on-chain address refused", onchain.status === 400, onchain.json);
 const noSession = await call("/api/state?s=s_nope");
 check("dead session refused", noSession.status === 409, noSession.json);
 
+console.log("\ndestinations");
+const tag = parseDestination("$Jestopher");
+check("cashtag becomes cash.app address", tag.kind === "address" && tag.address === "jestopher@cash.app", tag);
+check("cashtag display keeps the dollar sign", tag.display.toLowerCase() === "$jestopher", tag);
+const cashUrl = parseDestination("https://cash.app/$jestopher");
+check("cash.app URL is a cashtag", cashUrl.address === "jestopher@cash.app" && cashUrl.display === "$jestopher", cashUrl);
+const lnurlp = parseDestination("https://walletofsatoshi.com/.well-known/lnurlp/player");
+check("lnurlp URL is a Lightning address", lnurlp.address === "player@walletofsatoshi.com", lnurlp);
+const wide = parseDestination("\uFF04jestopher");
+check("fullwidth dollar sign is a cashtag", wide.address === "jestopher@cash.app", wide);
+check(
+  "liquidity errors do not disable address payouts",
+  addressSendLooksUnsupported("Liquidity not available") === false
+);
+check(
+  "documented taproot message does disable address payouts",
+  addressSendLooksUnsupported("Lightning Address sends from Taproot Asset wallets are not yet supported") === true
+);
+
 console.log("\nhealth");
 const health = await fetch(BASE + "/healthz");
 const hj = await health.json();
 check("healthz ok in mock", health.status === 200 && hj.ok === true, hj);
+check("healthz send path is ready in mock", hj.checks.send && hj.checks.send.ok === true, hj.checks.send);
+check(
+  "healthz rate is a real BTC/USD figure, not the $1/n/a shortcut",
+  hj.checks.rate.ok === true && hj.checks.rate.usdPerBtc === 100000 && hj.checks.rate.source === "static",
+  hj.checks.rate
+);
+const cfgRate = await call("/api/config");
+check("config exposes the same rate to Live UI", cfgRate.json.usdPerBtc === 100000, cfgRate.json);
 
 console.log("\nstatic");
 const index = await fetch(BASE + "/");

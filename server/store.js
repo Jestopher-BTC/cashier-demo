@@ -1,37 +1,72 @@
 import { config, round2 } from "./config.js";
 
 /* ---------------------------------------------------------------- rate --- */
-/* A stablecoin wallet needs no rate at all. A BTC wallet needs one to price a
-   dollar amount, and the booth needs it to keep working when the venue network
-   eats the request, so a cached value and a configured floor sit behind it. */
+/* A stablecoin wallet needs no rate to price a dollar amount (that IS the
+   settlement amount). A BTC wallet does, and BOLT11 invoices always do,
+   because they are sat-denominated. The booth also needs a real rate on
+   /healthz so operators can see the feed is alive -- reporting usdPerBtc: 1
+   / source "n/a" for a USDT wallet made a working Coinbase feed look broken
+   and hid a missing feed when one was required. */
 
 let cached = { usdPerBtc: config.usdPerBtc, at: 0, source: "config" };
 
+export function isUsableBtcRate(rate) {
+  return Boolean(rate && isFinite(rate.usdPerBtc) && rate.usdPerBtc > 1000 && rate.source !== "n/a");
+}
+
+async function fetchSpot(url, parse) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 4000);
+  try {
+    const res = await fetch(url, { signal: ctrl.signal });
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    return parse(await res.json());
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+const SPOT_SOURCES = [
+  {
+    name: "coinbase",
+    url: "https://api.coinbase.com/v2/prices/BTC-USD/spot",
+    parse: (body) => Number(body && body.data && body.data.amount),
+  },
+  {
+    name: "coingecko",
+    url: "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd",
+    parse: (body) => Number(body && body.bitcoin && body.bitcoin.usd),
+  },
+];
+
 async function fetchBtcUsdRate() {
   if (config.rateSource === "static") return { usdPerBtc: config.usdPerBtc, source: "static" };
-  if (Date.now() - cached.at < 60000 && cached.source !== "config") return cached;
+  if (Date.now() - cached.at < 60000 && cached.source !== "config" && isUsableBtcRate(cached)) return cached;
 
-  try {
-    const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), 4000);
-    const res = await fetch("https://api.coinbase.com/v2/prices/BTC-USD/spot", { signal: ctrl.signal });
-    clearTimeout(timer);
-    const body = await res.json();
-    const price = Number(body && body.data && body.data.amount);
-    if (isFinite(price) && price > 1000) {
-      cached = { usdPerBtc: price, at: Date.now(), source: "coinbase" };
-      return cached;
+  for (const src of SPOT_SOURCES) {
+    try {
+      const price = await fetchSpot(src.url, src.parse);
+      if (isFinite(price) && price > 1000) {
+        cached = { usdPerBtc: price, at: Date.now(), source: src.name };
+        return cached;
+      }
+    } catch (e) {
+      /* try the next source */
     }
-    throw new Error("unusable price payload");
-  } catch (e) {
-    /* Keep the last good rate. If there never was one, fall back to config. */
-    return { usdPerBtc: cached.usdPerBtc || config.usdPerBtc, at: cached.at, source: "stale" };
   }
+
+  /* Keep the last GOOD rate. Do not invent $1 or the $100000 default -- that
+     is how invoice caps were silently bypassed and how healthz lied. */
+  if (cached.at && cached.source !== "config" && isUsableBtcRate(cached)) {
+    return { usdPerBtc: cached.usdPerBtc, at: cached.at, source: "stale" };
+  }
+  throw new Error("No usable BTC/USD rate. Invoice cash-outs are blocked until a live rate is available.");
 }
 
 /* For a stablecoin wallet, a dollar amount IS the settlement amount -- no BTC
    rate needed, so this returns the "1" shortcut. Used for deposit/withdraw
-   amounts that are already denominated in dollars. */
+   amounts that are already denominated in dollars. Never use this to price a
+   BOLT11 invoice or to populate /healthz. */
 export async function getRate() {
   if (config.asset !== "BTC") return { usdPerBtc: 1, source: "n/a" };
   return fetchBtcUsdRate();
@@ -46,7 +81,9 @@ export async function getRate() {
    out to $0.01 instead of ~$811 at the real rate. See HANDOFF.md if this file
    moves. */
 export async function getInvoiceUsdRate() {
-  return fetchBtcUsdRate();
+  const rate = await fetchBtcUsdRate();
+  if (!isUsableBtcRate(rate)) throw new Error("No usable BTC/USD rate.");
+  return rate;
 }
 
 /* ------------------------------------------------------------ sessions --- */

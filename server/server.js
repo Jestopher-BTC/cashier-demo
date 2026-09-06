@@ -9,6 +9,7 @@ import { mockAmboss } from "./mock-amboss.js";
 import {
   getRate,
   getInvoiceUsdRate,
+  isUsableBtcRate,
   newSession,
   getSession,
   fundSession,
@@ -91,18 +92,38 @@ function rateLimited(ip, cost = 1, perMinute = 60) {
 /* ------------------------------------------------------- destinations --- */
 
 export function parseDestination(raw) {
-  const input = String(raw || "").trim().replace(/^lightning:/i, "");
+  const input = String(raw || "")
+    .trim()
+    .replace(/^lightning:/i, "")
+    .replace(/[\u200B-\u200D\uFEFF]/g, "")
+    .replace(/^[\uFF04\uFE69]/, "$");
   if (!input) return { kind: "invalid", reason: "Enter a destination." };
+
+  const cashApp = /^(?:https?:\/\/)?(?:www\.)?cash\.app\/\$?([a-z0-9_]{1,20})\/?$/i.exec(input);
+  if (cashApp) {
+    const tag = cashApp[1].toLowerCase();
+    return { kind: "address", display: `$${tag}`, address: `${tag}@cash.app` };
+  }
+
+  const lnurlp = /^(?:https?:\/\/)?(?:www\.)?([^/\s]+)\/\.well-known\/lnurlp\/([a-z0-9._-]+)/i.exec(input);
+  if (lnurlp) {
+    const address = `${lnurlp[2]}@${lnurlp[1]}`.toLowerCase();
+    const tag = address.endsWith("@cash.app") ? address.slice(0, -"@cash.app".length) : null;
+    return { kind: "address", display: tag ? `$${tag}` : address, address };
+  }
 
   if (/^\$[a-z0-9_]{1,20}$/i.test(input))
     return {
       kind: "address",
-      display: input,
+      display: `$${input.slice(1)}`,
       address: `${input.slice(1).toLowerCase()}@cash.app`,
     };
 
-  if (/^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/i.test(input))
-    return { kind: "address", display: input.toLowerCase(), address: input.toLowerCase() };
+  if (/^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/i.test(input)) {
+    const address = input.toLowerCase();
+    const tag = address.endsWith("@cash.app") ? address.slice(0, -"@cash.app".length) : null;
+    return { kind: "address", display: tag ? `$${tag}` : address, address };
+  }
 
   if (/^lnbc/i.test(input)) {
     const m = /^lnbc(\d+)?([munp])?1/i.exec(input);
@@ -131,7 +152,14 @@ const addressPayouts = {
   lastCheckedAt: null,
 };
 
-const UNSUPPORTED = /not (yet )?supported|unsupported|not available/i;
+/* Only treat a send as "this wallet cannot pay Lightning addresses" when the
+   API says that. A generic "not available" (routing, liquidity) used to match
+   and flip the booth to invoice-only for the rest of the day. */
+export function addressSendLooksUnsupported(message) {
+  return /lightning address.{0,80}not (yet )?supported|address sends?.{0,80}not (yet )?supported|not (yet )?supported.{0,80}(lightning address|taproot)/i.test(
+    String(message || "")
+  );
+}
 
 export function addressPayoutState() {
   return { ...addressPayouts };
@@ -145,7 +173,19 @@ async function handleApi(req, res, url) {
   const method = req.method;
   const route = url.pathname.replace(/^\/api/, "") || "/";
 
-  if (route === "/config" && method === "GET")
+  if (route === "/config" && method === "GET") {
+    let usdPerBtc = null;
+    let rateSource = null;
+    try {
+      const rate = await getInvoiceUsdRate();
+      if (isUsableBtcRate(rate)) {
+        usdPerBtc = rate.usdPerBtc;
+        rateSource = rate.source;
+      }
+    } catch (e) {
+      /* Deposits and dollar cashtag/address payouts do not need this. Invoice
+         cash-outs will fail loudly rather than price against $1/BTC. */
+    }
     return send(res, 200, {
       live: true,
       asset: config.asset,
@@ -158,7 +198,10 @@ async function handleApi(req, res, url) {
       invoiceSeconds: config.invoiceSeconds,
       pinRequired: Boolean(config.operatorPin),
       mock: config.mock,
+      usdPerBtc,
+      rateSource,
     });
+  }
 
   if (route === "/session" && method === "POST") {
     if (rateLimited(ip, 1, 40)) return fail(res, 429, "Slow down.");
@@ -265,7 +308,15 @@ async function handleApi(req, res, url) {
          the stablecoin "1" shortcut. Getting this wrong previously let an
          invoice worth hundreds of real dollars pass the cap check thinking
          it cost a fraction of a cent. */
-      ({ usdPerBtc } = await getInvoiceUsdRate());
+      try {
+        ({ usdPerBtc } = await getInvoiceUsdRate());
+      } catch (e) {
+        return fail(
+          res,
+          503,
+          "No usable exchange rate right now. Invoice cash-outs are blocked so we do not send the wrong amount."
+        );
+      }
       amountUsd = round2((dest.satAmount / 1e8) * usdPerBtc);
     } else {
       amountUsd = round2(Number(body.amountUsd));
@@ -303,7 +354,7 @@ async function handleApi(req, res, url) {
               idempotencyKey,
               metadata: { demo: "cashier" },
             });
-      if (dest.kind === "address") {
+      if (dest.kind === "address" && String(tx.status || "").toLowerCase() === "completed") {
         addressPayouts.supported = true;
         addressPayouts.verified = true;
         addressPayouts.lastError = null;
@@ -320,7 +371,7 @@ async function handleApi(req, res, url) {
 
       /* If the API tells us address sends are not available on this wallet,
          believe it once and stop offering the path for the rest of the day. */
-      if (dest.kind === "address" && UNSUPPORTED.test(e.message)) {
+      if (dest.kind === "address" && addressSendLooksUnsupported(e.message)) {
         addressPayouts.supported = false;
         addressPayouts.verified = true;
         addressPayouts.lastError = e.message;
@@ -387,7 +438,7 @@ async function health(res) {
     checks: {},
   };
   try {
-    const rate = await getRate();
+    const rate = await getInvoiceUsdRate();
     out.checks.rate = { ok: true, usdPerBtc: rate.usdPerBtc, source: rate.source };
   } catch (e) {
     out.checks.rate = { ok: false, error: e.message };
@@ -402,6 +453,12 @@ async function health(res) {
     };
   } catch (e) {
     out.checks.wallet = { ok: false, error: e.message };
+  }
+  try {
+    const send = await api.sendReady();
+    out.checks.send = send;
+  } catch (e) {
+    out.checks.send = { ok: false, error: e.message };
   }
   out.ok = Object.values(out.checks).every((c) => c.ok);
   return send(res, out.ok ? 200 : 503, out);
@@ -448,6 +505,15 @@ server.listen(config.port, () => {
   console.log(`cashier demo on :${config.port}`);
   console.log(`  asset            ${config.asset}${config.mock ? " (mock Amboss)" : ""}`);
   console.log(`  address payouts  ${config.addressPayouts ? "on" : "off, invoices only"}`);
+  console.log(
+    `  send path        ${
+      config.mock
+        ? "mock"
+        : config.teamPassword
+          ? "SDK + team password"
+          : "SDK (sandbox, no password)"
+    }`
+  );
   console.log(`  caps             deposit $${config.maxDepositUsd}, cash out $${config.maxWithdrawUsd}`);
   console.log(`  daily float      $${config.dailyFloatUsd}`);
 });

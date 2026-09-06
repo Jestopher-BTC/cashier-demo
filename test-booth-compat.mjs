@@ -66,12 +66,24 @@ await type(pinInput, "0000");
 await click(Array.from(d.querySelectorAll("button")).find((b) => b.textContent.indexOf("Unlock") !== -1), 600);
 check("wrong pin stays in dialog", Boolean(d.querySelector(".pin-overlay")));
 check("wrong pin message", /Wrong pin/i.test(txt()), txt().slice(0, 300));
+check("wrong pin clears input", d.querySelector(".pin-input") && d.querySelector(".pin-input").value === "");
 
 await type(d.querySelector(".pin-input"), "4242");
 await click(Array.from(d.querySelectorAll("button")).find((b) => b.textContent.indexOf("Unlock") !== -1), 800);
 check("correct pin closes dialog", !d.querySelector(".pin-overlay"));
 check("prompt still unused", promptCalls === 0, promptCalls);
 check("fund credited", txt().includes("$2.00"), txt().slice(0, 220));
+
+console.log("\nsecond fund requires pin again");
+await click(btn("Fund"), 400);
+check("second fund opens pin dialog", Boolean(d.querySelector(".pin-overlay")));
+check("second fund does not reuse prompt", promptCalls === 0, promptCalls);
+check("balance unchanged until second pin", txt().includes("$2.00") && !txt().includes("$4.00"), txt().slice(0, 220));
+
+await type(d.querySelector(".pin-input"), "4242");
+await click(Array.from(d.querySelectorAll("button")).find((b) => b.textContent.indexOf("Unlock") !== -1), 800);
+check("second pin closes dialog", !d.querySelector(".pin-overlay"));
+check("second fund credited", txt().includes("$4.00"), txt().slice(0, 220));
 
 console.log("\nerrors:", "none");
 console.log(`\n${pass} passed, ${fail} failed\n`);

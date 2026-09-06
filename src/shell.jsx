@@ -262,7 +262,6 @@ function LiveMode({ theme }) {
   const [pinError, setPinError] = useState("");
   const [pinBusy, setPinBusy] = useState(false);
   const apiRef = useRef(null);
-  const pinRef = useRef("");
 
   useEffect(function () {
     if (!HOST.live) return undefined;
@@ -292,15 +291,22 @@ function LiveMode({ theme }) {
     };
   }, []);
 
+  const forgetPin = useCallback(function () {
+    setPinOpen(false);
+    setPinDraft("");
+    setPinError("");
+  }, []);
+
   const newVisitor = useCallback(function () {
     if (!apiRef.current) return;
+    forgetPin();
     apiRef.current.newSession().then(function () {
       setNotice("");
       setGeneration(function (g) {
         return g + 1;
       });
     });
-  }, []);
+  }, [forgetPin]);
 
   const submitFund = useCallback(function (pin) {
     if (!apiRef.current) return;
@@ -308,38 +314,37 @@ function LiveMode({ theme }) {
     apiRef.current
       .fund(pin || "")
       .then(function () {
-        pinRef.current = pin || "";
-        setPinOpen(false);
-        setPinDraft("");
-        setPinError("");
+        /* One Fund event only. Forget the PIN so the next click asks again. */
+        forgetPin();
         setNotice("");
         setGeneration(function (g) {
           return g + 1;
         });
       })
       .catch(function (e) {
-        pinRef.current = "";
         var msg = (e && e.message) || "Wrong pin.";
+        setPinDraft("");
         setPinError(msg);
         setNotice(msg);
       })
       .then(function () {
         setPinBusy(false);
       });
-  }, []);
+  }, [forgetPin]);
 
   const fund = useCallback(
     function () {
       if (!apiRef.current) return;
-      /* Live UI is public. The PIN is only for Fund. window.prompt is a no-op
-         on many iPad Chrome/Safari builds, so the unlock UI is in-page. */
-      if (config && config.pinRequired && !pinRef.current) {
+      /* Live UI is public. The PIN is only for this Fund click. window.prompt
+         is a no-op on many iPad Chrome/Safari builds, so the unlock UI is
+         in-page. Never cache the PIN across Fund events. */
+      if (config && config.pinRequired) {
         setPinDraft("");
         setPinError("");
         setPinOpen(true);
         return;
       }
-      submitFund(pinRef.current);
+      submitFund("");
     },
     [config, submitFund]
   );
@@ -446,9 +451,7 @@ function LiveMode({ theme }) {
           onChange={setPinDraft}
           onCancel={function () {
             if (pinBusy) return;
-            setPinOpen(false);
-            setPinDraft("");
-            setPinError("");
+            forgetPin();
           }}
           onSubmit={submitFund}
         />

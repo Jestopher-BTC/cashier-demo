@@ -53,7 +53,7 @@ const THEMES = {
     warnSoft: "rgba(255,176,32,0.14)",
     danger: "#FF6A5E",
     dangerSoft: "rgba(255,106,94,0.14)",
-    shadow: "0 18px 40px rgba(0,0,0,0.45)",
+    shadow: "0 8px 20px rgba(0,0,0,0.35)",
   },
   light: {
     name: "light",
@@ -75,7 +75,7 @@ const THEMES = {
     warnSoft: "rgba(181,115,10,0.12)",
     danger: "#D92D20",
     dangerSoft: "rgba(217,45,32,0.10)",
-    shadow: "0 14px 34px rgba(15,32,63,0.10)",
+    shadow: "0 6px 16px rgba(15,32,63,0.08)",
   },
 };
 
@@ -83,7 +83,7 @@ const FONT =
   'ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
 const MONO =
   'ui-monospace, SFMono-Regular, Menlo, Monaco, "Roboto Mono", "Courier New", monospace';
-const NUM = { fontVariantNumeric: "tabular-nums", letterSpacing: "-0.01em" };
+const NUM = { fontVariantNumeric: "tabular-nums" };
 
 
 /* ------------------------------------------------------------ qr encoder --- */
@@ -163,13 +163,25 @@ const dataCapacity = (v, level) => {
   return b[1] * b[2] + b[3] * b[4];
 };
 
+function utf8Bytes(str) {
+  if (typeof TextEncoder !== "undefined") return new TextEncoder().encode(str);
+  const out = [];
+  for (let i = 0; i < str.length; i++) {
+    const c = str.charCodeAt(i);
+    if (c < 128) out.push(c);
+    else if (c < 2048) out.push(192 | (c >> 6), 128 | (c & 63));
+    else out.push(224 | (c >> 12), 128 | ((c >> 6) & 63), 128 | (c & 63));
+  }
+  return out;
+}
+
 function encodeSegment(str, mode, v) {
   const bits = [];
   const push = (val, len) => {
     for (let i = len - 1; i >= 0; i--) bits.push((val >> i) & 1);
   };
   push(mode === "alnum" ? 0b0010 : 0b0100, 4);
-  const bytes = mode === "byte" ? new TextEncoder().encode(str) : null;
+  const bytes = mode === "byte" ? utf8Bytes(str) : null;
   push(mode === "alnum" ? str.length : bytes.length, ccBits(mode, v));
   if (mode === "alnum") {
     for (let i = 0; i < str.length; i += 2) {
@@ -703,8 +715,9 @@ export function PaymentsProvider({
   const refresh = useCallback(() => {
     if (!authoritative) return undefined;
     return api.loadState().then(function (state) {
-      setBalance(state.balanceUsd);
-      setTransactions(state.transactions);
+      if (!state) return;
+      setBalance(typeof state.balanceUsd === "number" ? state.balanceUsd : 0);
+      setTransactions(Array.isArray(state.transactions) ? state.transactions : []);
     });
   }, [api, authoritative]);
 
@@ -777,17 +790,30 @@ export function PaymentsProvider({
 export function Styles() {
   return (
     <style>{`
-      @keyframes amb-spin { to { transform: rotate(360deg) } }
+      @keyframes amb-spin { to { -webkit-transform: rotate(360deg); transform: rotate(360deg) } }
       @keyframes amb-scan { 0% { top: 6% } 50% { top: 88% } 100% { top: 6% } }
       @keyframes amb-pulse { 0%,100% { opacity: .35 } 50% { opacity: 1 } }
       @keyframes amb-flow { to { stroke-dashoffset: -24 } }
-      @keyframes amb-rise { from { opacity: 0; transform: translateY(6px) } to { opacity: 1; transform: none } }
-      .amb-rise { animation: amb-rise .22s ease-out both }
-      .amb-tap { transition: transform .12s ease, opacity .12s ease, background-color .15s ease }
-      .amb-tap:active { transform: scale(.985) }
+      @keyframes amb-rise { from { opacity: 0 } to { opacity: 1 } }
+      .amb-rise { animation: amb-rise .22s ease-out }
+      .amb-tap { transition: opacity .12s ease, background-color .15s ease }
+      html:not(.flat-paint) .amb-tap { transition: transform .12s ease, opacity .12s ease, background-color .15s ease }
+      html:not(.flat-paint) .amb-tap:active { -webkit-transform: scale(.985); transform: scale(.985) }
       @media (prefers-reduced-motion: reduce) {
         .amb-rise, .amb-tap { animation: none !important; transition: none !important }
         [data-anim] { animation: none !important }
+      }
+      html.flat-paint .amb-rise,
+      html.flat-paint .amb-tap,
+      html.flat-paint [data-anim] {
+        animation: none !important;
+        transition: none !important;
+        -webkit-transform: none !important;
+        transform: none !important;
+        filter: none !important;
+        -webkit-filter: none !important;
+        text-shadow: none !important;
+        box-shadow: none !important;
       }
     `}</style>
   );
@@ -808,6 +834,9 @@ function Button({ theme, variant = "primary", full, disabled, children, style, .
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
+    overflow: "hidden",
+    WebkitBackgroundClip: "padding-box",
+    backgroundClip: "padding-box",
   };
   const skins = {
     primary: { background: theme.accent, color: theme.accentText },
@@ -851,7 +880,7 @@ function Row({ theme, label, value, mono, strong, sub }) {
           style={{
             color: theme.text,
             fontSize: strong ? 15 : 13.5,
-            fontWeight: strong ? 650 : 550,
+            fontWeight: strong ? 600 : 500,
             fontFamily: mono ? MONO : FONT,
             ...NUM,
           }}
@@ -877,10 +906,10 @@ function Chip({ theme, tone = "muted", children }) {
       style={{
         background: tones.bg,
         color: tones.fg,
-        borderRadius: 999,
+        borderRadius: "50%",
         padding: "3px 9px",
         fontSize: 11,
-        fontWeight: 650,
+        fontWeight: 600,
         letterSpacing: "0.02em",
         whiteSpace: "nowrap",
       }}
@@ -912,7 +941,7 @@ function Notice({ theme, tone = "warn", title, body, action }) {
   const bg = tone === "danger" ? theme.dangerSoft : tone === "accent" ? theme.accentSoft : theme.warnSoft;
   return (
     <div style={{ background: bg, borderRadius: 12, padding: "12px 14px" }}>
-      <div style={{ color: fg, fontSize: 13.5, fontWeight: 650 }}>{title}</div>
+      <div style={{ color: fg, fontSize: 13.5, fontWeight: 600 }}>{title}</div>
       {body ? <div style={{ color: theme.muted, fontSize: 12.5, marginTop: 4, lineHeight: 1.45 }}>{body}</div> : null}
       {action}
     </div>
@@ -935,8 +964,9 @@ function BackBar({ theme, title, onBack, right }) {
             height: 34,
             borderRadius: 10,
             cursor: "pointer",
-            display: "grid",
-            placeItems: "center",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
           }}
         >
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
@@ -981,7 +1011,7 @@ function Countdown({ theme, expiresAt, seconds, onExpire, label = "Quote holds f
           {String(Math.floor(s / 60)).padStart(1, "0")}:{String(s % 60).padStart(2, "0")}
         </span>
       </div>
-      <div style={{ height: 3, background: theme.border, borderRadius: 999, overflow: "hidden" }}>
+      <div style={{ height: 3, background: theme.border, borderRadius: "50%", overflow: "hidden" }}>
         <div style={{ height: "100%", width: `${pct * 100}%`, background: tone, transition: "width .25s linear" }} />
       </div>
     </div>
@@ -1153,8 +1183,9 @@ export function ThemeToggle() {
         width: 34,
         height: 34,
         cursor: "pointer",
-        display: "grid",
-        placeItems: "center",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
       }}
     >
       {themeName === "dark" ? (
@@ -1241,7 +1272,7 @@ export function DepositFlow({ onExit, onDone }) {
                 borderRadius: 10,
                 padding: "11px 0",
                 fontSize: 13.5,
-                fontWeight: 650,
+                fontWeight: 600,
                 cursor: "pointer",
                 fontFamily: FONT,
                 ...NUM,
@@ -1269,14 +1300,14 @@ export function DepositFlow({ onExit, onDone }) {
         <BackBar theme={theme} title="Pay to deposit" onBack={() => setStep("amount")} />
 
         <Card theme={theme} style={{ padding: 16 }}>
-          <div style={{ display: "grid", placeItems: "center" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
             <div style={{ background: "#FFFFFF", padding: 10, borderRadius: 14, lineHeight: 0 }}>
               <QrCode value={req.invoice.toUpperCase()} size={208} />
             </div>
           </div>
 
           <div style={{ marginTop: 14, textAlign: "center" }}>
-            <div style={{ fontSize: 30, fontWeight: 760, color: theme.text, ...NUM }}>{usd(req.amountUsd)}</div>
+            <div style={{ fontSize: 30, fontWeight: 700, color: theme.text, ...NUM }}>{usd(req.amountUsd)}</div>
             <div style={{ fontSize: 12.5, color: theme.muted, marginTop: 4, lineHeight: 1.5 }}>
               Scan with Cash App or any Lightning wallet.
               {req.satAmount ? " Your app may show this as " + sats(req.satAmount) + " sats." : ""}
@@ -1309,7 +1340,7 @@ export function DepositFlow({ onExit, onDone }) {
         </Card>
 
         <div style={{ display: "flex", alignItems: "center", gap: 8, justifyContent: "center", marginTop: 14, color: theme.muted, fontSize: 12.5 }}>
-          <span data-anim style={{ width: 7, height: 7, borderRadius: 999, background: theme.accent, animation: "amb-pulse 1.4s ease-in-out infinite" }} />
+          <span data-anim style={{ width: 7, height: 7, borderRadius: "50%", background: theme.accent, animation: "amb-pulse 1.4s ease-in-out infinite" }} />
           Waiting for payment
         </div>
 
@@ -1329,7 +1360,7 @@ export function DepositFlow({ onExit, onDone }) {
   if (step === "confirming")
     return (
       <div className="amb-rise" style={{ paddingTop: 44, textAlign: "center" }}>
-        <div style={{ display: "grid", placeItems: "center", marginBottom: 18 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 18 }}>
           <Spinner color={theme.accent} size={30} />
         </div>
         <div style={{ fontSize: 17, fontWeight: 700, color: theme.text }}>Payment received</div>
@@ -1341,12 +1372,12 @@ export function DepositFlow({ onExit, onDone }) {
     return (
       <div className="amb-rise" style={{ paddingTop: 30 }}>
         <div style={{ textAlign: "center" }}>
-          <div style={{ width: 54, height: 54, borderRadius: 999, background: theme.accentSoft, display: "grid", placeItems: "center", margin: "0 auto 14px" }}>
+          <div style={{ width: 54, height: 54, borderRadius: "50%", background: theme.accentSoft, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 14px" }}>
             <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke={theme.accent} strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
               <path d="M20 6L9 17l-5-5" />
             </svg>
           </div>
-          <div style={{ fontSize: 25, fontWeight: 750, color: theme.text, ...NUM }}>{usd(req.amountUsd)} added</div>
+          <div style={{ fontSize: 25, fontWeight: 700, color: theme.text, ...NUM }}>{usd(req.amountUsd)} added</div>
           <div style={{ color: theme.muted, fontSize: 13.5, marginTop: 5 }}>Your balance is ready to play.</div>
         </div>
 
@@ -1410,7 +1441,7 @@ function TxIcon({ theme, type, status }) {
   const color = failed ? theme.danger : type === "deposit" ? theme.accent : theme.text;
   const bg = failed ? theme.dangerSoft : type === "deposit" ? theme.accentSoft : theme.inset;
   return (
-    <div style={{ width: 36, height: 36, borderRadius: 10, background: bg, display: "grid", placeItems: "center", flex: "0 0 auto" }}>
+    <div style={{ width: 36, height: 36, borderRadius: 10, background: bg, display: "flex", alignItems: "center", justifyContent: "center", flex: "0 0 auto", overflow: "hidden" }}>
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
         {type === "deposit" ? <path d="M12 5v14M6 13l6 6 6-6" /> : <path d="M12 19V5M6 11l6-6 6 6" />}
       </svg>
@@ -1429,7 +1460,7 @@ function TxDetail({ theme, tx, onClose }) {
     <div
       role="dialog"
       aria-modal="true"
-      style={{ position: "absolute", inset: 0, background: "rgba(4,8,18,0.55)", display: "flex", alignItems: "flex-end", borderRadius: 20, zIndex: 20 }}
+      style={{ position: "absolute", top: 0, right: 0, bottom: 0, left: 0, background: "rgba(4,8,18,0.55)", display: "flex", alignItems: "flex-end", borderRadius: 20, zIndex: 20 }}
       onClick={onClose}
     >
       <div
@@ -1490,7 +1521,7 @@ export function WalletView({ onDeposit, onWithdraw }) {
         <span style={{ fontSize: 11, color: theme.faint, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" }}>
           Withdrawable balance
         </span>
-        <div style={{ fontSize: 38, fontWeight: 760, color: theme.text, marginTop: 10, ...NUM }}>{usd(balance)}</div>
+        <div style={{ fontSize: 38, fontWeight: 700, color: theme.text, marginTop: 10, ...NUM }}>{usd(balance)}</div>
         <div style={{ fontSize: 12, color: theme.muted, marginTop: 4 }}>Available to play or cash out</div>
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 16 }}>
@@ -1518,7 +1549,7 @@ export function WalletView({ onDeposit, onWithdraw }) {
                 borderRadius: 7,
                 padding: "5px 11px",
                 fontSize: 12,
-                fontWeight: 650,
+                fontWeight: 600,
                 cursor: "pointer",
                 fontFamily: FONT,
               }}
@@ -1557,7 +1588,7 @@ export function WalletView({ onDeposit, onWithdraw }) {
               <TxIcon theme={theme} type={tx.type} status={tx.status} />
               <div style={{ minWidth: 0, flex: 1 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-                  <span style={{ fontSize: 14, fontWeight: 650, color: theme.text }}>
+                  <span style={{ fontSize: 14, fontWeight: 600, color: theme.text }}>
                     {tx.type === "deposit" ? "Deposit" : `To ${tx.destination || "wallet"}`}
                   </span>
                   <StatusChip theme={theme} status={tx.status} />
@@ -1607,7 +1638,7 @@ function Scanner({ theme, onCancel, onDetect }) {
       role="dialog"
       aria-modal="true"
       aria-label="Scan a code"
-      style={{ position: "absolute", inset: 0, background: "rgba(4,8,18,0.82)", borderRadius: 20, padding: 18, display: "flex", flexDirection: "column", zIndex: 30 }}
+      style={{ position: "absolute", top: 0, right: 0, bottom: 0, left: 0, background: "rgba(4,8,18,0.82)", borderRadius: 20, padding: 18, display: "flex", flexDirection: "column", zIndex: 30 }}
     >
       <div style={{ display: "flex", alignItems: "center", marginBottom: 14 }}>
         <span style={{ color: "#FFFFFF", fontWeight: 700, fontSize: 15 }}>Scan a code</span>
@@ -1640,7 +1671,7 @@ function Scanner({ theme, onCancel, onDetect }) {
                 fontFamily: FONT,
               }}
             >
-              <div style={{ fontSize: 13.5, fontWeight: 650, color: theme.text }}>{s.title}</div>
+              <div style={{ fontSize: 13.5, fontWeight: 600, color: theme.text }}>{s.title}</div>
               <div style={{ fontSize: 11.5, color: theme.muted, marginTop: 2 }}>{s.detail}</div>
             </button>
           ))}
@@ -1703,8 +1734,8 @@ function Scanner({ theme, onCancel, onDetect }) {
 function DestinationPill({ theme, dest, onChange }) {
   return (
     <div style={{ background: theme.inset, border: `1px solid ${theme.border}`, borderRadius: 12, padding: "12px 14px", display: "flex", alignItems: "center", gap: 10 }}>
-      <div style={{ width: 32, height: 32, borderRadius: 999, background: theme.accentSoft, color: theme.accent, display: "grid", placeItems: "center", fontSize: 14, fontWeight: 700, flex: "0 0 auto" }}>
-        {dest.kind === "cashtag" ? "$" : dest.display[0].toUpperCase()}
+      <div style={{ width: 32, height: 32, borderRadius: "50%", background: theme.accentSoft, color: theme.accent, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 700, flex: "0 0 auto" }}>
+        {dest.kind === "cashtag" ? "$" : (dest.display && dest.display[0] ? dest.display[0].toUpperCase() : "?")}
       </div>
       <div style={{ minWidth: 0 }}>
         <div style={{ fontSize: 11, color: theme.faint, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase" }}>{dest.label}</div>
@@ -1716,7 +1747,7 @@ function DestinationPill({ theme, dest, onChange }) {
         <button
           onClick={onChange}
           className="amb-tap"
-          style={{ marginLeft: "auto", background: "transparent", border: "none", color: theme.muted, fontSize: 12.5, fontWeight: 650, cursor: "pointer", fontFamily: FONT }}
+          style={{ marginLeft: "auto", background: "transparent", border: "none", color: theme.muted, fontSize: 12.5, fontWeight: 600, cursor: "pointer", fontFamily: FONT }}
         >
           Change
         </button>
@@ -1819,7 +1850,7 @@ export function WithdrawFlow({ onExit, onDone }) {
             onClick={() => setScanning(true)}
             aria-label="Scan a code"
             className="amb-tap"
-            style={{ background: theme.surfaceAlt, border: `1px solid ${theme.border}`, color: theme.text, width: 38, height: 38, borderRadius: 10, cursor: "pointer", display: "grid", placeItems: "center", flex: "0 0 auto" }}
+            style={{ background: theme.surfaceAlt, border: `1px solid ${theme.border}`, color: theme.text, width: 38, height: 38, borderRadius: 10, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flex: "0 0 auto" }}
           >
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
               <path d="M3 8V5.5A2.5 2.5 0 0 1 5.5 3H8M16 3h2.5A2.5 2.5 0 0 1 21 5.5V8M21 16v2.5a2.5 2.5 0 0 1-2.5 2.5H16M8 21H5.5A2.5 2.5 0 0 1 3 18.5V16" />
@@ -1854,11 +1885,11 @@ export function WithdrawFlow({ onExit, onDone }) {
               className="amb-tap"
               style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", background: "transparent", border: "none", padding: "12px 14px", cursor: "pointer", textAlign: "left", fontFamily: FONT }}
             >
-              <div style={{ width: 30, height: 30, borderRadius: 999, background: theme.accentSoft, color: theme.accent, display: "grid", placeItems: "center", fontSize: 13, fontWeight: 700 }}>
+              <div style={{ width: 30, height: 30, borderRadius: "50%", background: theme.accentSoft, color: theme.accent, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700 }}>
                 $
               </div>
               <div>
-                <div style={{ fontSize: 14, color: theme.text, fontWeight: 650 }}>$jestopher</div>
+                <div style={{ fontSize: 14, color: theme.text, fontWeight: 600 }}>$jestopher</div>
                 <div style={{ fontSize: 11.5, color: theme.faint, marginTop: 2 }}>Cash App · used 52m ago</div>
               </div>
             </button>
@@ -1919,7 +1950,7 @@ export function WithdrawFlow({ onExit, onDone }) {
         <BackBar theme={theme} title="Confirm cash out" onBack={() => setStep(final.fixed ? "destination" : "amount")} />
 
         <div style={{ textAlign: "center", margin: "6px 0 18px" }}>
-          <div style={{ fontSize: 38, fontWeight: 760, color: theme.text, ...NUM }}>{usd(final.amountUsd)}</div>
+          <div style={{ fontSize: 38, fontWeight: 700, color: theme.text, ...NUM }}>{usd(final.amountUsd)}</div>
           <div style={{ fontSize: 13, color: theme.muted, marginTop: 4 }}>
             {final.fixed ? "Amount set by the invoice" : "From your balance"}
           </div>
@@ -1969,7 +2000,7 @@ export function WithdrawFlow({ onExit, onDone }) {
   if (step === "sending")
     return (
       <div className="amb-rise" style={{ paddingTop: 44, textAlign: "center" }}>
-        <div style={{ display: "grid", placeItems: "center", marginBottom: 18 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 18 }}>
           <Spinner color={theme.accent} size={30} />
         </div>
         <div style={{ fontSize: 17, fontWeight: 700, color: theme.text }}>Sending {usd(final.amountUsd)}</div>
@@ -1981,12 +2012,12 @@ export function WithdrawFlow({ onExit, onDone }) {
     return (
       <div className="amb-rise" style={{ paddingTop: 30 }}>
         <div style={{ textAlign: "center" }}>
-          <div style={{ width: 54, height: 54, borderRadius: 999, background: theme.accentSoft, display: "grid", placeItems: "center", margin: "0 auto 14px" }}>
+          <div style={{ width: 54, height: 54, borderRadius: "50%", background: theme.accentSoft, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 14px" }}>
             <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke={theme.accent} strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
               <path d="M20 6L9 17l-5-5" />
             </svg>
           </div>
-          <div style={{ fontSize: 25, fontWeight: 750, color: theme.text, ...NUM }}>{usd(final.amountUsd)} sent</div>
+          <div style={{ fontSize: 25, fontWeight: 700, color: theme.text, ...NUM }}>{usd(final.amountUsd)} sent</div>
           <div style={{ color: theme.muted, fontSize: 13.5, marginTop: 5 }}>
             {final.dest.display} has the money. Your balance is {usd(Math.max(0, balance))}.
           </div>
@@ -2050,7 +2081,7 @@ function Shell() {
       <div style={{ maxWidth: 420, margin: "0 auto" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <div style={{ width: 26, height: 26, borderRadius: 8, background: theme.accent, display: "grid", placeItems: "center", color: theme.accentText, fontSize: 14, fontWeight: 800 }}>
+            <div style={{ width: 26, height: 26, borderRadius: 8, background: theme.accent, display: "flex", alignItems: "center", justifyContent: "center", color: theme.accentText, fontSize: 14, fontWeight: 800 }}>
               $
             </div>
             <div>

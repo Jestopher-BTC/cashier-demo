@@ -193,12 +193,74 @@ function CodeMode() {
 
 /* ------------------------------------------------------------- live mode --- */
 
+function describeLiveError(e) {
+  var msg = (e && e.message) || String(e) || "Could not start Live UI";
+  var js = /is not an object|is not a function|Cannot read|undefined|null is not/i.test(msg);
+  return {
+    title: js ? "This browser hit a script error" : "No connection to the server",
+    message: msg,
+    hint: js
+      ? "That is a browser bug, not a missing network. Try again. If it repeats, switch to Mock UI."
+      : "If the venue network is gone, switch to Mock UI. It behaves the same and needs nothing.",
+  };
+}
+
+function PinDialog({ value, error, busy, onChange, onCancel, onSubmit }) {
+  return (
+    <div
+      className="pin-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="pin-title"
+      onClick={function (e) {
+        if (e.target === e.currentTarget && !busy) onCancel();
+      }}
+    >
+      <form
+        className="pin-card"
+        onSubmit={function (e) {
+          e.preventDefault();
+          if (busy || !value) return;
+          onSubmit(value);
+        }}
+      >
+        <h2 id="pin-title">Operator PIN</h2>
+        <p>Needed only to fund this visitor. Anyone can look at Live UI without it.</p>
+        <input
+          className="pin-input"
+          type="password"
+          inputMode="numeric"
+          autoComplete="one-time-code"
+          autoFocus
+          value={value}
+          disabled={busy}
+          aria-label="Operator PIN"
+          onChange={function (e) {
+            onChange(e.target.value);
+          }}
+        />
+        {error ? <p className="pin-error">{error}</p> : null}
+        <button type="submit" className="btn primary big" disabled={busy || !String(value).replace(/\s/g, "")}>
+          {busy ? "Funding" : "Unlock and fund"}
+        </button>
+        <button type="button" className="btn big" disabled={busy} onClick={onCancel}>
+          Cancel
+        </button>
+      </form>
+    </div>
+  );
+}
+
 function LiveMode({ theme }) {
   const [phase, setPhase] = useState("connecting"); // connecting | ready | error
   const [config, setConfig] = useState(null);
-  const [error, setError] = useState("");
+  const [error, setError] = useState(null);
   const [notice, setNotice] = useState("");
   const [generation, setGeneration] = useState(0);
+  const [pinOpen, setPinOpen] = useState(false);
+  const [pinDraft, setPinDraft] = useState("");
+  const [pinError, setPinError] = useState("");
+  const [pinBusy, setPinBusy] = useState(false);
   const apiRef = useRef(null);
   const pinRef = useRef("");
 
@@ -216,12 +278,13 @@ function LiveMode({ theme }) {
       .start()
       .then(function (r) {
         if (cancelled) return;
+        if (!r || !r.config) throw new Error("Server returned an empty config");
         setConfig(r.config);
         setPhase("ready");
       })
       .catch(function (e) {
         if (cancelled) return;
-        setError(e.message || "Could not reach the server");
+        setError(describeLiveError(e));
         setPhase("error");
       });
     return function () {
@@ -239,28 +302,46 @@ function LiveMode({ theme }) {
     });
   }, []);
 
+  const submitFund = useCallback(function (pin) {
+    if (!apiRef.current) return;
+    setPinBusy(true);
+    apiRef.current
+      .fund(pin || "")
+      .then(function () {
+        pinRef.current = pin || "";
+        setPinOpen(false);
+        setPinDraft("");
+        setPinError("");
+        setNotice("");
+        setGeneration(function (g) {
+          return g + 1;
+        });
+      })
+      .catch(function (e) {
+        pinRef.current = "";
+        var msg = (e && e.message) || "Wrong pin.";
+        setPinError(msg);
+        setNotice(msg);
+      })
+      .then(function () {
+        setPinBusy(false);
+      });
+  }, []);
+
   const fund = useCallback(
     function () {
       if (!apiRef.current) return;
+      /* Live UI is public. The PIN is only for Fund. window.prompt is a no-op
+         on many iPad Chrome/Safari builds, so the unlock UI is in-page. */
       if (config && config.pinRequired && !pinRef.current) {
-        const entered = window.prompt("Operator pin");
-        if (!entered) return;
-        pinRef.current = entered;
+        setPinDraft("");
+        setPinError("");
+        setPinOpen(true);
+        return;
       }
-      apiRef.current
-        .fund(pinRef.current)
-        .then(function () {
-          setNotice("");
-          setGeneration(function (g) {
-            return g + 1;
-          });
-        })
-        .catch(function (e) {
-          pinRef.current = "";
-          setNotice(e.message);
-        });
+      submitFund(pinRef.current);
     },
-    [config]
+    [config, submitFund]
   );
 
   if (!HOST.live)
@@ -291,8 +372,8 @@ function LiveMode({ theme }) {
     return (
       <div className="stage">
         <div className="offline-card">
-          <h2>No connection to the server</h2>
-          <p className="dim">{error}</p>
+          <h2>{error && error.title ? error.title : "No connection to the server"}</h2>
+          <p className="dim">{error && error.message ? error.message : ""}</p>
           <button
             className="btn primary big"
             onClick={function () {
@@ -302,23 +383,27 @@ function LiveMode({ theme }) {
             Try again
           </button>
           <p className="dim">
-            If the venue network is gone, switch to Mock UI. It behaves the same and needs nothing.
+            {error && error.hint
+              ? error.hint
+              : "If the venue network is gone, switch to Mock UI. It behaves the same and needs nothing."}
           </p>
         </div>
       </div>
     );
+
+  var cfg = config || {};
 
   return (
     <div className="stage">
       <div className="livebar">
         <span className="live-dot" />
         <span className="live-label">
-          LIVE · {config.asset}
-          {config.mock ? " · mock api" : ""}
+          LIVE · {cfg.asset || "wallet"}
+          {cfg.mock ? " · mock api" : ""}
         </span>
         <span className="live-caps">
-          up to ${config.maxDepositUsd} in, ${config.maxWithdrawUsd} out
-          {config.addressPayouts ? "" : " · invoices only"}
+          up to ${cfg.maxDepositUsd} in, ${cfg.maxWithdrawUsd} out
+          {cfg.addressPayouts ? "" : " · invoices only"}
         </span>
         <span className="grow" />
         <button className="btn" onClick={fund}>
@@ -337,13 +422,13 @@ function LiveMode({ theme }) {
         defaultTheme={theme}
         demo={false}
         initialBalanceUsd={0}
-        usdPerBtc={config.usdPerBtc > 1000 ? config.usdPerBtc : undefined}
-        capabilities={{ addressPayouts: config.addressPayouts }}
+        usdPerBtc={cfg.usdPerBtc > 1000 ? cfg.usdPerBtc : undefined}
+        capabilities={{ addressPayouts: cfg.addressPayouts }}
         limits={{
-          depositMin: config.minDepositUsd,
-          depositMax: config.maxDepositUsd,
-          withdrawMin: config.minWithdrawUsd,
-          invoiceSeconds: config.invoiceSeconds,
+          depositMin: cfg.minDepositUsd,
+          depositMax: cfg.maxDepositUsd,
+          withdrawMin: cfg.minWithdrawUsd,
+          invoiceSeconds: cfg.invoiceSeconds,
         }}
       >
         <Screens />
@@ -352,6 +437,22 @@ function LiveMode({ theme }) {
       <p className="stage-note">
         Real invoices, real payouts, real money. Tap New visitor between demos to clear the balance.
       </p>
+
+      {pinOpen ? (
+        <PinDialog
+          value={pinDraft}
+          error={pinError}
+          busy={pinBusy}
+          onChange={setPinDraft}
+          onCancel={function () {
+            if (pinBusy) return;
+            setPinOpen(false);
+            setPinDraft("");
+            setPinError("");
+          }}
+          onSubmit={submitFund}
+        />
+      ) : null}
     </div>
   );
 }

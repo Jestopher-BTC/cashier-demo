@@ -29,6 +29,10 @@
 
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html, body, #root { height: 100%; }
+  html, body, .app, .stage, .offline-card, .pin-card {
+    -webkit-writing-mode: horizontal-tb;
+    writing-mode: horizontal-tb;
+  }
   body {
     margin: 0; background: var(--bg); color: var(--fg);
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -57,7 +61,7 @@
   .modes { display: flex; margin: 0 auto; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 4px; }
   .mode {
     position: relative; background: transparent; border: 0; color: var(--muted);
-    font-size: 15px; font-weight: 650; padding: 10px 22px; border-radius: 9px; min-height: 44px;
+    font-size: 15px; font-weight: 600; padding: 10px 22px; border-radius: 9px; min-height: 44px;
   }
   .mode.on { background: var(--panel-alt); color: var(--fg); box-shadow: inset 0 0 0 1px var(--line); }
   .mode-dot {
@@ -69,10 +73,13 @@
     background: var(--panel-alt); border: 1px solid var(--line); color: var(--fg);
     border-radius: 10px; padding: 9px 14px; font-size: 14px; font-weight: 600; min-height: 40px;
     margin-left: 8px;
+    overflow: hidden;
+    -webkit-background-clip: padding-box;
+    background-clip: padding-box;
   }
   .btn.primary { background: var(--accent); border-color: transparent; color: var(--accent-ink); }
   .btn.icon { width: 42px; padding: 0; font-size: 16px; }
-  .btn.big { padding: 14px 22px; font-size: 16px; margin: 12px 0 0; }
+  .btn.big { padding: 14px 22px; font-size: 16px; margin: 12px 0 0; margin-left: 0; }
   .grow { flex: 1 1 auto; }
 
   /* ---- stage ---- */
@@ -85,6 +92,8 @@
     position: relative; width: 420px; max-width: 100%; margin: 0 auto; text-align: left;
     background: var(--panel); border: 1px solid var(--line); border-radius: 20px;
     padding: 18px; box-shadow: var(--shadow); overflow: hidden;
+    -webkit-transform: none;
+    transform: none;
   }
   .stage-note {
     max-width: 420px; margin: 14px auto 0; font-size: 12px; line-height: 1.55; color: var(--faint);
@@ -94,10 +103,48 @@
   .offline-card {
     width: 420px; max-width: 100%; margin: 40px auto; text-align: left;
     background: var(--panel); border: 1px solid var(--line); border-radius: 18px; padding: 24px;
+    -webkit-transform: none;
+    transform: none;
   }
   .offline-card h2 { margin: 0 0 10px; font-size: 18px; }
   .offline-card p { margin: 0 0 10px; font-size: 14px; line-height: 1.55; color: var(--muted); }
   .offline-card .dim { color: var(--faint); font-size: 13px; }
+
+  /* In-page Fund unlock. window.prompt is silent on iPad Chrome. */
+  .pin-overlay {
+    position: fixed;
+    top: 0; right: 0; bottom: 0; left: 0;
+    background: rgba(4, 8, 18, 0.62);
+    z-index: 80;
+    display: -webkit-box;
+    display: -webkit-flex;
+    display: flex;
+    -webkit-box-align: center;
+    -webkit-align-items: center;
+    align-items: center;
+    -webkit-box-pack: center;
+    -webkit-justify-content: center;
+    justify-content: center;
+    padding: 18px;
+    -webkit-transform: none;
+    transform: none;
+  }
+  .pin-card {
+    width: 420px; max-width: 100%; text-align: left;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 18px; padding: 24px;
+    -webkit-transform: none;
+    transform: none;
+  }
+  .pin-card h2 { margin: 0 0 8px; font-size: 18px; }
+  .pin-card p { margin: 0 0 14px; font-size: 14px; line-height: 1.55; color: var(--muted); }
+  .pin-input {
+    display: block; width: 100%; box-sizing: border-box;
+    background: var(--panel-alt); border: 1px solid var(--line); color: var(--fg);
+    border-radius: 12px; padding: 14px 14px; font-size: 22px; letter-spacing: 0.16em;
+    font-family: inherit; margin: 0 0 12px; min-height: 48px;
+  }
+  .pin-error { color: var(--danger) !important; font-size: 13px !important; margin: 0 0 10px !important; }
+  .pin-card .btn { width: 100%; margin-left: 0; }
 
   /* ---- live bar ---- */
   .livebar {
@@ -114,7 +161,7 @@
     70% { box-shadow: 0 0 0 9px rgba(255,106,94,0); }
     100% { box-shadow: 0 0 0 0 rgba(255,106,94,0); }
   }
-  .live-label { font-size: 12px; font-weight: 750; letter-spacing: .04em; margin-right: 10px; }
+  .live-label { font-size: 12px; font-weight: 700; letter-spacing: .04em; margin-right: 10px; }
   .live-caps { font-size: 11.5px; color: var(--faint); }
   .livenotice {
     width: 420px; max-width: 100%; margin: 0 auto 12px; text-align: left;
@@ -127,7 +174,7 @@
   .chips { display: flex; overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 10px; flex: 0 0 auto; }
   .chip {
     white-space: nowrap; background: var(--panel); border: 1px solid var(--line); color: var(--muted);
-    border-radius: 999px; padding: 9px 15px; font-size: 13.5px; font-weight: 650; margin-right: 7px; min-height: 40px;
+    border-radius: 20px; padding: 9px 15px; font-size: 13.5px; font-weight: 600; margin-right: 7px; min-height: 40px;
   }
   .chip.on { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); }
 
@@ -135,7 +182,7 @@
   .note-head { display: flex; align-items: center; }
   .note-head h2 { margin: 0 10px 0 0; font-size: 16px; }
   .note p { margin: 8px 0 0; font-size: 13px; line-height: 1.5; color: var(--muted); max-width: 90ch; }
-  .tag { font-size: 10.5px; font-weight: 750; letter-spacing: .04em; text-transform: uppercase; border-radius: 999px; padding: 4px 9px; }
+  .tag { font-size: 10.5px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; border-radius: 20px; padding: 4px 9px; }
   .tag.replace { background: var(--accent-soft); color: var(--accent); }
   .tag.seam { background: rgba(255,176,32,.14); color: var(--warn); }
   .tag.vendor { background: rgba(247,147,26,.13); color: var(--btc); }
@@ -169,6 +216,30 @@
     background: var(--panel); border: 1px solid var(--line); border-radius: 16px;
     font-size: 14px; line-height: 1.6; color: var(--muted);
   }
+
+  /* Floor look for old iOS Chrome/Safari. Modern browsers skip this class.
+     Drops the effects that double-paint text, muddy green amounts, and
+     misalign button radii on WebKit before iOS 15. */
+  html.flat-paint body { -webkit-font-smoothing: subpixel-antialiased; }
+  html.flat-paint .phone,
+  html.flat-paint .offline-card,
+  html.flat-paint .pin-card,
+  html.flat-paint .livebar { box-shadow: none; }
+  html.flat-paint .live-dot { animation: none; box-shadow: none; }
+  html.flat-paint .phone * { text-shadow: none !important; -webkit-text-stroke: 0 !important; }
+  html.flat-paint .amb-rise,
+  html.flat-paint .amb-tap,
+  html.flat-paint [data-anim] {
+    animation: none !important;
+    transition: none !important;
+    -webkit-transform: none !important;
+    transform: none !important;
+    filter: none !important;
+    -webkit-filter: none !important;
+    text-shadow: none !important;
+    box-shadow: none !important;
+  }
+  html.flat-paint .amb-tap > svg { margin-right: 8px; }
 </style>
 </head>
 <body>

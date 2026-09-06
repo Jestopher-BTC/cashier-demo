@@ -2,8 +2,10 @@
    mockApi in AmbossCashierMock.jsx, so the component tree does not change: only
    the object passed to <PaymentsProvider api={...} /> does. */
 
+import { xhrFetch } from "./polyfills.js";
+
 function joinUrl(base, path) {
-  return base.replace(/\/$/, "") + path;
+  return String(base || "").replace(/\/$/, "") + path;
 }
 
 var STORAGE_KEY = "cashier.session";
@@ -25,6 +27,38 @@ function storeSession(id) {
   }
 }
 
+/* Never pass headers/body as undefined. Old iOS fetch throws
+   "undefined is not an object (evaluating 'headers.forEach')" on that.
+   Live traffic goes through XHR so a broken native fetch cannot take
+   the booth down. */
+function http(url, init) {
+  var opts = init || {};
+  var fetchOpts = { method: opts.method || "GET" };
+  if (opts.headers) fetchOpts.headers = opts.headers;
+  if (opts.body != null) fetchOpts.body = opts.body;
+  return xhrFetch(url, fetchOpts);
+}
+
+function readPayload(res) {
+  if (!res) throw new Error("Empty response from the server");
+  var reader = res.text;
+  if (typeof reader !== "function") throw new Error("This browser cannot read the server response");
+  return reader.call(res).then(function (text) {
+    var payload;
+    try {
+      payload = text ? JSON.parse(text) : {};
+    } catch (e) {
+      throw new Error("Server returned " + (res.status || "an unreadable body"));
+    }
+    if (!res.ok) {
+      var err = new Error((payload && payload.error) || "Request failed");
+      err.status = res.status;
+      throw err;
+    }
+    return payload || {};
+  });
+}
+
 export function createLiveApi(options) {
   var base = (options && options.base) || "api";
   var onEvent = (options && options.onEvent) || function () {};
@@ -39,26 +73,12 @@ export function createLiveApi(options) {
     var body = opts.body;
     if (body && sessionId) body = Object.assign({ sessionId: sessionId }, body);
 
-    return fetch(url, {
-      method: opts.method || "GET",
-      headers: body ? { "content-type": "application/json" } : undefined,
-      body: body ? JSON.stringify(body) : undefined,
-    }).then(function (res) {
-      return res.text().then(function (text) {
-        var payload;
-        try {
-          payload = JSON.parse(text);
-        } catch (e) {
-          throw new Error("Server returned " + res.status);
-        }
-        if (!res.ok) {
-          var err = new Error(payload.error || "Request failed");
-          err.status = res.status;
-          throw err;
-        }
-        return payload;
-      });
-    });
+    var fetchOpts = { method: opts.method || "GET" };
+    if (body) {
+      fetchOpts.headers = { "content-type": "application/json" };
+      fetchOpts.body = JSON.stringify(body);
+    }
+    return http(url, fetchOpts).then(readPayload);
   }
 
   var api = {
@@ -86,7 +106,7 @@ export function createLiveApi(options) {
 
         function wrap(cfg) {
           return function (state) {
-            return { config: cfg, state: state, resumed: false };
+            return { config: cfg || {}, state: state || {}, resumed: false };
           };
         }
       });
@@ -96,6 +116,7 @@ export function createLiveApi(options) {
       sessionId = null;
       storeSession(null);
       return request("/session", { method: "POST", body: {} }).then(function (state) {
+        if (!state || !state.sessionId) throw new Error("Server returned an empty session");
         sessionId = state.sessionId;
         storeSession(sessionId);
         onEvent({ type: "session", state: state });
@@ -110,7 +131,13 @@ export function createLiveApi(options) {
     /* Seam 4. The server owns the balance and the history. */
     loadState: function () {
       if (!sessionId) return Promise.resolve({ balanceUsd: 0, transactions: [] });
-      return request("/state");
+      return request("/state").then(function (state) {
+        return {
+          balanceUsd: state && typeof state.balanceUsd === "number" ? state.balanceUsd : 0,
+          transactions: state && state.transactions ? state.transactions : [],
+          sessionId: state && state.sessionId,
+        };
+      });
     },
 
     resetSession: function () {
@@ -119,8 +146,10 @@ export function createLiveApi(options) {
 
     /* Seam 1. */
     createInvoice: function (input) {
+      input = input || {};
       return request("/deposit", { method: "POST", body: { amountUsd: input.amountUsd } }).then(
         function (r) {
+          r = r || {};
           return {
             id: r.id,
             amountUsd: r.amountUsd,
@@ -136,23 +165,25 @@ export function createLiveApi(options) {
     watchInvoice: function (request_, onPaid) {
       var stopped = false;
       var timer = null;
+      var id = request_ && request_.id;
 
       function tick() {
-        if (stopped) return;
-        request("/deposit/" + encodeURIComponent(request_.id))
+        if (stopped || !id) return;
+        request("/deposit/" + encodeURIComponent(id))
           .then(function (r) {
             if (stopped) return;
+            r = r || {};
             if (r.status === "completed" || r.status === "complete") {
               stopped = true;
               onEvent({ type: "deposit", status: "complete" });
-              onPaid();
+              if (typeof onPaid === "function") onPaid();
               return;
             }
             timer = setTimeout(tick, 1500);
           })
           .catch(function (e) {
             if (stopped) return;
-            onEvent({ type: "warning", message: e.message });
+            onEvent({ type: "warning", message: e && e.message ? e.message : "Deposit check failed" });
             timer = setTimeout(tick, 3000);
           });
       }
@@ -166,17 +197,20 @@ export function createLiveApi(options) {
 
     /* Seam 3. Resolves once the send reaches a terminal state. */
     sendPayment: function (input) {
+      input = input || {};
       return request("/withdraw", {
         method: "POST",
         body: { destination: input.destination, amountUsd: input.amountUsd },
       })
         .then(function (r) {
+          r = r || {};
           if (r.status === "complete" || r.status === "failed") return { status: r.status };
+          if (!r.id) return { status: "failed", error: "Send returned no id" };
           return poll(r.id, 0);
         })
         .catch(function (e) {
-          onEvent({ type: "warning", message: e.message });
-          return { status: "failed", error: e.message };
+          onEvent({ type: "warning", message: e && e.message ? e.message : "Send failed" });
+          return { status: "failed", error: e && e.message ? e.message : "Send failed" };
         });
     },
   };
@@ -187,6 +221,7 @@ export function createLiveApi(options) {
       setTimeout(function () {
         request("/withdraw/" + encodeURIComponent(txId))
           .then(function (r) {
+            r = r || {};
             if (r.status === "complete" || r.status === "failed") return resolve({ status: r.status });
             resolve(poll(txId, attempt + 1));
           })

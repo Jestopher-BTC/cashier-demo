@@ -1,6 +1,7 @@
 /* Booth iPad path: Live must start even when native fetch throws the classic
    WebKit TypeError, and Fund must open an in-page PIN dialog (prompt is silent
-   on iPad Chrome). */
+   on iPad Chrome). Each Fund click must ask for the PIN again — do not reuse
+   a remembered PIN for a later grant. */
 
 process.env.MOCK_AMBOSS = "1";
 process.env.PORT = "8188";

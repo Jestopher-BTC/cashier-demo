@@ -10,6 +10,7 @@ import {
 import { SECTIONS, SOURCE } from "./generated-sections.js";
 import { highlight } from "./highlight.js";
 import { createLiveApi } from "./live-api.js";
+import { DOCS, MAP_LINE, SANDBOX_META, SNIPPETS, snippetById, snippetIdForAction } from "./sdk-guide.js";
 
 const HOST = (typeof window !== "undefined" && window.__CASHIER__) || { live: false };
 
@@ -36,7 +37,7 @@ function useTheme() {
 
 /* The three flows behind one router. Identical in Mock and Live: only the api
    object handed to the provider differs. */
-function Screens() {
+function Screens({ onDemoAction }) {
   const [screen, setScreen] = useState("wallet");
   const toWallet = useCallback(function () {
     setScreen("wallet");
@@ -47,9 +48,11 @@ function Screens() {
       {screen === "wallet" ? (
         <WalletView
           onDeposit={function () {
+            if (onDemoAction) onDemoAction("deposit");
             setScreen("deposit");
           }}
           onWithdraw={function () {
+            if (onDemoAction) onDemoAction("withdraw");
             setScreen("withdraw");
           }}
         />
@@ -64,11 +67,11 @@ function Screens() {
 
 /* ------------------------------------------------------------- mock mode --- */
 
-function MockMode({ theme }) {
+function MockMode({ theme, onDemoAction }) {
   return (
     <div className="stage">
       <PaymentsProvider defaultTheme={theme} demo={true} initialBalanceUsd={1247.85}>
-        <Screens />
+        <Screens onDemoAction={onDemoAction} />
       </PaymentsProvider>
       <p className="stage-note">
         Nothing here touches a network. Demo controls under each screen drive the states you would
@@ -80,7 +83,92 @@ function MockMode({ theme }) {
 
 /* ------------------------------------------------------------- code mode --- */
 
-function CodeMode() {
+function copyText(text) {
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    try {
+      navigator.clipboard.writeText(text);
+      return;
+    } catch (e) {
+      /* fall through to execCommand */
+    }
+  }
+  const ta = document.createElement("textarea");
+  ta.value = text;
+  ta.style.position = "fixed";
+  ta.style.opacity = "0";
+  document.body.appendChild(ta);
+  ta.select();
+  try {
+    document.execCommand("copy");
+  } catch (e) {
+    /* clipboard blocked */
+  }
+  document.body.removeChild(ta);
+}
+
+function DocLinks({ links }) {
+  return (
+    <span className="sdk-docs">
+      {links.map(function (link, i) {
+        return (
+          <a key={link.href + i} href={link.href} target="_blank" rel="noopener noreferrer">
+            {link.label}
+          </a>
+        );
+      })}
+    </span>
+  );
+}
+
+function SnippetCard({ snippet, active, copied, onCopy }) {
+  const html = useMemo(
+    function () {
+      return highlight(snippet.code.replace(/\s+$/, "")).split("\n");
+    },
+    [snippet]
+  );
+
+  return (
+    <article
+      className={"sdk-card" + (active ? " on" : "")}
+      data-snippet={snippet.id}
+      data-active={active ? "true" : "false"}
+    >
+      <div className="sdk-card-head">
+        <h3>{snippet.title}</h3>
+        <DocLinks links={snippet.docs} />
+        <span className="grow" />
+        <button
+          className="btn"
+          type="button"
+          onClick={function () {
+            onCopy(snippet.id, snippet.code);
+          }}
+        >
+          {copied === snippet.id ? "Copied" : "Copy"}
+        </button>
+      </div>
+      {snippet.note ? <p className="sdk-card-note">{snippet.note}</p> : null}
+      <div className="codewrap sdk-card-code">
+        <pre className="code">
+          <table>
+            <tbody>
+              {html.map(function (line, i) {
+                return (
+                  <tr key={i}>
+                    <td className="src" dangerouslySetInnerHTML={{ __html: line || " " }} />
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </pre>
+      </div>
+    </article>
+  );
+}
+
+function MockSource() {
   const [active, setActive] = useState(0);
   const [copied, setCopied] = useState("");
   const section = SECTIONS[active];
@@ -110,17 +198,7 @@ function CodeMode() {
 
   function copy(text, label) {
     try {
-      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text);
-      else {
-        const ta = document.createElement("textarea");
-        ta.value = text;
-        ta.style.position = "fixed";
-        ta.style.opacity = "0";
-        document.body.appendChild(ta);
-        ta.select();
-        document.execCommand("copy");
-        document.body.removeChild(ta);
-      }
+      copyText(text);
       setCopied(label);
       setTimeout(function () {
         setCopied("");
@@ -138,7 +216,7 @@ function CodeMode() {
   };
 
   return (
-    <div className="code-mode">
+    <div className="mock-source" data-mock-source="true">
       <div className="chips">
         {SECTIONS.map(function (s, i) {
           return (
@@ -187,6 +265,135 @@ function CodeMode() {
           </table>
         </pre>
       </div>
+    </div>
+  );
+}
+
+function CodeMode({ focusAction }) {
+  const focusId = snippetIdForAction(focusAction);
+  const [active, setActive] = useState(focusId);
+  const [copied, setCopied] = useState("");
+  const [showSource, setShowSource] = useState(false);
+  const listRef = useRef(null);
+
+  useEffect(
+    function () {
+      setActive(focusId);
+    },
+    [focusId]
+  );
+
+  useEffect(
+    function () {
+      var root = listRef.current;
+      if (!root) return;
+      var card = root.querySelector('[data-snippet="' + active + '"]');
+      if (card && card.scrollIntoView) {
+        try {
+          card.scrollIntoView({ block: "nearest", behavior: "smooth" });
+        } catch (e) {
+          card.scrollIntoView(true);
+        }
+      }
+    },
+    [active]
+  );
+
+  function copy(id, text) {
+    try {
+      copyText(text);
+      setCopied(id);
+      setTimeout(function () {
+        setCopied("");
+      }, 1500);
+    } catch (e) {
+      setCopied("copy blocked");
+    }
+  }
+
+  const current = snippetById(active);
+  const fromDemo = current && current.action && current.action === focusAction;
+
+  return (
+    <div className="code-mode sdk-guide">
+      <div className="sdk-intro">
+        <div className="sdk-intro-head">
+          <h2>Official SDK</h2>
+          <a className="sdk-cta" href={DOCS.gettingStarted} target="_blank" rel="noopener noreferrer">
+            Full walkthrough
+          </a>
+        </div>
+        <p>
+          The cashier mock talks dollars through a React seam. Copy these{" "}
+          <code>@ambosstech/payments</code> calls into your server. Do not ship{" "}
+          <code>createInvoice</code> as the real API.
+        </p>
+      </div>
+
+      <div className="sdk-callout" data-sandbox-callout="true">
+        <strong>Sandbox first.</strong> Add{" "}
+        <code>{SANDBOX_META}</code> on receive and send so you can try tonight
+        without Lightning. Sandbox send needs no team password.
+      </div>
+
+      <p className="sdk-map" data-sdk-map="true">
+        <code>{MAP_LINE.mock}</code>
+        <span className="sdk-map-arrow"> → </span>
+        <code>{MAP_LINE.sdk}</code>
+      </p>
+
+      <div className="sdk-tabs" role="tablist" aria-label="SDK snippets">
+        {SNIPPETS.map(function (s) {
+          return (
+            <button
+              key={s.id}
+              role="tab"
+              type="button"
+              aria-selected={active === s.id}
+              className={"sdk-tab" + (active === s.id ? " on" : "")}
+              data-sdk-tab={s.id}
+              onClick={function () {
+                setActive(s.id);
+              }}
+            >
+              {s.title}
+            </button>
+          );
+        })}
+      </div>
+
+      {fromDemo ? <p className="sdk-follow">{current.hint}</p> : null}
+
+      <div className="sdk-list" ref={listRef}>
+        {SNIPPETS.map(function (s) {
+          return (
+            <SnippetCard
+              key={s.id}
+              snippet={s}
+              active={active === s.id}
+              copied={copied}
+              onCopy={copy}
+            />
+          );
+        })}
+      </div>
+
+      <div className="sdk-source-bar">
+        <button
+          className="btn"
+          type="button"
+          data-source-toggle="true"
+          onClick={function () {
+            setShowSource(function (open) {
+              return !open;
+            });
+          }}
+        >
+          {showSource ? "Hide full mock source" : "Show full mock source"}
+        </button>
+      </div>
+
+      {showSource ? <MockSource /> : null}
     </div>
   );
 }
@@ -251,7 +458,7 @@ function PinDialog({ value, error, busy, onChange, onCancel, onSubmit }) {
   );
 }
 
-function LiveMode({ theme }) {
+function LiveMode({ theme, onDemoAction }) {
   const [phase, setPhase] = useState("connecting"); // connecting | ready | error
   const [config, setConfig] = useState(null);
   const [error, setError] = useState(null);
@@ -436,7 +643,7 @@ function LiveMode({ theme }) {
           invoiceSeconds: cfg.invoiceSeconds,
         }}
       >
-        <Screens />
+        <Screens onDemoAction={onDemoAction} />
       </PaymentsProvider>
 
       <p className="stage-note">
@@ -471,6 +678,7 @@ const MODES = [
 export default function App() {
   const [mode, setMode] = useState("mock");
   const [theme, setTheme] = useTheme();
+  const [focusAction, setFocusAction] = useState(null);
 
   return (
     <div className="app">
@@ -516,11 +724,11 @@ export default function App() {
 
       <main className="content">
         {mode === "mock" ? (
-          <MockMode theme={theme} />
+          <MockMode theme={theme} onDemoAction={setFocusAction} />
         ) : mode === "code" ? (
-          <CodeMode />
+          <CodeMode focusAction={focusAction} />
         ) : (
-          <LiveMode theme={theme} />
+          <LiveMode theme={theme} onDemoAction={setFocusAction} />
         )}
       </main>
     </div>

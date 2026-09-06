@@ -215,8 +215,11 @@ sudo systemctl reload caddy
 curl -s https://boltda.sh/cashier/healthz | jq
 ```
 
-`ok: true` means the API answered, the wallet is ready, and the rate source is
-alive. Anything else prints which check failed and why.
+`ok: true` means the API answered, the wallet is ready, and a real BTC/USD
+spot is available (Coinbase, then CoinGecko). That rate is required even when
+`AMBOSS_ASSET=USDT`, because BOLT11 invoice cash-outs are sat-denominated.
+`usdPerBtc: 1` with `source: "n/a"` is a bug, not a stablecoin shortcut.
+Anything else prints which check failed and why.
 
 ## Every deploy after the first
 

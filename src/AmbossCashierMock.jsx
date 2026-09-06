@@ -507,8 +507,46 @@ const reference = () => {
 /* Destinations. A cashtag is a Lightning address wearing a costume: strip the
    dollar sign, append the Cash App domain. The player never sees that. */
 function parseDestination(raw, rate) {
-  const input = (raw || "").trim().replace(/^lightning:/i, "");
+  const input = String(raw || "")
+    .trim()
+    .replace(/^lightning:/i, "")
+    .replace(/[\u200B-\u200D\uFEFF]/g, "")
+    .replace(/^[\uFF04\uFE69]/, "$");
   if (!input) return { kind: "empty" };
+
+  const cashApp = /^(?:https?:\/\/)?(?:www\.)?cash\.app\/\$?([a-z0-9_]{1,20})\/?$/i.exec(input);
+  if (cashApp) {
+    const tag = cashApp[1];
+    return {
+      kind: "cashtag",
+      display: `$${tag}`,
+      label: "Cash App",
+      address: `${tag.toLowerCase()}@cash.app`,
+      amountKnown: false,
+    };
+  }
+
+  const lnurlp = /^(?:https?:\/\/)?(?:www\.)?([^/\s]+)\/\.well-known\/lnurlp\/([a-z0-9._-]+)/i.exec(input);
+  if (lnurlp) {
+    const host = lnurlp[1].toLowerCase();
+    const user = lnurlp[2].toLowerCase();
+    if (host === "cash.app") {
+      return {
+        kind: "cashtag",
+        display: `$${user}`,
+        label: "Cash App",
+        address: `${user}@cash.app`,
+        amountKnown: false,
+      };
+    }
+    return {
+      kind: "address",
+      display: `${user}@${host}`,
+      label: "Lightning address",
+      address: `${user}@${host}`,
+      amountKnown: false,
+    };
+  }
 
   if (/^\$[a-z0-9_]{1,20}$/i.test(input)) {
     const tag = input.slice(1);
@@ -521,14 +559,26 @@ function parseDestination(raw, rate) {
     };
   }
 
-  if (/^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/i.test(input))
+  if (/^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/i.test(input)) {
+    const address = input.toLowerCase();
+    if (address.endsWith("@cash.app")) {
+      const tag = address.slice(0, -"@cash.app".length);
+      return {
+        kind: "cashtag",
+        display: `$${tag}`,
+        label: "Cash App",
+        address,
+        amountKnown: false,
+      };
+    }
     return {
       kind: "address",
-      display: input.toLowerCase(),
+      display: address,
       label: "Lightning address",
-      address: input.toLowerCase(),
+      address,
       amountKnown: false,
     };
+  }
 
   if (/^lnbc/i.test(input)) {
     if (input.length < 60)

@@ -25,6 +25,13 @@ process.env.MIN_WITHDRAW_USD = "0.01";
 process.env.MAX_WITHDRAW_USD = "5";
 
 const { server } = await import("./server/server.js");
+const { mockAmboss } = await import("./server/mock-amboss.js");
+const sent = [];
+const origSendAddress = mockAmboss.sendAddress.bind(mockAmboss);
+mockAmboss.sendAddress = async (args) => {
+  sent.push(args);
+  return origSendAddress(args);
+};
 
 const BASE = `http://127.0.0.1:${process.env.PORT}`;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -86,6 +93,46 @@ check(
   /\$0\.01 to \$5/.test(big.json.error || ""),
   big.json
 );
+
+console.log("\nstablecoin wallet + healthz / cashtag payout units");
+const health = await fetch(BASE + "/healthz");
+const hj = await health.json();
+check(
+  "healthz does not report usdPerBtc: 1 source n/a on a USDT wallet",
+  health.status === 200 &&
+    hj.checks.rate.ok === true &&
+    hj.checks.rate.usdPerBtc === 100000 &&
+    hj.checks.rate.source === "static",
+  hj.checks.rate
+);
+
+const tag = await call("/api/withdraw", {
+  method: "POST",
+  body: { sessionId: sid, destination: "$jestopher", amountUsd: 2 },
+});
+check("cashtag send accepted on USDT wallet", tag.status === 200, tag.json);
+check(
+  "cashtag send uses USDT micro-units ($2 -> 2000000), not sats priced at $1/BTC",
+  sent[0] && sent[0].lightningAddress === "jestopher@cash.app" && sent[0].amountMinor === 2000000,
+  sent[0]
+);
+
+const addr = await call("/api/withdraw", {
+  method: "POST",
+  body: { sessionId: sid, destination: "player@walletofsatoshi.com", amountUsd: 1 },
+});
+check("Lightning address send accepted on USDT wallet", addr.status === 200, addr.json);
+check(
+  "Lightning address send uses the same dollar minor units",
+  sent[1] && sent[1].lightningAddress === "player@walletofsatoshi.com" && sent[1].amountMinor === 1000000,
+  sent[1]
+);
+
+const viaUrl = await call("/api/withdraw", {
+  method: "POST",
+  body: { sessionId: sid, destination: "https://cash.app/$jestopher", amountUsd: 1 },
+});
+check("cash.app URL pays the same cashtag address", viaUrl.status === 200 && sent[2] && sent[2].lightningAddress === "jestopher@cash.app", viaUrl.json);
 
 console.log(`\n${pass} passed, ${fail} failed\n`);
 server.close();

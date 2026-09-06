@@ -9,6 +9,7 @@ import {
 } from "./AmbossCashierMock.jsx";
 import { SECTIONS, SOURCE } from "./generated-sections.js";
 import { highlight } from "./highlight.js";
+import { AmbossLogo } from "./AmbossLogo.jsx";
 import { createLiveApi } from "./live-api.js";
 
 const HOST = (typeof window !== "undefined" && window.__CASHIER__) || { live: false };
@@ -477,7 +478,7 @@ export default function App() {
       <Styles />
       <header className="topbar">
         <div className="brand">
-          <span className="glyph">$</span>
+          <AmbossLogo gid="amboss-grad-brand" className="brand-logo" />
           <span className="brand-text">
             <strong>Cashier</strong>
             <em>Amboss Payments</em>
@@ -526,10 +527,13 @@ export default function App() {
 
       {mode !== "code" ? (
         <footer className="booth-foot">
-          Powered by Amboss Payments · Get started at{" "}
-          <a href="https://amboss.tech" target="_blank" rel="noopener noreferrer">
-            amboss.tech
-          </a>
+          <AmbossLogo gid="amboss-grad-foot" className="booth-foot-logo" />
+          <p>
+            Powered by Amboss Payments · Get started at{" "}
+            <a href="https://amboss.tech" target="_blank" rel="noopener noreferrer">
+              amboss.tech
+            </a>
+          </p>
         </footer>
       ) : null}
     </div>

@@ -180,6 +180,7 @@ fs.mkdirSync(p("offline"), { recursive: true });
 fs.writeFileSync(p("public", "app.js"), bundle);
 fs.writeFileSync(p("public", "index.html"), page('<script src="app.js"></script>', { live: true }));
 fs.writeFileSync(p("public", "check.html"), CHECK);
+fs.copyFileSync(p("src", "assets", "logo_gradient.svg"), p("public", "logo_gradient.svg"));
 fs.writeFileSync(
   p("offline", "cashier-offline.html"),
   page("<script>" + bundle + "</script>", { live: false })

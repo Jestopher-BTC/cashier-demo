@@ -39,10 +39,20 @@ const minH = (el) => {
 console.log("\nfooter");
 const foot = d.querySelector(".booth-foot");
 const footLink = foot && foot.querySelector("a");
+const footLogo = foot && foot.querySelector("svg");
+const brandLogo = d.querySelector(".brand svg");
 check("footer on mock", Boolean(foot));
 check("footer copy", Boolean(foot && /Powered by Amboss Payments/.test(foot.textContent) && /amboss\.tech/.test(foot.textContent)), foot && foot.textContent);
 check("footer link", Boolean(footLink && footLink.getAttribute("href") === "https://amboss.tech"), footLink && footLink.getAttribute("href"));
+check("footer uses real Amboss wordmark", Boolean(footLogo && /640\.4/.test(footLogo.getAttribute("viewBox"))), footLogo && footLogo.getAttribute("viewBox"));
+check("topbar uses real Amboss wordmark", Boolean(brandLogo && /640\.4/.test(brandLogo.getAttribute("viewBox"))), brandLogo && brandLogo.getAttribute("viewBox"));
+check("handmade dollar glyph is gone", !d.querySelector(".glyph"));
+check("no docs.amboss.tech hotlink", !/docs\.amboss\.tech/.test(d.documentElement.innerHTML));
 check("sales note, not dry-run leftover", /iGaming/.test(txt()) && !/Nothing here touches a network/.test(txt()), txt().slice(0, 220));
+
+const logoRes = await fetch(BASE + "logo_gradient.svg");
+const logoBody = await logoRes.text();
+check("vendored logo is served", logoRes.ok && /viewBox="0 0 640\.4 84\.9"/.test(logoBody) && /#FF0080/.test(logoBody));
 
 console.log("\namount keyboard");
 await click(btn("Deposit"));

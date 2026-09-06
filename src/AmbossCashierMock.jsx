@@ -834,6 +834,7 @@ function Button({ theme, variant = "primary", full, disabled, children, style, .
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
+    minHeight: 44,
     overflow: "hidden",
     WebkitBackgroundClip: "padding-box",
     backgroundClip: "padding-box",
@@ -845,7 +846,7 @@ function Button({ theme, variant = "primary", full, disabled, children, style, .
       color: theme.text,
       borderColor: theme.border,
     },
-    ghost: { background: "transparent", color: theme.muted, padding: "10px 12px" },
+    ghost: { background: "transparent", color: theme.muted, padding: "12px 12px" },
     danger: { background: theme.dangerSoft, color: theme.danger, borderColor: "transparent" },
   };
   return (
@@ -950,7 +951,7 @@ function Notice({ theme, tone = "warn", title, body, action }) {
 
 function BackBar({ theme, title, onBack, right }) {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
       {onBack ? (
         <button
           onClick={onBack}
@@ -960,8 +961,8 @@ function BackBar({ theme, title, onBack, right }) {
             background: theme.surfaceAlt,
             border: `1px solid ${theme.border}`,
             color: theme.text,
-            width: 34,
-            height: 34,
+            width: 44,
+            height: 44,
             borderRadius: 10,
             cursor: "pointer",
             display: "flex",
@@ -1081,7 +1082,10 @@ function AmountField({ theme, value, onChange, autoFocus, hint, error, max }) {
             const parts = v.split(".");
             onChange(parts[1] !== undefined ? `${parts[0]}.${parts[1].slice(0, 2)}` : v);
           }}
+          type="text"
           inputMode="decimal"
+          autoCorrect="off"
+          autoCapitalize="none"
           placeholder="0.00"
           aria-label="Amount in US dollars"
           style={{
@@ -1107,7 +1111,8 @@ function AmountField({ theme, value, onChange, autoFocus, hint, error, max }) {
               color: theme.accent,
               border: "none",
               borderRadius: 9,
-              padding: "8px 12px",
+              padding: "10px 12px",
+              minHeight: 44,
               fontSize: 12.5,
               fontWeight: 700,
               cursor: "pointer",
@@ -1118,7 +1123,7 @@ function AmountField({ theme, value, onChange, autoFocus, hint, error, max }) {
           </button>
         ) : null}
       </div>
-      <div style={{ marginTop: 8, fontSize: 12.5, color: error ? theme.danger : theme.muted, minHeight: 18 }}>
+      <div style={{ marginTop: 10, fontSize: 12.5, color: error ? theme.danger : theme.muted, minHeight: 20, lineHeight: 1.45 }}>
         {error || hint}
       </div>
     </div>
@@ -1150,7 +1155,8 @@ function DemoBar({ theme, actions }) {
               border: `1px solid ${theme.border}`,
               color: theme.muted,
               borderRadius: 8,
-              padding: "7px 10px",
+              padding: "10px 12px",
+              minHeight: 44,
               fontSize: 12,
               fontWeight: 600,
               cursor: "pointer",
@@ -1246,7 +1252,7 @@ export function DepositFlow({ onExit, onDone }) {
     return (
       <div className="amb-rise">
         <BackBar theme={theme} title="Deposit" onBack={onExit} />
-        <div style={{ color: theme.muted, fontSize: 13.5, lineHeight: 1.5, marginBottom: 16 }}>
+        <div style={{ color: theme.muted, fontSize: 13.5, lineHeight: 1.5, marginBottom: 20 }}>
           How much do you want to add to your balance?
         </div>
 
@@ -1259,7 +1265,7 @@ export function DepositFlow({ onExit, onDone }) {
           hint={`Between ${usd(limits.depositMin, { whole: true })} and ${usd(limits.depositMax, { whole: true })}`}
         />
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8, marginTop: 4 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8, marginTop: 12 }}>
           {[25, 50, 100, 250].map((v) => (
             <button
               key={v}
@@ -1271,6 +1277,7 @@ export function DepositFlow({ onExit, onDone }) {
                 color: Number(amount) === v ? theme.accent : theme.text,
                 borderRadius: 10,
                 padding: "11px 0",
+                minHeight: 44,
                 fontSize: 13.5,
                 fontWeight: 600,
                 cursor: "pointer",
@@ -1283,12 +1290,12 @@ export function DepositFlow({ onExit, onDone }) {
           ))}
         </div>
 
-        <div style={{ marginTop: 22 }}>
+        <div style={{ marginTop: 24 }}>
           <Button theme={theme} full disabled={!value || !!error} onClick={() => createRequest(value)}>
             Continue
           </Button>
         </div>
-        <div style={{ marginTop: 12, fontSize: 11.5, color: theme.faint, textAlign: "center" }}>
+        <div style={{ marginTop: 16, fontSize: 11.5, color: theme.faint, textAlign: "center", lineHeight: 1.45 }}>
           No deposit fee. Funds land in seconds.
         </div>
       </div>
@@ -1324,7 +1331,7 @@ export function DepositFlow({ onExit, onDone }) {
             />
           </div>
 
-          <div style={{ display: "grid", gap: 8, marginTop: 14 }}>
+          <div style={{ display: "grid", gap: 10, marginTop: 16 }}>
             <CopyButton theme={theme} text={req.invoice} label="Copy invoice" />
             <Button
               theme={theme}
@@ -1381,7 +1388,7 @@ export function DepositFlow({ onExit, onDone }) {
           <div style={{ color: theme.muted, fontSize: 13.5, marginTop: 5 }}>Your balance is ready to play.</div>
         </div>
 
-        <div style={{ display: "grid", gap: 8, marginTop: 26 }}>
+        <div style={{ display: "grid", gap: 10, marginTop: 28 }}>
           <Button theme={theme} full onClick={onDone}>
             Back to wallet
           </Button>
@@ -1402,7 +1409,7 @@ export function DepositFlow({ onExit, onDone }) {
           title="This invoice expired"
           body={`Nothing was charged. Start a new ${usd(req.amountUsd)} invoice whenever you are ready.`}
         />
-        <div style={{ display: "grid", gap: 8, marginTop: 18 }}>
+        <div style={{ display: "grid", gap: 10, marginTop: 24 }}>
           <Button theme={theme} full onClick={() => createRequest(req.amountUsd)}>
             New invoice for {usd(req.amountUsd)}
           </Button>
@@ -1422,7 +1429,7 @@ export function DepositFlow({ onExit, onDone }) {
         title="The payment did not go through"
         body="Nothing left your account. Start a new invoice and try again."
       />
-      <div style={{ display: "grid", gap: 8, marginTop: 18 }}>
+      <div style={{ display: "grid", gap: 10, marginTop: 24 }}>
         <Button theme={theme} full onClick={() => createRequest(req.amountUsd)}>
           Try again
         </Button>
@@ -1496,7 +1503,7 @@ function TxDetail({ theme, tx, onClose }) {
           </div>
         ) : null}
 
-        <div style={{ marginTop: 16 }}>
+        <div style={{ marginTop: 20 }}>
           <Button theme={theme} variant="secondary" full onClick={onClose}>
             Close
           </Button>
@@ -1522,9 +1529,9 @@ export function WalletView({ onDeposit, onWithdraw }) {
           Withdrawable balance
         </span>
         <div style={{ fontSize: 38, fontWeight: 700, color: theme.text, marginTop: 10, ...NUM }}>{usd(balance)}</div>
-        <div style={{ fontSize: 12, color: theme.muted, marginTop: 4 }}>Available to play or cash out</div>
+        <div style={{ fontSize: 12, color: theme.muted, marginTop: 6, lineHeight: 1.45 }}>Available to play or cash out</div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 16 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 20 }}>
           <Button theme={theme} onClick={onDeposit} full>
             Deposit
           </Button>
@@ -1547,7 +1554,8 @@ export function WalletView({ onDeposit, onWithdraw }) {
                 color: filter === k ? theme.text : theme.muted,
                 border: filter === k ? `1px solid ${theme.border}` : "1px solid transparent",
                 borderRadius: 7,
-                padding: "5px 11px",
+                padding: "8px 12px",
+                minHeight: 44,
                 fontSize: 12,
                 fontWeight: 600,
                 cursor: "pointer",
@@ -1646,7 +1654,7 @@ function Scanner({ theme, onCancel, onDetect }) {
           onClick={onCancel}
           aria-label="Close scanner"
           className="amb-tap"
-          style={{ marginLeft: "auto", background: "rgba(255,255,255,0.12)", border: "none", color: "#FFFFFF", width: 30, height: 30, borderRadius: 8, cursor: "pointer" }}
+          style={{ marginLeft: "auto", background: "rgba(255,255,255,0.12)", border: "none", color: "#FFFFFF", width: 44, height: 44, borderRadius: 8, cursor: "pointer" }}
         >
           ✕
         </button>
@@ -1667,6 +1675,7 @@ function Scanner({ theme, onCancel, onDetect }) {
                 border: "none",
                 borderTop: i ? `1px solid ${theme.border}` : "none",
                 padding: "12px 10px",
+                minHeight: 44,
                 cursor: "pointer",
                 fontFamily: FONT,
               }}
@@ -1723,7 +1732,7 @@ function Scanner({ theme, onCancel, onDetect }) {
       <button
         onClick={() => setShowSamples((s) => !s)}
         className="amb-tap"
-        style={{ marginTop: 14, background: "transparent", border: "none", color: "rgba(255,255,255,0.75)", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: FONT, padding: 8 }}
+        style={{ marginTop: 16, background: "transparent", border: "none", color: "rgba(255,255,255,0.75)", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: FONT, padding: "10px 8px", minHeight: 44 }}
       >
         {showSamples ? "Back to camera" : "Camera not working? Pick a sample code"}
       </button>
@@ -1747,7 +1756,7 @@ function DestinationPill({ theme, dest, onChange }) {
         <button
           onClick={onChange}
           className="amb-tap"
-          style={{ marginLeft: "auto", background: "transparent", border: "none", color: theme.muted, fontSize: 12.5, fontWeight: 600, cursor: "pointer", fontFamily: FONT }}
+          style={{ marginLeft: "auto", background: "transparent", border: "none", color: theme.muted, fontSize: 12.5, fontWeight: 600, cursor: "pointer", fontFamily: FONT, minHeight: 44, padding: "8px 6px" }}
         >
           Change
         </button>
@@ -1812,8 +1821,8 @@ export function WithdrawFlow({ onExit, onDone }) {
     return (
       <div className="amb-rise">
         <BackBar theme={theme} title="Cash out" onBack={onExit} />
-        <div style={{ color: theme.muted, fontSize: 13.5, lineHeight: 1.5, marginBottom: 16 }}>
-          Where should the money go? Enter a cashtag or Lightning address, paste an invoice, or scan a code.
+        <div style={{ color: theme.muted, fontSize: 13.5, lineHeight: 1.5, marginBottom: 20 }}>
+          Cashtag, Lightning address, or invoice.
         </div>
 
         <div
@@ -1831,6 +1840,11 @@ export function WithdrawFlow({ onExit, onDone }) {
             value={raw}
             autoFocus
             onChange={(e) => setRaw(e.target.value)}
+            type="text"
+            inputMode={/^ln[a-z0-9]/i.test(String(raw || "").trim()) ? "text" : "email"}
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
             placeholder="$cashtag, address, or invoice"
             aria-label="Cashtag, Lightning address, or invoice"
             style={{
@@ -1843,14 +1857,14 @@ export function WithdrawFlow({ onExit, onDone }) {
               fontSize: 15,
               fontFamily: FONT,
               fontWeight: 600,
-              padding: "4px 0",
+              padding: "8px 0",
             }}
           />
           <button
             onClick={() => setScanning(true)}
             aria-label="Scan a code"
             className="amb-tap"
-            style={{ background: theme.surfaceAlt, border: `1px solid ${theme.border}`, color: theme.text, width: 38, height: 38, borderRadius: 10, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flex: "0 0 auto" }}
+            style={{ background: theme.surfaceAlt, border: `1px solid ${theme.border}`, color: theme.text, width: 44, height: 44, borderRadius: 10, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flex: "0 0 auto" }}
           >
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
               <path d="M3 8V5.5A2.5 2.5 0 0 1 5.5 3H8M16 3h2.5A2.5 2.5 0 0 1 21 5.5V8M21 16v2.5a2.5 2.5 0 0 1-2.5 2.5H16M8 21H5.5A2.5 2.5 0 0 1 3 18.5V16" />
@@ -1859,23 +1873,23 @@ export function WithdrawFlow({ onExit, onDone }) {
           </button>
         </div>
 
-        <div style={{ minHeight: 20, marginTop: 8, fontSize: 12.5, color: raw && !typedOk ? theme.danger : theme.muted }}>
+        <div style={{ minHeight: 20, marginTop: 12, fontSize: 12.5, lineHeight: 1.45, color: raw && !typedOk ? theme.danger : theme.muted }}>
           {raw
             ? typedOk
               ? typed.amountKnown
                 ? `Set amount: ${usd(typed.amountUsd)}`
                 : "You choose the amount next"
               : typed.reason
-            : "Cashtags start with a dollar sign. Cash App is one of many Lightning wallets."}
+            : "Start a cashtag with $."}
         </div>
 
-        <div style={{ marginTop: 18 }}>
+        <div style={{ marginTop: 24 }}>
           <Button theme={theme} full disabled={!typedOk} onClick={() => accept(raw)}>
             Continue
           </Button>
         </div>
 
-        <div style={{ marginTop: 22 }}>
+        <div style={{ marginTop: 26 }}>
           <div style={{ fontSize: 11, color: theme.faint, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 8 }}>
             Recently used
           </div>
@@ -1883,7 +1897,7 @@ export function WithdrawFlow({ onExit, onDone }) {
             <button
               onClick={() => accept("$jestopher")}
               className="amb-tap"
-              style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", background: "transparent", border: "none", padding: "12px 14px", cursor: "pointer", textAlign: "left", fontFamily: FONT }}
+              style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", background: "transparent", border: "none", padding: "12px 14px", minHeight: 44, cursor: "pointer", textAlign: "left", fontFamily: FONT }}
             >
               <div style={{ width: 30, height: 30, borderRadius: "50%", background: theme.accentSoft, color: theme.accent, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700 }}>
                 $
@@ -1915,7 +1929,7 @@ export function WithdrawFlow({ onExit, onDone }) {
         <BackBar theme={theme} title="How much?" onBack={() => setStep("destination")} />
         <DestinationPill theme={theme} dest={dest} onChange={() => setStep("destination")} />
 
-        <div style={{ marginTop: 16 }}>
+        <div style={{ marginTop: 20 }}>
           <AmountField
             theme={theme}
             value={amount}
@@ -1927,7 +1941,7 @@ export function WithdrawFlow({ onExit, onDone }) {
           />
         </div>
 
-        <div style={{ marginTop: 22 }}>
+        <div style={{ marginTop: 24 }}>
           <Button
             theme={theme}
             full
@@ -1940,7 +1954,7 @@ export function WithdrawFlow({ onExit, onDone }) {
             Review
           </Button>
         </div>
-        <div style={{ marginTop: 12, fontSize: 11.5, color: theme.faint, textAlign: "center" }}>No cash out fee.</div>
+        <div style={{ marginTop: 16, fontSize: 11.5, color: theme.faint, textAlign: "center", lineHeight: 1.45 }}>No cash out fee.</div>
       </div>
     );
 
@@ -1975,7 +1989,7 @@ export function WithdrawFlow({ onExit, onDone }) {
           </div>
         ) : null}
 
-        <div style={{ display: "grid", gap: 8, marginTop: 18 }}>
+        <div style={{ display: "grid", gap: 10, marginTop: 24 }}>
           <Button theme={theme} full disabled={insufficient} onClick={send}>
             {insufficient ? "Cannot send" : `Send ${usd(final.amountUsd)}`}
           </Button>
@@ -2023,7 +2037,7 @@ export function WithdrawFlow({ onExit, onDone }) {
           </div>
         </div>
 
-        <div style={{ marginTop: 26 }}>
+        <div style={{ marginTop: 28 }}>
           <Button theme={theme} full onClick={onDone}>
             Back to wallet
           </Button>
@@ -2041,7 +2055,7 @@ export function WithdrawFlow({ onExit, onDone }) {
           title="This one is taking longer than usual"
           body={`${usd(final.amountUsd)} is on its way to ${final.dest.display} and is held until it lands. You will see the result in your transaction list.`}
         />
-        <div style={{ marginTop: 18 }}>
+        <div style={{ marginTop: 24 }}>
           <Button theme={theme} full onClick={onDone}>
             Back to wallet
           </Button>
@@ -2058,7 +2072,7 @@ export function WithdrawFlow({ onExit, onDone }) {
         title={`${final.dest.display} could not be reached`}
         body={`${usd(final.amountUsd)} is back in your balance and no fee was charged. Try again, or send to somewhere else.`}
       />
-      <div style={{ display: "grid", gap: 8, marginTop: 18 }}>
+      <div style={{ display: "grid", gap: 10, marginTop: 24 }}>
         <Button theme={theme} full onClick={() => setStep("review")}>
           Try again
         </Button>

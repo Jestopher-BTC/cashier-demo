@@ -119,19 +119,20 @@
 
   /* ---- stage ---- */
   .content { flex: 1 1 auto; min-height: 0; display: flex; }
-  /* Mock-only, prominent under the modes bar. Not a filled banner. Live omits it. */
+  /* Mock-only under the modes bar. Bigger + bolder for booth passersby.
+     Same copy, same line, no subtitle. Live omits it. */
   .booth-tagline {
     flex: 0 0 auto;
     margin: 0;
-    padding: 14px 16px 2px;
+    padding: 8px 16px 0;
     padding-left: calc(16px + constant(safe-area-inset-left));
     padding-left: calc(16px + env(safe-area-inset-left, 0px));
     padding-right: calc(16px + constant(safe-area-inset-right));
     padding-right: calc(16px + env(safe-area-inset-right, 0px));
     text-align: center;
-    font-size: 16px;
-    font-weight: 700;
-    line-height: 1.35;
+    font-size: 24px;
+    font-weight: 800;
+    line-height: 1.15;
     letter-spacing: 0.01em;
     color: var(--muted);
     background: var(--bg);
@@ -150,6 +151,23 @@
   .stage-note {
     max-width: 420px; margin: 18px auto 0; font-size: 12px; line-height: 1.6; color: var(--faint);
     text-align: center;
+  }
+  /* Mock-only gutters. Live keeps the roomier stage / phone padding. */
+  .app-mock .stage { padding: 10px 16px 12px; }
+  .app-mock .phone { padding: 12px; }
+  .app-mock .stage-note { margin-top: 10px; }
+  /* ~11" iPad landscape (~834px tall): keep the Calendly QR above the fold.
+     Modest chrome trims plus a 3-row txn window; do not shrink Live. */
+  @media (orientation: landscape) and (max-height: 900px) {
+    .booth-tagline { padding-top: 6px; }
+    .app-mock .stage { padding: 6px 16px 8px; }
+    .app-mock .phone { padding: 10px 12px; }
+    .app-mock .stage-note { margin-top: 6px; }
+    .app-mock [data-tx-list] {
+      max-height: 168px;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
   }
 
   /* Persistent booth credit. Compact so older iPads keep the card on screen.

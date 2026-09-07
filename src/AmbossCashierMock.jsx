@@ -97,8 +97,9 @@ const NUM = { fontVariantNumeric: "tabular-nums" };
 
 /* Booth conversion copy. Change the strings here; do not hunt through layout.
    paymentsDiscoveryUrl is Stacy's confirmed Calendly.
-   tagline is Mock-only, prominent under the modes bar (data-booth-tagline).
-   Live stays clean. Cash-out success still shows the discovery QR. */
+   tagline is Mock-only, louder under the modes bar (data-booth-tagline):
+   bigger + bolder, same line, no subtitle. Live stays clean.
+   Cash-out success still shows the discovery QR. */
 export const BOOTH = {
   sampleCashtag: "$jestoph",
   tagline: "Pay in Bitcoin, deal in dollars.",
@@ -1601,21 +1602,21 @@ function TxDetail({ theme, tx, onClose }) {
   );
 }
 
-function DiscoveryInvite({ theme, size = 168 }) {
+function DiscoveryInvite({ theme, size = 168, compact }) {
   return (
     <div
       data-discovery-qr
       data-discovery-url={BOOTH.paymentsDiscoveryUrl}
-      style={{ marginTop: 22, textAlign: "center" }}
+      style={{ marginTop: compact ? 12 : 22, textAlign: "center" }}
     >
-      <div style={{ background: "#FFFFFF", padding: 10, borderRadius: 14, lineHeight: 0, display: "inline-block" }}>
+      <div style={{ background: "#FFFFFF", padding: compact ? 8 : 10, borderRadius: 14, lineHeight: 0, display: "inline-block" }}>
         <QrCode
           value={BOOTH.paymentsDiscoveryUrl}
           size={size}
           label="Payments discovery booking QR code"
         />
       </div>
-      <div style={{ color: theme.muted, fontSize: 13.5, marginTop: 12, lineHeight: 1.45 }}>
+      <div style={{ color: theme.muted, fontSize: compact ? 13 : 13.5, marginTop: compact ? 8 : 12, lineHeight: 1.45 }}>
         Scan to book a payments discovery meeting.
       </div>
     </div>
@@ -1626,23 +1627,25 @@ export function WalletView({ onDeposit, onWithdraw, staff, discovery }) {
   const { theme, balance, transactions } = usePayments();
   const [filter, setFilter] = useState("all");
   const [open, setOpen] = useState(null);
+  /* Mock wallet only (discovery QR). Live keeps the roomier card + Staff. */
+  const compact = Boolean(discovery);
 
   const list = transactions.filter((t) =>
     filter === "all" ? true : filter === "in" ? t.type === "deposit" : t.type === "withdrawal"
   );
 
   return (
-    <div className="amb-rise">
-      <Card theme={theme} style={{ padding: "18px 18px 16px", background: theme.surfaceAlt }}>
+    <div className="amb-rise" data-wallet-compact={compact ? "true" : undefined}>
+      <Card theme={theme} style={{ padding: compact ? "14px 16px 12px" : "18px 18px 16px", background: theme.surfaceAlt }}>
         <span style={{ fontSize: 11, color: theme.faint, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" }}>
           Withdrawable balance
         </span>
-        <div style={{ fontSize: 38, fontWeight: 700, color: theme.text, marginTop: 10, ...NUM }}>{usd(balance)}</div>
-        <div data-balance-caption style={{ fontSize: 12, color: theme.muted, marginTop: 8, lineHeight: 1.45 }}>
+        <div style={{ fontSize: 38, fontWeight: 700, color: theme.text, marginTop: compact ? 6 : 10, ...NUM }}>{usd(balance)}</div>
+        <div data-balance-caption style={{ fontSize: 12, color: theme.muted, marginTop: compact ? 4 : 8, lineHeight: 1.45 }}>
           Available to play or cash out
         </div>
 
-        <div data-balance-actions style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 16, paddingTop: 16 }}>
+        <div data-balance-actions style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: compact ? 10 : 16, paddingTop: compact ? 8 : 16 }}>
           <Button theme={theme} onClick={onDeposit} full>
             Deposit
           </Button>
@@ -1652,7 +1655,7 @@ export function WalletView({ onDeposit, onWithdraw, staff, discovery }) {
         </div>
       </Card>
 
-      <div style={{ display: "flex", alignItems: "center", marginTop: 22, marginBottom: 10, gap: 8 }}>
+      <div data-tx-heading style={{ display: "flex", alignItems: "center", marginTop: compact ? 12 : 22, marginBottom: compact ? 6 : 10 }}>
         <div style={{ fontSize: 14.5, fontWeight: 700, color: theme.text }}>Transactions</div>
         <div style={{ marginLeft: "auto", display: "flex", background: theme.inset, borderRadius: 9, padding: 3, gap: 2 }}>
           {[["all", "All"], ["in", "In"], ["out", "Out"]].map(([k, label]) => (
@@ -1679,7 +1682,7 @@ export function WalletView({ onDeposit, onWithdraw, staff, discovery }) {
         </div>
       </div>
 
-      <Card theme={theme} style={{ overflow: "hidden" }}>
+      <Card theme={theme} data-tx-list={compact ? "mock" : undefined} style={{ overflow: compact ? "auto" : "hidden" }}>
         {list.length === 0 ? (
           <div style={{ padding: "28px 18px", textAlign: "center", color: theme.muted, fontSize: 13.5 }}>
             Nothing here yet. Your {filter === "in" ? "deposits" : "cash outs"} will show up in this list.
@@ -1699,7 +1702,7 @@ export function WalletView({ onDeposit, onWithdraw, staff, discovery }) {
                 background: "transparent",
                 border: "none",
                 borderTop: i ? `1px solid ${theme.border}` : "none",
-                padding: "13px 15px",
+                padding: compact ? "10px 15px" : "13px 15px",
                 cursor: "pointer",
                 fontFamily: FONT,
               }}
@@ -1732,7 +1735,7 @@ export function WalletView({ onDeposit, onWithdraw, staff, discovery }) {
         )}
       </Card>
 
-      {discovery ? <DiscoveryInvite theme={theme} size={152} /> : null}
+      {discovery ? <DiscoveryInvite theme={theme} size={152} compact /> : null}
 
       {staff ? (
         <div data-staff-section style={{ marginTop: 22 }}>

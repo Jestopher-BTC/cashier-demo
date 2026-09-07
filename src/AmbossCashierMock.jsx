@@ -1531,7 +1531,7 @@ function TxIcon({ theme, type, status }) {
         flex: "0 0 auto",
         overflow: "hidden",
         /* iPad WebKit ignores flex gap. Margin is the space Jesse keeps asking for. */
-        marginRight: 20,
+        marginRight: 28,
       }}
     >
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -1681,7 +1681,7 @@ export function WalletView({ onDeposit, onWithdraw, staff }) {
               }}
             >
               <TxIcon theme={theme} type={tx.type} status={tx.status} />
-              <div style={{ minWidth: 0, flex: 1, paddingLeft: 4 }}>
+              <div style={{ minWidth: 0, flex: 1, paddingLeft: 8 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
                   <span style={{ fontSize: 14, fontWeight: 600, color: theme.text }}>
                     {tx.type === "deposit" ? "Deposit" : `To ${tx.destination || "wallet"}`}

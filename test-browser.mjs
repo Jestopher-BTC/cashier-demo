@@ -138,7 +138,7 @@ await click(btn("Back to wallet"), 600);
 check("balance updated from server", txt().includes("$3.00"), txt().slice(0, 160));
 const liveIcon = d.querySelector("[data-tx-icon]");
 const liveIconStyle = (liveIcon && liveIcon.getAttribute("style")) || "";
-check("live tx icon keeps 20px before the text", /margin-right:\s*20px/.test(liveIconStyle), liveIconStyle);
+check("live tx icon keeps 28px before the text", /margin-right:\s*28px/.test(liveIconStyle), liveIconStyle);
 check("live staff section is on the wallet", Boolean(d.querySelector("[data-staff-section]")));
 check("live strip still has no Fund button", Boolean(d.querySelector(".livebar") && !/Fund/.test(d.querySelector(".livebar").textContent)));
 

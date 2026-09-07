@@ -105,7 +105,7 @@ console.log("\ntransaction row spacing + sample cashtag");
 const txIcon = d.querySelector("[data-tx-icon]");
 const txRow = d.querySelector("[data-tx-row]");
 check("mock transaction rows present", Boolean(txIcon && txRow));
-check("icon keeps 20px before the text", stylePx(txIcon, "marginRight") >= 20, stylePx(txIcon, "marginRight"));
+check("icon keeps 28px before the text", stylePx(txIcon, "marginRight") >= 28, stylePx(txIcon, "marginRight"));
 check("row does not rely on flex gap for that space", Boolean(txRow && !/gap:\s*\d/.test(txRow.getAttribute("style") || "")), txRow && txRow.getAttribute("style"));
 check("sample cashtag is $jestoph", txt().includes("$jestoph") && !txt().includes("$jestopher"), txt().match(/\$jestoph\w*/g));
 check("mock has no staff section", !d.querySelector("[data-staff-section]"));

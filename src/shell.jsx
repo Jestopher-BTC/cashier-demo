@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
-  BOOTH,
   PaymentsProvider,
   Styles,
   WalletView,
@@ -766,7 +765,6 @@ export default function App() {
       {mode !== "code" ? (
         <footer className="booth-foot">
           <AmbossLogo gid="amboss-grad-foot" className="booth-foot-logo" />
-          <p className="booth-foot-tagline">{BOOTH.tagline}</p>
           <p>
             Powered by Amboss Payments · Get started at{" "}
             <a href="https://amboss.tech" target="_blank" rel="noopener noreferrer">

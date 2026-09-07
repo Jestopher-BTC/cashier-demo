@@ -67,7 +67,7 @@ const footLogo = foot && foot.querySelector("svg");
 const brandLogo = d.querySelector(".brand svg");
 check("footer on mock", Boolean(foot));
 check("footer copy", Boolean(foot && /Powered by Amboss Payments/.test(foot.textContent) && /amboss\.tech/.test(foot.textContent)), foot && foot.textContent);
-check("footer tagline", Boolean(foot && /Pay in Bitcoin, deal in dollars/.test(foot.textContent)), foot && foot.textContent);
+check("footer does not carry the tagline", Boolean(foot && !/Pay in Bitcoin, deal in dollars/.test(foot.textContent)), foot && foot.textContent);
 const sha = execFileSync("git", ["rev-parse", "--short", "HEAD"], { encoding: "utf8" }).trim();
 const footBuild = foot && foot.querySelector(".booth-foot-build");
 check("footer shows git short SHA", Boolean(footBuild && footBuild.textContent.indexOf(sha) !== -1), footBuild && footBuild.textContent);
@@ -178,7 +178,9 @@ check(
   mockDiscovery && mockDiscovery.getAttribute("data-discovery-url")
 );
 check("mock success invites a payments discovery meeting", /Scan to book a payments discovery meeting/.test(txt()));
-check("tagline stays in the footer, not piled on success", Boolean(d.querySelector(".booth-foot-tagline")) && d.querySelectorAll(".booth-foot-tagline").length === 1);
+const mockTagline = d.querySelector("[data-booth-tagline]");
+check("tagline default is the success screen near the QR", Boolean(mockTagline && mockTagline.textContent.trim() === "Pay in Bitcoin, deal in dollars." && mockDiscovery && mockDiscovery.contains(mockTagline)));
+check("tagline is not also in the footer", !d.querySelector(".booth-foot-tagline") && !/Pay in Bitcoin, deal in dollars/.test(d.querySelector(".booth-foot").textContent));
 await click(btn("Back to wallet"));
 
 console.log("\nlive pin + footer");

@@ -166,7 +166,9 @@ check(
   discovery && discovery.getAttribute("data-discovery-url")
 );
 check("discovery invite copy", /Scan to book a payments discovery meeting/.test(txt()));
-check("footer tagline still visible on success", /Pay in Bitcoin, deal in dollars/.test(d.querySelector(".booth-foot").textContent));
+const liveTagline = d.querySelector("[data-booth-tagline]");
+check("tagline sits next to the discovery QR", Boolean(liveTagline && liveTagline.textContent.trim() === "Pay in Bitcoin, deal in dollars." && discovery && discovery.contains(liveTagline)));
+check("footer does not repeat the tagline", !/Pay in Bitcoin, deal in dollars/.test(d.querySelector(".booth-foot").textContent));
 
 console.log("\nerrors:", errs.length ? errs : "none");
 console.log(`\n${pass} passed, ${fail} failed\n`);

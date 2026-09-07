@@ -95,7 +95,10 @@ const MONO =
   'ui-monospace, SFMono-Regular, Menlo, Monaco, "Roboto Mono", "Courier New", monospace';
 const NUM = { fontVariantNumeric: "tabular-nums" };
 
-/* Booth copy and conversion. Swap these without touching layout. */
+/* Booth conversion copy. Change the strings here; do not hunt through layout.
+   paymentsDiscoveryUrl is Stacy's confirmed Calendly.
+   tagline placement is still TBD with Jesse. Default surface is the cash-out
+   success screen, next to the QR — search data-booth-tagline to move it. */
 export const BOOTH = {
   sampleCashtag: "$jestoph",
   tagline: "Pay in Bitcoin, deal in dollars.",
@@ -2355,6 +2358,12 @@ export function WithdrawFlow({ onExit, onDone }) {
           </div>
           <div style={{ color: theme.muted, fontSize: 13.5, marginTop: 12, lineHeight: 1.45 }}>
             Scan to book a payments discovery meeting.
+          </div>
+          <div
+            data-booth-tagline
+            style={{ color: theme.faint, fontSize: 12.5, marginTop: 10, lineHeight: 1.45 }}
+          >
+            {BOOTH.tagline}
           </div>
         </div>
 

@@ -24,6 +24,11 @@ function useTheme() {
   useEffect(
     function () {
       document.documentElement.setAttribute("data-theme", theme);
+      var color = theme === "light" ? "#FFFFFF" : "#0C1424";
+      var themeMeta = document.querySelector('meta[name="theme-color"]');
+      if (themeMeta) themeMeta.setAttribute("content", color);
+      var bar = document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]');
+      if (bar) bar.setAttribute("content", theme === "light" ? "default" : "black-translucent");
       try {
         localStorage.setItem("cashier.theme", theme);
       } catch (e) {

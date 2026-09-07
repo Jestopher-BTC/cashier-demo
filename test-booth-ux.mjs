@@ -48,6 +48,11 @@ check("footer uses real Amboss wordmark", Boolean(footLogo && /640\.4/.test(foot
 check("topbar uses Amboss letter mark", Boolean(brandLogo && /95\.7/.test(brandLogo.getAttribute("viewBox"))), brandLogo && brandLogo.getAttribute("viewBox"));
 check("topbar label is short Cashier", Boolean(d.querySelector(".brand-text strong") && d.querySelector(".brand-text strong").textContent === "Cashier") && !d.querySelector(".brand-text em"));
 check("handmade dollar glyph is gone", !d.querySelector(".glyph"));
+check("viewport-fit cover", /viewport-fit=cover/.test(d.documentElement.innerHTML));
+check("translucent status bar meta", /apple-mobile-web-app-status-bar-style/.test(d.documentElement.innerHTML));
+check("theme-color meta", Boolean(d.querySelector('meta[name="theme-color"]')));
+check("topbar clears status bar", /safe-area-inset-top/.test(d.documentElement.innerHTML));
+check("footer clears home indicator", /safe-area-inset-bottom/.test(d.documentElement.innerHTML));
 check("no docs.amboss.tech hotlink", !/docs\.amboss\.tech/.test(d.documentElement.innerHTML));
 check("sales note, not dry-run leftover", /iGaming/.test(txt()) && !/Nothing here touches a network/.test(txt()), txt().slice(0, 220));
 

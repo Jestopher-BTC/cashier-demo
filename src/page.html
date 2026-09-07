@@ -4,7 +4,9 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="theme-color" content="#0C1424" />
 <meta name="format-detection" content="telephone=no" />
 <title>Cashier · Amboss Payments</title>
 <style>
@@ -48,6 +50,13 @@
   .topbar {
     display: grid; grid-template-columns: minmax(0,1fr) auto minmax(0,1fr);
     align-items: center; padding: 10px 16px;
+    /* iPad PWA: status bar overlays chrome. constant() is iOS 11.0–11.2. */
+    padding-top: calc(10px + constant(safe-area-inset-top));
+    padding-top: calc(10px + env(safe-area-inset-top, 0px));
+    padding-left: calc(16px + constant(safe-area-inset-left));
+    padding-left: calc(16px + env(safe-area-inset-left, 0px));
+    padding-right: calc(16px + constant(safe-area-inset-right));
+    padding-right: calc(16px + env(safe-area-inset-right, 0px));
     background: var(--chrome); border-bottom: 1px solid var(--line); flex: 0 0 auto;
   }
   .brand { display: flex; align-items: center; min-width: 0; justify-self: start; }
@@ -105,7 +114,12 @@
     flex: 0 0 auto;
     text-align: center;
     padding: 10px 16px;
+    padding-bottom: calc(10px + constant(safe-area-inset-bottom));
     padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+    padding-left: calc(16px + constant(safe-area-inset-left));
+    padding-left: calc(16px + env(safe-area-inset-left, 0px));
+    padding-right: calc(16px + constant(safe-area-inset-right));
+    padding-right: calc(16px + env(safe-area-inset-right, 0px));
     font-size: 12px;
     line-height: 1.45;
     color: var(--faint);
@@ -144,6 +158,10 @@
     -webkit-justify-content: center;
     justify-content: center;
     padding: 18px;
+    padding-top: calc(18px + constant(safe-area-inset-top));
+    padding-top: calc(18px + env(safe-area-inset-top, 0px));
+    padding-bottom: calc(18px + constant(safe-area-inset-bottom));
+    padding-bottom: calc(18px + env(safe-area-inset-bottom, 0px));
     -webkit-transform: none;
     transform: none;
   }

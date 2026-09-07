@@ -681,7 +681,7 @@ export function usePayments() {
   return ctx;
 }
 
-const LIMITS = { depositMin: 10, depositMax: 2500, withdrawMin: 5, invoiceSeconds: 90 };
+const LIMITS = { depositMin: 1, depositMax: 2500, withdrawMin: 5, invoiceSeconds: 90 };
 
 function seedTransactions() {
   const now = Date.now();
@@ -1289,7 +1289,7 @@ export function DepositFlow({ onExit, onDone }) {
         />
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8, marginTop: 12 }}>
-          {[25, 50, 100, 250].map((v) => (
+          {[1, 5, 20, 100].map((v) => (
             <button
               key={v}
               onClick={() => setAmount(String(v))}

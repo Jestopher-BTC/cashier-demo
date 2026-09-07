@@ -90,6 +90,11 @@ await click(btn("Deposit"));
 const amount = d.querySelector(".phone input");
 check("amount inputmode decimal", amount && amount.inputMode === "decimal", amount && amount.inputMode);
 check("deposit continue is 44px", minH(btn("Continue")) >= 44, minH(btn("Continue")));
+const presetLabels = Array.from(d.querySelectorAll(".phone button"))
+  .map((b) => b.textContent.trim())
+  .filter((t) => /^\$\d+$/.test(t));
+check("deposit presets are $1 $5 $20 $100", presetLabels.join(" ") === "$1 $5 $20 $100", presetLabels.join(" "));
+check("deposit presets drop $250", !presetLabels.includes("$250") && !presetLabels.includes("$25"));
 await click(Array.from(d.querySelectorAll("button")).find((b) => b.getAttribute("aria-label") === "Go back"));
 
 console.log("\ndestination keyboard");

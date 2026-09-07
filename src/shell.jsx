@@ -9,7 +9,7 @@ import {
 } from "./AmbossCashierMock.jsx";
 import { SECTIONS, SOURCE } from "./generated-sections.js";
 import { highlight } from "./highlight.js";
-import { AmbossLogo } from "./AmbossLogo.jsx";
+import { AmbossLetter, AmbossLogo } from "./AmbossLogo.jsx";
 import { createLiveApi } from "./live-api.js";
 import { DOCS, MAP_LINE, SANDBOX_META, SNIPPETS, snippetById, snippetIdForAction } from "./sdk-guide.js";
 
@@ -25,6 +25,11 @@ function useTheme() {
   useEffect(
     function () {
       document.documentElement.setAttribute("data-theme", theme);
+      var color = theme === "light" ? "#FFFFFF" : "#0C1424";
+      var themeMeta = document.querySelector('meta[name="theme-color"]');
+      if (themeMeta) themeMeta.setAttribute("content", color);
+      var bar = document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]');
+      if (bar) bar.setAttribute("content", theme === "light" ? "default" : "black-translucent");
       try {
         localStorage.setItem("cashier.theme", theme);
       } catch (e) {
@@ -692,10 +697,9 @@ export default function App() {
       <Styles />
       <header className="topbar">
         <div className="brand">
-          <AmbossLogo gid="amboss-grad-brand" className="brand-logo" />
+          <AmbossLetter gid="amboss-grad-brand" className="brand-logo" />
           <span className="brand-text">
             <strong>Cashier</strong>
-            <em>Amboss Payments</em>
           </span>
         </div>
 

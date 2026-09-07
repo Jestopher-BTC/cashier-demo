@@ -248,6 +248,14 @@ That script does `git fetch` + `git reset --hard origin/main`, `npm ci`,
 as the `cashier` user (so file ownership stays correct) and the restart as
 root (systemd needs it). It never touches `.env`.
 
+The footer on Mock and Live shows a compact build id (`build a1b2c3d`). After
+deploy, a screenshot of boltda.sh/cashier is enough to confirm the box is on
+that commit: the SHA must match `git rev-parse --short HEAD` in `/opt/cashier`.
+
+```bash
+git -C /opt/cashier rev-parse --short HEAD
+```
+
 ### Fallback: pushing files directly instead of through GitHub
 
 If GitHub is ever unreachable from the server, or you just want to push a

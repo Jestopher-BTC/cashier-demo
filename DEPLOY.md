@@ -374,10 +374,10 @@ Two edges worth knowing:
   `SESSION_START_USD`, and stops at `DAILY_FLOAT_USD` per day across all
   visitors. Every Fund tap asks for the PIN again.
 - Every deposit and cash out is capped at `MAX_*_USD`.
-- **To disable Fund** (no float, button grayed out): leave `OPERATOR_PIN`
-  blank or unset, and/or set `FUND_ENABLED=false`. An empty PIN does **not**
-  skip the password prompt and grant money. Restart the service after changing
-  either value.
+- **To disable Fund** (no float, button grayed out): set `FUND_ENABLED=false`
+  (also `0` or `no`), and/or leave `OPERATOR_PIN` blank. Fund is on only when
+  the flag is on **and** a PIN is set. An empty PIN does **not** skip the
+  prompt and grant money. Restart after changing either value.
 
 Worst case for the day is `DAILY_FLOAT_USD`. Set it to what you would be
 relaxed about losing.

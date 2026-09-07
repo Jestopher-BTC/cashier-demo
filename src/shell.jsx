@@ -559,7 +559,7 @@ function LiveMode({ theme, onDemoAction }) {
   const fund = useCallback(
     function () {
       if (!apiRef.current) return;
-      /* Empty / missing OPERATOR_PIN (or FUND_ENABLED=false) means Fund is off.
+      /* Fund is off unless FUND_ENABLED is on AND OPERATOR_PIN is set.
          Do not treat "no PIN" as unlocked — that used to grant float. */
       if (!config || !config.fundEnabled) return;
       /* Live UI is public. The PIN is only for this Fund click. window.prompt

@@ -11,7 +11,7 @@ process.env.RATE_SOURCE = "static";
 process.env.USD_PER_BTC = "100000";
 
 const { server, parseDestination, addressSendLooksUnsupported } = await import("./server/server.js");
-const { resolveFundEnabled } = await import("./server/config.js");
+const { parseFundEnabledFlag, resolveFundEnabled } = await import("./server/config.js");
 const { mockAmboss } = await import("./server/mock-amboss.js");
 
 const BASE = `http://127.0.0.1:${process.env.PORT}`;
@@ -50,6 +50,10 @@ check("empty pin disables fund", resolveFundEnabled("", true) === false);
 check("whitespace pin disables fund", resolveFundEnabled("  ", true) === false);
 check("set pin enables fund", resolveFundEnabled("4242", true) === true);
 check("FUND_ENABLED=false disables fund even with a pin", resolveFundEnabled("4242", false) === false);
+check("fund on only when flag and pin", resolveFundEnabled("4242", true) === true && resolveFundEnabled("", true) === false && resolveFundEnabled("4242", false) === false);
+check("FUND_ENABLED unset defaults on", parseFundEnabledFlag(undefined) === true && parseFundEnabledFlag("") === true);
+check("FUND_ENABLED false/0/no are off", parseFundEnabledFlag("false") === false && parseFundEnabledFlag("0") === false && parseFundEnabledFlag("no") === false);
+check("FUND_ENABLED true/1 stay on", parseFundEnabledFlag("true") === true && parseFundEnabledFlag("1") === true);
 
 const s1 = await call("/api/session", { method: "POST", body: {} });
 const sid = s1.json.sessionId;

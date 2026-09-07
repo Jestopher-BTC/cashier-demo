@@ -95,6 +95,16 @@ const MONO =
   'ui-monospace, SFMono-Regular, Menlo, Monaco, "Roboto Mono", "Courier New", monospace';
 const NUM = { fontVariantNumeric: "tabular-nums" };
 
+/* Booth conversion copy. Change the strings here; do not hunt through layout.
+   paymentsDiscoveryUrl is Stacy's confirmed Calendly.
+   tagline is Mock-only, prominent under the modes bar (data-booth-tagline).
+   Live stays clean. Cash-out success still shows the discovery QR. */
+export const BOOTH = {
+  sampleCashtag: "$jestoph",
+  tagline: "Pay in Bitcoin, deal in dollars.",
+  paymentsDiscoveryUrl: "https://calendly.com/d/cwfn-s48-3b3/payments-discovery",
+};
+
 
 /* ------------------------------------------------------------ qr encoder --- */
 /* Alphanumeric + byte mode, EC level M/L, versions 1-20. Verified against a
@@ -436,7 +446,7 @@ function qrMatrix(text) {
 
 export { qrMatrix };
 
-function QrCode({ value, size = 224, quiet = 3 }) {
+function QrCode({ value, size = 224, quiet = 3, label = "Lightning invoice QR code" }) {
   const path = useMemo(() => {
     const m = qrMatrix(value);
     if (!m) return null;
@@ -466,7 +476,7 @@ function QrCode({ value, size = 224, quiet = 3 }) {
       viewBox={`0 0 ${path.dim} ${path.dim}`}
       shapeRendering="crispEdges"
       role="img"
-      aria-label="Lightning invoice QR code"
+      aria-label={label}
       style={{ display: "block" }}
     >
       <rect width={path.dim} height={path.dim} fill="#FFFFFF" />
@@ -686,9 +696,9 @@ const LIMITS = { depositMin: 1, depositMax: 2500, withdrawMin: 5, invoiceSeconds
 function seedTransactions() {
   const now = Date.now();
   return [
-    { id: id(), ref: reference(), type: "withdrawal", amountUsd: 200, destination: "$jestopher", status: "complete", ts: now - 1000 * 60 * 52 },
+    { id: id(), ref: reference(), type: "withdrawal", amountUsd: 200, destination: BOOTH.sampleCashtag, status: "complete", ts: now - 1000 * 60 * 52 },
     { id: id(), ref: reference(), type: "deposit", amountUsd: 250, status: "complete", ts: now - 1000 * 60 * 60 * 7 },
-    { id: id(), ref: reference(), type: "withdrawal", amountUsd: 75, destination: "$jestopher", status: "failed", note: "Returned to your balance", ts: now - 1000 * 60 * 60 * 26 },
+    { id: id(), ref: reference(), type: "withdrawal", amountUsd: 75, destination: BOOTH.sampleCashtag, status: "failed", note: "Returned to your balance", ts: now - 1000 * 60 * 60 * 26 },
     { id: id(), ref: reference(), type: "deposit", amountUsd: 100, status: "complete", ts: now - 1000 * 60 * 60 * 30 },
     { id: id(), ref: reference(), type: "deposit", amountUsd: 500, status: "complete", ts: now - 1000 * 60 * 60 * 74 },
   ];
@@ -1511,7 +1521,22 @@ function TxIcon({ theme, type, status }) {
   const color = failed ? theme.danger : type === "deposit" ? theme.accent : theme.text;
   const bg = failed ? theme.dangerSoft : type === "deposit" ? theme.accentSoft : theme.inset;
   return (
-    <div style={{ width: 36, height: 36, borderRadius: 10, background: bg, display: "flex", alignItems: "center", justifyContent: "center", flex: "0 0 auto", overflow: "hidden" }}>
+    <div
+      data-tx-icon
+      style={{
+        width: 36,
+        height: 36,
+        borderRadius: 10,
+        background: bg,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        flex: "0 0 auto",
+        overflow: "hidden",
+        /* iPad WebKit ignores flex gap. Margin is the space Jesse keeps asking for. */
+        marginRight: 28,
+      }}
+    >
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
         {type === "deposit" ? <path d="M12 5v14M6 13l6 6 6-6" /> : <path d="M12 19V5M6 11l6-6 6 6" />}
       </svg>
@@ -1576,7 +1601,28 @@ function TxDetail({ theme, tx, onClose }) {
   );
 }
 
-export function WalletView({ onDeposit, onWithdraw }) {
+function DiscoveryInvite({ theme, size = 168 }) {
+  return (
+    <div
+      data-discovery-qr
+      data-discovery-url={BOOTH.paymentsDiscoveryUrl}
+      style={{ marginTop: 22, textAlign: "center" }}
+    >
+      <div style={{ background: "#FFFFFF", padding: 10, borderRadius: 14, lineHeight: 0, display: "inline-block" }}>
+        <QrCode
+          value={BOOTH.paymentsDiscoveryUrl}
+          size={size}
+          label="Payments discovery booking QR code"
+        />
+      </div>
+      <div style={{ color: theme.muted, fontSize: 13.5, marginTop: 12, lineHeight: 1.45 }}>
+        Scan to book a payments discovery meeting.
+      </div>
+    </div>
+  );
+}
+
+export function WalletView({ onDeposit, onWithdraw, staff, discovery }) {
   const { theme, balance, transactions } = usePayments();
   const [filter, setFilter] = useState("all");
   const [open, setOpen] = useState(null);
@@ -1642,12 +1688,12 @@ export function WalletView({ onDeposit, onWithdraw }) {
           list.map((tx, i) => (
             <button
               key={tx.id}
+              data-tx-row
               onClick={() => setOpen(tx)}
               className="amb-tap"
               style={{
                 display: "flex",
                 alignItems: "center",
-                gap: 12,
                 width: "100%",
                 textAlign: "left",
                 background: "transparent",
@@ -1659,7 +1705,7 @@ export function WalletView({ onDeposit, onWithdraw }) {
               }}
             >
               <TxIcon theme={theme} type={tx.type} status={tx.status} />
-              <div style={{ minWidth: 0, flex: 1 }}>
+              <div style={{ minWidth: 0, flex: 1, paddingLeft: 8 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
                   <span style={{ fontSize: 14, fontWeight: 600, color: theme.text }}>
                     {tx.type === "deposit" ? "Deposit" : `To ${tx.destination || "wallet"}`}
@@ -1672,6 +1718,7 @@ export function WalletView({ onDeposit, onWithdraw }) {
                 style={{
                   fontSize: 14.5,
                   fontWeight: 700,
+                  marginLeft: 12,
                   color: tx.status === "failed" ? theme.faint : tx.type === "deposit" ? theme.accent : theme.text,
                   textDecoration: tx.status === "failed" ? "line-through" : "none",
                   ...NUM,
@@ -1685,6 +1732,33 @@ export function WalletView({ onDeposit, onWithdraw }) {
         )}
       </Card>
 
+      {discovery ? <DiscoveryInvite theme={theme} size={152} /> : null}
+
+      {staff ? (
+        <div data-staff-section style={{ marginTop: 22 }}>
+          <div
+            style={{
+              fontSize: 11,
+              color: theme.faint,
+              fontWeight: 700,
+              letterSpacing: "0.08em",
+              textTransform: "uppercase",
+              marginBottom: 10,
+            }}
+          >
+            Staff
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gridGap: 10 }}>
+            <Button theme={theme} variant="secondary" full onClick={staff.onFund}>
+              Fund
+            </Button>
+            <Button theme={theme} variant="secondary" full onClick={staff.onNewVisitor}>
+              New visitor
+            </Button>
+          </div>
+        </div>
+      ) : null}
+
       {open ? <TxDetail theme={theme} tx={open} onClose={() => setOpen(null)} /> : null}
     </div>
   );
@@ -1693,7 +1767,7 @@ export function WalletView({ onDeposit, onWithdraw }) {
 /* ------------------------------------------------------------- withdraw --- */
 
 const SAMPLE_CODES = [
-  { id: "tag", title: "A cashtag", detail: "$jestopher", value: "$jestopher" },
+  { id: "tag", title: "A cashtag", detail: BOOTH.sampleCashtag, value: BOOTH.sampleCashtag },
   { id: "addr", title: "A Lightning address", detail: "player@walletofsatoshi.com", value: "player@walletofsatoshi.com" },
   { id: "fixed", title: "An invoice for a set amount", detail: "Amount already filled in", value: makeInvoice(42500) },
 ];
@@ -2161,7 +2235,7 @@ export function WithdrawFlow({ onExit, onDone }) {
           </div>
           <Card theme={theme}>
             <button
-              onClick={() => accept("$jestopher")}
+              onClick={() => accept(BOOTH.sampleCashtag)}
               className="amb-tap"
               style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", background: "transparent", border: "none", padding: "12px 14px", minHeight: 44, cursor: "pointer", textAlign: "left", fontFamily: FONT }}
             >
@@ -2169,7 +2243,7 @@ export function WithdrawFlow({ onExit, onDone }) {
                 $
               </div>
               <div>
-                <div style={{ fontSize: 14, color: theme.text, fontWeight: 600 }}>$jestopher</div>
+                <div style={{ fontSize: 14, color: theme.text, fontWeight: 600 }}>{BOOTH.sampleCashtag}</div>
                 <div style={{ fontSize: 11.5, color: theme.faint, marginTop: 2 }}>Cash App · used 52m ago</div>
               </div>
             </button>
@@ -2293,7 +2367,9 @@ export function WithdrawFlow({ onExit, onDone }) {
           </div>
         </div>
 
-        <div style={{ marginTop: 28 }}>
+        <DiscoveryInvite theme={theme} size={168} />
+
+        <div style={{ marginTop: 24 }}>
           <Button theme={theme} full onClick={onDone}>
             Back to wallet
           </Button>

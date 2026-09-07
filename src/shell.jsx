@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
+  BOOTH,
   PaymentsProvider,
   Styles,
   WalletView,
@@ -45,7 +46,7 @@ function useTheme() {
 
 /* The three flows behind one router. Identical in Mock and Live: only the api
    object handed to the provider differs. */
-function Screens({ onDemoAction }) {
+function Screens({ onDemoAction, staff, discovery }) {
   const [screen, setScreen] = useState("wallet");
   const toWallet = useCallback(function () {
     setScreen("wallet");
@@ -55,6 +56,8 @@ function Screens({ onDemoAction }) {
     <div className="phone">
       {screen === "wallet" ? (
         <WalletView
+          staff={staff}
+          discovery={discovery}
           onDeposit={function () {
             if (onDemoAction) onDemoAction("deposit");
             setScreen("deposit");
@@ -79,7 +82,7 @@ function MockMode({ theme, onDemoAction }) {
   return (
     <div className="stage">
       <PaymentsProvider defaultTheme={theme} demo={true} initialBalanceUsd={1247.85}>
-        <Screens onDemoAction={onDemoAction} />
+        <Screens onDemoAction={onDemoAction} discovery={true} />
       </PaymentsProvider>
       <p className="stage-note">Amboss Payments cashier for iGaming. Deposit and cash out in dollars.</p>
     </div>
@@ -647,15 +650,6 @@ function LiveMode({ theme, onDemoAction }) {
             </span>
           </span>
         </div>
-        <div className="live-actions">
-          <span className="live-staff-label">Staff</span>
-          <button className="btn" onClick={fund}>
-            Fund
-          </button>
-          <button className="btn" onClick={newVisitor}>
-            New visitor
-          </button>
-        </div>
       </div>
 
       {notice ? <div className="livenotice">{notice}</div> : null}
@@ -675,7 +669,10 @@ function LiveMode({ theme, onDemoAction }) {
           invoiceSeconds: cfg.invoiceSeconds,
         }}
       >
-        <Screens onDemoAction={onDemoAction} />
+        <Screens
+          onDemoAction={onDemoAction}
+          staff={{ onFund: fund, onNewVisitor: newVisitor }}
+        />
       </PaymentsProvider>
 
       <p className="stage-note">
@@ -756,6 +753,12 @@ export default function App() {
           </button>
         </div>
       </header>
+
+      {mode === "mock" ? (
+        <p className="booth-tagline" data-booth-tagline>
+          {BOOTH.tagline}
+        </p>
+      ) : null}
 
       <main className="content">
         {mode === "mock" ? (

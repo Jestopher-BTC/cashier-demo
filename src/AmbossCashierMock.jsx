@@ -858,19 +858,22 @@ function Button({ theme, variant = "primary", full, disabled, children, style, .
   const base = {
     fontFamily: FONT,
     fontSize: 15,
-    fontWeight: 600,
+    fontWeight: disabled ? 500 : 600,
     borderRadius: 12,
     padding: "14px 18px",
     cursor: disabled ? "not-allowed" : "pointer",
     width: full ? "100%" : undefined,
     border: "1px solid transparent",
-    opacity: disabled ? 0.45 : 1,
+    /* Opacity-only disabled looks like a live button on the dark booth theme.
+       Keep Fund readable but clearly muted against New visitor. */
+    opacity: disabled && variant === "primary" ? 0.45 : 1,
     display: "inline-flex",
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
     minHeight: 44,
     overflow: "hidden",
+    pointerEvents: disabled ? "none" : undefined,
     WebkitBackgroundClip: "padding-box",
     backgroundClip: "padding-box",
   };
@@ -879,7 +882,7 @@ function Button({ theme, variant = "primary", full, disabled, children, style, .
     secondary: {
       background: disabled ? theme.inset : theme.surfaceAlt,
       color: disabled ? theme.faint : theme.text,
-      borderColor: theme.border,
+      borderColor: disabled ? theme.border : theme.border,
     },
     ghost: { background: "transparent", color: theme.muted, padding: "12px 12px" },
     danger: { background: theme.dangerSoft, color: theme.danger, borderColor: "transparent" },

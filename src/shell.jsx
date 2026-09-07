@@ -696,11 +696,13 @@ export default function App() {
     <div className="app">
       <Styles />
       <header className="topbar">
-        <div className="brand">
-          <AmbossLetter gid="amboss-grad-brand" className="brand-logo" />
-          <span className="brand-text">
-            <strong>Cashier</strong>
-          </span>
+        <div className="topbar-start">
+          <div className="brand">
+            <AmbossLetter gid="amboss-grad-brand" className="brand-logo" />
+            <span className="brand-text">
+              <strong>Cashier</strong>
+            </span>
+          </div>
         </div>
 
         <div className="modes" role="tablist">
@@ -722,15 +724,17 @@ export default function App() {
           })}
         </div>
 
-        <button
-          className="btn icon"
-          aria-label="Switch theme"
-          onClick={function () {
-            setTheme(theme === "dark" ? "light" : "dark");
-          }}
-        >
-          {theme === "dark" ? "☀" : "☾"}
-        </button>
+        <div className="topbar-end">
+          <button
+            className="btn icon"
+            aria-label="Switch theme"
+            onClick={function () {
+              setTheme(theme === "dark" ? "light" : "dark");
+            }}
+          >
+            {theme === "dark" ? "☀" : "☾"}
+          </button>
+        </div>
       </header>
 
       <main className="content">

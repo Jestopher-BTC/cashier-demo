@@ -70,7 +70,10 @@ check("footer copy", Boolean(foot && /Powered by Amboss Payments/.test(foot.text
 const sha = execFileSync("git", ["rev-parse", "--short", "HEAD"], { encoding: "utf8" }).trim();
 const footBuild = foot && foot.querySelector(".booth-foot-build");
 check("footer shows git short SHA", Boolean(footBuild && footBuild.textContent.indexOf(sha) !== -1), footBuild && footBuild.textContent);
-check("footer build is its own muted line", Boolean(footBuild) && /\.booth-foot p\.booth-foot-build/.test(d.documentElement.innerHTML));
+const buildRule = (css.match(/\.booth-foot p\.booth-foot-build\s*\{[^}]+\}/) || [])[0] || "";
+check("footer build sits bottom right", /position:\s*absolute/.test(buildRule) && /right:/.test(buildRule) && /bottom:/.test(buildRule), buildRule);
+check("footer build is faint", /font-size:\s*10px/.test(buildRule) && /var\(--faint\)/.test(buildRule) && /opacity:\s*0\.7/.test(buildRule), buildRule);
+check("footer credit stays centered", /\.booth-foot\s*\{[^}]*text-align:\s*center/.test(css));
 const offlineHtml = fs.readFileSync(new URL("./offline/cashier-offline.html", import.meta.url), "utf8");
 check("offline bundle includes SHA", offlineHtml.indexOf(sha) !== -1);
 check("footer link", Boolean(footLink && footLink.getAttribute("href") === "https://amboss.tech"), footLink && footLink.getAttribute("href"));
@@ -164,6 +167,10 @@ check("status stays with the caps copy", Boolean(liveMeta && liveMeta.querySelec
 check("caps keep in/out as wrap units", Boolean(liveCap && /\$5 in/.test(liveCap.textContent)), liveCap && liveCap.textContent);
 check("short caps copy is present", Boolean(livebar && livebar.querySelector(".live-caps-short") && /in\/out/.test(livebar.querySelector(".live-caps-short").textContent)));
 check("Fund and New visitor sit in the action row", Boolean(liveActions && /Fund/.test(liveActions.textContent) && /New visitor/.test(liveActions.textContent)));
+const staffLabel = liveActions && liveActions.querySelector(".live-staff-label");
+check("staff label marks Fund and New visitor", Boolean(staffLabel && staffLabel.textContent.trim() === "Staff"));
+check("staff controls sit in a soft panel", /\.live-actions\s*\{[^}]*background:\s*var\(--bg\)/.test(css) && /\.live-actions\s*\{[^}]*border-radius:\s*10px/.test(css));
+check("LIVE caps stay visitor-facing", Boolean(liveMeta && /LIVE/.test(liveMeta.textContent) && !/Staff/.test(liveMeta.textContent)));
 check("livebar wraps instead of crushing", /\.livebar\s*\{[^}]*flex-wrap:\s*wrap/.test(css));
 check("short caps is the visible line", /\.live-caps-full\s*\{[^}]*display:\s*none/.test(css) && /\.live-caps-short\s*\{[^}]*display:\s*inline/.test(css));
 check("caps line does not wrap mid-unit", /\.live-caps\s*\{[^}]*white-space:\s*nowrap/.test(css));

@@ -71,7 +71,7 @@ await click(btn("Mock UI"));
 const back = Array.from(d.querySelectorAll("button")).find((b) => (b.getAttribute("aria-label") || "") === "Go back");
 if (back) await click(back);
 await click(btn("Cash out"));
-check("opened cash out", txt().includes("Where should the money go"));
+check("opened cash out", txt().includes("Start a cashtag with $.") || /cashtag, address, or invoice/i.test(txt()), txt().slice(0, 240));
 await click(btn("Code View"));
 check("send highlighted after cash out", d.querySelector('[data-snippet="send"]').getAttribute("data-active") === "true");
 check("cash out hint shown", txt().includes("Highlighted from Cash out"));

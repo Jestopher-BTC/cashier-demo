@@ -23,7 +23,7 @@ Everything below is built, tested, and packaged. Nothing is half-finished.
 | Deploy kit | `deploy/`, `DEPLOY.md` | done |
 | Address-payout probe | `probe-address-payout.mjs` | written, **never run against the real API** |
 
-Tests, all green: `test-api` 36, `test-browser` 29, `test-session` 7,
+Tests, all green: `test-api` 36, `test-browser` 33, `test-session` 7,
 `test-theme` 7, `test-usdt-send-amount` (USDT $1 cash-out units),
 `test-sdk-guide` (official snippet accuracy), `test-code-view` (cheat-sheet UX),
 `test-qr-scan` 22 (camera unwrap + jsQR round-trip).

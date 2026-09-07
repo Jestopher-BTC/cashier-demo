@@ -106,8 +106,11 @@ check("caps keep in/out as wrap units", Boolean(liveCap && /\$5 in/.test(liveCap
 check("short caps copy is present", Boolean(livebar && livebar.querySelector(".live-caps-short") && /in\/out/.test(livebar.querySelector(".live-caps-short").textContent)));
 check("Fund and New visitor sit in the action row", Boolean(liveActions && /Fund/.test(liveActions.textContent) && /New visitor/.test(liveActions.textContent)));
 check("livebar wraps instead of crushing", /\.livebar\s*\{[^}]*flex-wrap:\s*wrap/.test(css));
-check("meta takes its own row", /\.live-meta\s*\{[^}]*flex:\s*1 0 100%/.test(css));
-check("actions take the next row", /\.live-actions\s*\{[^}]*flex:\s*1 0 100%/.test(css));
+check("short caps is the visible line", /\.live-caps-full\s*\{[^}]*display:\s*none/.test(css) && /\.live-caps-short\s*\{[^}]*display:\s*inline/.test(css));
+check("caps line does not wrap mid-unit", /\.live-caps\s*\{[^}]*white-space:\s*nowrap/.test(css));
+check("gap between caps and Fund", /\.live-meta\s*\{[^}]*margin:[^}]*16px/.test(css));
+check("meta does not shrink into the buttons", /\.live-meta\s*\{[^}]*flex:\s*1 0 auto/.test(css));
+check("actions do not shrink into the copy", /\.live-actions\s*\{[^}]*flex:\s*0 0 auto/.test(css));
 check("topbar three-slot layout is unchanged", Boolean(d.querySelector(".topbar-start") && d.querySelector(".modes") && d.querySelector(".topbar-end")));
 await click(btn("Fund"), 400);
 const pin = d.querySelector(".pin-input");

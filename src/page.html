@@ -209,11 +209,11 @@
   .pin-card .btn { width: 100%; margin-left: 0; min-height: 44px; }
 
   /* ---- live bar ---- */
-  /* Status + caps on one row, Fund / New visitor on the next. The bar is the
-     same 420px as the phone, which cannot fit "up to $100 in, $100 out" beside
-    two 44px buttons without wrapping into them. flex-shrink stays 0 so the
-    100% basis cannot collapse back onto one row. Do not use flex gap: iOS 12
-    booth WebKit does not support it. */
+  /* Jesse's iPad shot: "up to $100 in," wrapped onto "$100 out" against Fund.
+     The bar is 420px, same as the phone. The long sentence does not fit beside
+     two 44px buttons, so the visible caps line is ≤$N in/out (nowrap). Meta
+     and actions wrap as whole groups — never shrink into each other. No flex
+     gap: iOS 12 booth WebKit does not support it. */
   .livebar {
     width: 420px; max-width: 100%; margin: 0 auto 16px;
     display: -webkit-flex; display: flex;
@@ -221,20 +221,20 @@
     -webkit-flex-wrap: wrap; flex-wrap: wrap;
     -webkit-align-items: center; align-items: center;
     background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
-    padding: 12px 14px; text-align: left;
+    padding: 10px 14px; text-align: left;
   }
   .live-meta {
     display: -webkit-flex; display: flex;
-    -webkit-flex-wrap: wrap; flex-wrap: wrap;
+    -webkit-flex-wrap: nowrap; flex-wrap: nowrap;
     -webkit-align-items: center; align-items: center;
-    -webkit-flex: 1 0 100%; flex: 1 0 100%;
-    min-width: 0; margin: 0 0 10px;
+    -webkit-flex: 1 0 auto; flex: 1 0 auto;
+    margin: 4px 16px 4px 0;
   }
   .live-status {
     display: -webkit-flex; display: flex;
     -webkit-align-items: center; align-items: center;
     -webkit-flex: 0 0 auto; flex: 0 0 auto;
-    margin-right: 12px;
+    margin-right: 10px;
   }
   .live-dot {
     width: 9px; height: 9px; border-radius: 50%; background: var(--danger); margin-right: 8px;
@@ -247,15 +247,15 @@
     100% { box-shadow: 0 0 0 0 rgba(255,106,94,0); }
   }
   .live-label { font-size: 12px; font-weight: 700; letter-spacing: .04em; white-space: nowrap; }
-  .live-caps { font-size: 11.5px; color: var(--faint); min-width: 0; line-height: 1.35; }
+  .live-caps { font-size: 11.5px; color: var(--faint); min-width: 0; line-height: 1.35; white-space: nowrap; }
   .live-cap { white-space: nowrap; }
-  .live-caps-short { display: none; }
+  .live-caps-full { display: none; }
+  .live-caps-short { display: inline; white-space: nowrap; }
   .live-actions {
     display: -webkit-flex; display: flex;
     -webkit-align-items: center; align-items: center;
-    -webkit-justify-content: flex-end; justify-content: flex-end;
-    -webkit-flex: 1 0 100%; flex: 1 0 100%;
-    min-width: 0;
+    -webkit-flex: 0 0 auto; flex: 0 0 auto;
+    margin: 4px 0 4px auto;
   }
   .live-actions .btn { margin-left: 8px; }
   .live-actions .btn:first-child { margin-left: 0; }
@@ -384,9 +384,6 @@
       -webkit-flex: 1 1 100%; flex: 1 1 100%;
     }
     .mode { -webkit-flex: 1 1 0%; flex: 1 1 0%; padding: 10px 6px; }
-    /* Phone-width livebar: keep status + caps on one line. */
-    .live-caps-full { display: none; }
-    .live-caps-short { display: inline; }
   }
 
   #boot-error {

@@ -111,7 +111,6 @@ check("dest stays type text", dest && dest.type === "text", dest && dest.type);
 check("dest helper is short", txt().includes("Start a cashtag with $.") && !/Cash App is one of many/.test(txt()));
 await type(dest, "lnbc1pw");
 check("bolt11 inputmode text", dest.inputMode === "text", dest.inputMode);
-await click(Array.from(d.querySelectorAll("button")).find((b) => b.getAttribute("aria-label") === "Go back"));
 await type(d.querySelector(".phone input"), "$jestopher");
 await click(btn("Continue"));
 amountPad(d.querySelector(".phone input"), "cash out");

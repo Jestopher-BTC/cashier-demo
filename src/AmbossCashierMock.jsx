@@ -988,7 +988,7 @@ function BackBar({ theme, title, onBack, right }) {
   /* Old iPad Safari ignores flex gap (Safari 14.1+). Use margins so the back
      button and heading do not sit flush on ~1024×768 booth devices. */
   return (
-    <div data-back-bar style={{ display: "flex", WebkitAlignItems: "center", alignItems: "center", marginBottom: 22 }}>
+    <div data-back-bar style={{ display: "flex", WebkitAlignItems: "center", alignItems: "center", marginBottom: 24 }}>
       {onBack ? (
         <button
           onClick={onBack}
@@ -1007,8 +1007,7 @@ function BackBar({ theme, title, onBack, right }) {
             alignItems: "center",
             WebkitJustifyContent: "center",
             justifyContent: "center",
-            marginRight: 14,
-            marginBottom: 2,
+            marginRight: 16,
             flex: "0 0 auto",
             WebkitFlex: "0 0 auto",
           }}
@@ -1018,7 +1017,7 @@ function BackBar({ theme, title, onBack, right }) {
           </svg>
         </button>
       ) : null}
-      <div data-back-title style={{ fontSize: 17, fontWeight: 700, color: theme.text, letterSpacing: "-0.01em", paddingTop: 2, paddingBottom: 2 }}>
+      <div data-back-title style={{ fontSize: 17, fontWeight: 700, color: theme.text, letterSpacing: "-0.01em", lineHeight: 1.2, paddingLeft: 2 }}>
         {title}
       </div>
       <div style={{ marginLeft: "auto" }}>{right}</div>

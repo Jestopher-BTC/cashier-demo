@@ -158,6 +158,13 @@
     display: block; height: 14px; width: 106px; margin: 0 auto 8px;
   }
   .booth-foot p { margin: 0; }
+  .booth-foot-tagline {
+    margin: 0 0 6px;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    color: var(--muted);
+  }
   .booth-foot a { color: var(--muted); text-decoration: none; }
   .booth-foot p.booth-foot-build {
     position: absolute;
@@ -229,11 +236,8 @@
   .pin-card .btn { width: 100%; margin-left: 0; min-height: 44px; }
 
   /* ---- live bar ---- */
-  /* Jesse's iPad shot: "up to $100 in," wrapped onto "$100 out" against Fund.
-     The bar is 420px, same as the phone. The long sentence does not fit beside
-     two 44px buttons, so the visible caps line is ≤$N in/out (nowrap). Meta
-     and actions wrap as whole groups — never shrink into each other. No flex
-     gap: iOS 12 booth WebKit does not support it. */
+  /* Visitor-facing only: LIVE · asset · caps. Staff Fund / New visitor live
+     below the transaction list inside the phone, not in this strip. */
   .livebar {
     width: 420px; max-width: 100%; margin: 0 auto 16px;
     display: -webkit-flex; display: flex;
@@ -247,8 +251,9 @@
     display: -webkit-flex; display: flex;
     -webkit-flex-wrap: nowrap; flex-wrap: nowrap;
     -webkit-align-items: center; align-items: center;
-    -webkit-flex: 1 0 auto; flex: 1 0 auto;
-    margin: 4px 16px 4px 0;
+    -webkit-flex: 1 1 auto; flex: 1 1 auto;
+    margin: 0;
+    min-width: 0;
   }
   .live-status {
     display: -webkit-flex; display: flex;
@@ -271,23 +276,6 @@
   .live-cap { white-space: nowrap; }
   .live-caps-full { display: none; }
   .live-caps-short { display: inline; white-space: nowrap; }
-  .live-actions {
-    display: -webkit-flex; display: flex;
-    -webkit-align-items: center; align-items: center;
-    -webkit-flex: 0 0 auto; flex: 0 0 auto;
-    margin: 4px 0 4px auto;
-    background: var(--bg);
-    border: 1px solid var(--line);
-    border-radius: 10px;
-    padding: 4px 6px 4px 8px;
-  }
-  .live-staff-label {
-    font-size: 10px; font-weight: 700; letter-spacing: 0.08em;
-    text-transform: uppercase; color: var(--faint); white-space: nowrap;
-    margin-right: 8px;
-  }
-  .live-actions .btn { margin-left: 8px; }
-  .live-actions .btn:first-of-type { margin-left: 0; }
   .livenotice {
     width: 420px; max-width: 100%; margin: 0 auto 16px; text-align: left;
     background: rgba(255,176,32,0.12); color: var(--warn);

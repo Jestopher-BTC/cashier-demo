@@ -59,7 +59,7 @@ check(
   /background:\s*(#070C17|rgb\(\s*7,\s*12,\s*23\s*\))/.test(sheetStyle) && !/rgba\s*\(/i.test(sheetStyle),
   sheetStyle
 );
-check("recent cashtag is not under the sheet", !txt().includes("$jestopher"), txt().slice(0, 280));
+check("recent cashtag is not under the sheet", !txt().includes("$jestoph"), txt().slice(0, 280));
 check("scanner does not auto-pick a destination", txt().includes("Scan a code") && !txt().includes("How much?"), txt().slice(0, 240));
 check(
   "camera state is visible",
@@ -82,18 +82,19 @@ check(
 await click(sampleToggle);
 const samples = d.querySelector("[data-scan-samples]");
 const helper = d.querySelector("[data-scan-helper]");
-check("sample codes listed", txt().includes("A cashtag"));
+check("sample codes listed", txt().includes("A cashtag") && txt().includes("$jestoph"));
+check("sample cashtag is $jestoph, not $jestopher", txt().includes("$jestoph") && !txt().includes("$jestopher"));
 check("samples replace the viewfinder", Boolean(samples) && !d.querySelector("[data-scan-viewfinder]"));
 check("helper is not inside the sample list", Boolean(helper && samples && helper.previousElementSibling === samples));
 check("back to camera copy", /Back to camera/.test(txt()));
 await click(Array.from(d.querySelectorAll("button")).find((b) => /A cashtag/i.test(b.textContent)));
 check("sample cashtag accepted", txt().includes("How much?"));
 await click(d.querySelector('[aria-label="Go back"]'));
-await type(d.querySelector("input"), "$jestopher");
+await type(d.querySelector("input"), "$jestoph");
 check("typed cashtag still works", /You choose the amount next/.test(txt()), txt().slice(0, 220));
 d.querySelector("input").focus();
 d.querySelector("input").dispatchEvent(new w.Event("paste", { bubbles: true }));
-check("paste field still accepts a cashtag", d.querySelector("input").value === "$jestopher");
+check("paste field still accepts a cashtag", d.querySelector("input").value === "$jestoph");
 await click(d.querySelector('[aria-label="Go back"]'));
 check("back at wallet", txt().includes("Withdrawable balance"));
 
@@ -135,23 +136,37 @@ await sleep(7000);
 check("deposit credited in UI", txt().includes("$3.00 added"), txt().slice(0, 200));
 await click(btn("Back to wallet"), 600);
 check("balance updated from server", txt().includes("$3.00"), txt().slice(0, 160));
+const liveIcon = d.querySelector("[data-tx-icon]");
+const liveIconStyle = (liveIcon && liveIcon.getAttribute("style")) || "";
+check("live tx icon keeps 20px before the text", /margin-right:\s*20px/.test(liveIconStyle), liveIconStyle);
+check("live staff section is on the wallet", Boolean(d.querySelector("[data-staff-section]")));
+check("live strip still has no Fund button", Boolean(d.querySelector(".livebar") && !/Fund/.test(d.querySelector(".livebar").textContent)));
 
 console.log("\nlive withdraw");
 await click(btn("Cash out"));
 const liveScan = d.querySelector('[aria-label="Scan a code"]');
 check("live scan button", Boolean(liveScan));
 await click(liveScan, 900);
-check("live scanner is the same opaque sheet", Boolean(d.querySelector(".amb-scan-sheet")) && !txt().includes("$jestopher"), txt().slice(0, 240));
+check("live scanner is the same opaque sheet", Boolean(d.querySelector(".amb-scan-sheet")) && !txt().includes("$jestoph"), txt().slice(0, 240));
 await click(d.querySelector('[aria-label="Close scanner"]'));
 check("live paste field returns", Boolean(d.querySelector("input")));
-await type(d.querySelector("input"), "$jestopher");
+await type(d.querySelector("input"), "$jestoph");
 await click(btn("Continue"));
 check("amount step", txt().includes("How much?"));
 await type(d.querySelector("input"), "2");
 await click(btn("Review"));
-check("review shows destination", txt().includes("$jestopher"));
+check("review shows destination", txt().includes("$jestoph"));
 await click(btn("Send"), 3500);
 check("sent", txt().includes("sent"), txt().slice(0, 200));
+const discovery = d.querySelector("[data-discovery-qr]");
+check("cash-out success shows discovery QR", Boolean(discovery && d.querySelector('[aria-label="Payments discovery booking QR code"]')));
+check(
+  "discovery QR is the Amboss Calendly",
+  Boolean(discovery && discovery.getAttribute("data-discovery-url") === "https://calendly.com/d/cwfn-s48-3b3/payments-discovery"),
+  discovery && discovery.getAttribute("data-discovery-url")
+);
+check("discovery invite copy", /Scan to book a payments discovery meeting/.test(txt()));
+check("footer tagline still visible on success", /Pay in Bitcoin, deal in dollars/.test(d.querySelector(".booth-foot").textContent));
 
 console.log("\nerrors:", errs.length ? errs : "none");
 console.log(`\n${pass} passed, ${fail} failed\n`);

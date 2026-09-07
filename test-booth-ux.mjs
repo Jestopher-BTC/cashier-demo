@@ -67,6 +67,7 @@ const footLogo = foot && foot.querySelector("svg");
 const brandLogo = d.querySelector(".brand svg");
 check("footer on mock", Boolean(foot));
 check("footer copy", Boolean(foot && /Powered by Amboss Payments/.test(foot.textContent) && /amboss\.tech/.test(foot.textContent)), foot && foot.textContent);
+check("footer tagline", Boolean(foot && /Pay in Bitcoin, deal in dollars/.test(foot.textContent)), foot && foot.textContent);
 const sha = execFileSync("git", ["rev-parse", "--short", "HEAD"], { encoding: "utf8" }).trim();
 const footBuild = foot && foot.querySelector(".booth-foot-build");
 check("footer shows git short SHA", Boolean(footBuild && footBuild.textContent.indexOf(sha) !== -1), footBuild && footBuild.textContent);
@@ -99,6 +100,15 @@ check("side slots take leftover width", /\.topbar-start,\s*\.topbar-end\s*\{[^}]
 check("horizontal safe-area is on the side slots", /\.topbar-start\s*\{[^}]*safe-area-inset-left/.test(css) && /\.topbar-end\s*\{[^}]*safe-area-inset-right/.test(css));
 check("no docs.amboss.tech hotlink", !/docs\.amboss\.tech/.test(d.documentElement.innerHTML));
 check("sales note, not dry-run leftover", /iGaming/.test(txt()) && !/Nothing here touches a network/.test(txt()), txt().slice(0, 220));
+
+console.log("\ntransaction row spacing + sample cashtag");
+const txIcon = d.querySelector("[data-tx-icon]");
+const txRow = d.querySelector("[data-tx-row]");
+check("mock transaction rows present", Boolean(txIcon && txRow));
+check("icon keeps 20px before the text", stylePx(txIcon, "marginRight") >= 20, stylePx(txIcon, "marginRight"));
+check("row does not rely on flex gap for that space", Boolean(txRow && !/gap:\s*\d/.test(txRow.getAttribute("style") || "")), txRow && txRow.getAttribute("style"));
+check("sample cashtag is $jestoph", txt().includes("$jestoph") && !txt().includes("$jestopher"), txt().match(/\$jestoph\w*/g));
+check("mock has no staff section", !d.querySelector("[data-staff-section]"));
 
 console.log("\nbalance + pay status spacing");
 checkBalanceGap("mock");
@@ -147,11 +157,29 @@ check("dest stays type text", dest && dest.type === "text", dest && dest.type);
 check("dest helper is short", txt().includes("Start a cashtag with $.") && !/Cash App is one of many/.test(txt()));
 await type(dest, "lnbc1pw");
 check("bolt11 inputmode text", dest.inputMode === "text", dest.inputMode);
-await type(d.querySelector(".phone input"), "$jestopher");
+await type(d.querySelector(".phone input"), "$jestoph");
 await click(btn("Continue"));
 amountPad(d.querySelector(".phone input"), "cash out");
 await click(Array.from(d.querySelectorAll("button")).find((b) => b.getAttribute("aria-label") === "Go back"));
 await click(Array.from(d.querySelectorAll("button")).find((b) => b.getAttribute("aria-label") === "Go back"));
+
+console.log("\ncash-out success conversion");
+await click(btn("Cash out"));
+await type(d.querySelector(".phone input"), "$jestoph");
+await click(btn("Continue"));
+await type(d.querySelector(".phone input"), "5");
+await click(btn("Review"));
+await click(btn("Send"), 2500);
+const mockDiscovery = d.querySelector("[data-discovery-qr]");
+check("mock success shows discovery QR", Boolean(mockDiscovery && d.querySelector('[aria-label="Payments discovery booking QR code"]')));
+check(
+  "mock discovery QR uses the Calendly constant",
+  Boolean(mockDiscovery && mockDiscovery.getAttribute("data-discovery-url") === "https://calendly.com/d/cwfn-s48-3b3/payments-discovery"),
+  mockDiscovery && mockDiscovery.getAttribute("data-discovery-url")
+);
+check("mock success invites a payments discovery meeting", /Scan to book a payments discovery meeting/.test(txt()));
+check("tagline stays in the footer, not piled on success", Boolean(d.querySelector(".booth-foot-tagline")) && d.querySelectorAll(".booth-foot-tagline").length === 1);
+await click(btn("Back to wallet"));
 
 console.log("\nlive pin + footer");
 await click(btn("Live UI"), 1400);
@@ -160,23 +188,21 @@ check("live footer still shows SHA", Boolean(d.querySelector(".booth-foot-build"
 check("live note is booth copy", /Tap New visitor between demos/.test(txt()) && !/Real invoices, real payouts, real money/.test(txt()));
 const livebar = d.querySelector(".livebar");
 const liveMeta = livebar && livebar.querySelector(".live-meta");
-const liveActions = livebar && livebar.querySelector(".live-actions");
 const liveCap = livebar && livebar.querySelector(".live-cap");
-check("livebar splits meta and actions", Boolean(liveMeta && liveActions));
+check("livebar is visitor-facing meta only", Boolean(liveMeta) && !livebar.querySelector(".live-actions"));
 check("status stays with the caps copy", Boolean(liveMeta && liveMeta.querySelector(".live-status") && liveMeta.querySelector(".live-caps")));
 check("caps keep in/out as wrap units", Boolean(liveCap && /\$5 in/.test(liveCap.textContent)), liveCap && liveCap.textContent);
 check("short caps copy is present", Boolean(livebar && livebar.querySelector(".live-caps-short") && /in\/out/.test(livebar.querySelector(".live-caps-short").textContent)));
-check("Fund and New visitor sit in the action row", Boolean(liveActions && /Fund/.test(liveActions.textContent) && /New visitor/.test(liveActions.textContent)));
-const staffLabel = liveActions && liveActions.querySelector(".live-staff-label");
-check("staff label marks Fund and New visitor", Boolean(staffLabel && staffLabel.textContent.trim() === "Staff"));
-check("staff controls sit in a soft panel", /\.live-actions\s*\{[^}]*background:\s*var\(--bg\)/.test(css) && /\.live-actions\s*\{[^}]*border-radius:\s*10px/.test(css));
+check("Fund and New visitor are not in the live strip", Boolean(livebar && !/Fund/.test(livebar.textContent) && !/New visitor/.test(livebar.textContent) && !/Staff/.test(livebar.textContent)), livebar && livebar.textContent);
+const staff = d.querySelector("[data-staff-section]");
+check("staff sits below the transactions list", Boolean(staff && staff.previousElementSibling && !staff.previousElementSibling.querySelector("[data-balance-actions]")));
+check("staff label marks Fund and New visitor", Boolean(staff && /^Staff/.test(staff.textContent.trim()) && /Fund/.test(staff.textContent) && /New visitor/.test(staff.textContent)), staff && staff.textContent);
+check("staff is inside the phone, not the strip", Boolean(staff && livebar && !livebar.contains(staff) && d.querySelector(".phone") && d.querySelector(".phone").contains(staff)));
 check("LIVE caps stay visitor-facing", Boolean(liveMeta && /LIVE/.test(liveMeta.textContent) && !/Staff/.test(liveMeta.textContent)));
 check("livebar wraps instead of crushing", /\.livebar\s*\{[^}]*flex-wrap:\s*wrap/.test(css));
 check("short caps is the visible line", /\.live-caps-full\s*\{[^}]*display:\s*none/.test(css) && /\.live-caps-short\s*\{[^}]*display:\s*inline/.test(css));
 check("caps line does not wrap mid-unit", /\.live-caps\s*\{[^}]*white-space:\s*nowrap/.test(css));
-check("gap between caps and Fund", /\.live-meta\s*\{[^}]*margin:[^}]*16px/.test(css));
-check("meta does not shrink into the buttons", /\.live-meta\s*\{[^}]*flex:\s*1 0 auto/.test(css));
-check("actions do not shrink into the copy", /\.live-actions\s*\{[^}]*flex:\s*0 0 auto/.test(css));
+check("no leftover staff box styles in the strip", !/\.live-actions\s*\{/.test(css) && !/\.live-staff-label\s*\{/.test(css));
 check("topbar three-slot layout is unchanged", Boolean(d.querySelector(".topbar-start") && d.querySelector(".modes") && d.querySelector(".topbar-end")));
 await click(btn("Deposit"));
 amountPad(d.querySelector(".phone input"), "live deposit");

@@ -211,8 +211,9 @@
   /* ---- live bar ---- */
   /* Status + caps on one row, Fund / New visitor on the next. The bar is the
      same 420px as the phone, which cannot fit "up to $100 in, $100 out" beside
-     two 44px buttons without wrapping into them. Do not use flex gap: iOS 12
-     booth WebKit does not support it. */
+    two 44px buttons without wrapping into them. flex-shrink stays 0 so the
+    100% basis cannot collapse back onto one row. Do not use flex gap: iOS 12
+    booth WebKit does not support it. */
   .livebar {
     width: 420px; max-width: 100%; margin: 0 auto 16px;
     display: -webkit-flex; display: flex;
@@ -226,7 +227,7 @@
     display: -webkit-flex; display: flex;
     -webkit-flex-wrap: wrap; flex-wrap: wrap;
     -webkit-align-items: center; align-items: center;
-    -webkit-flex: 1 1 100%; flex: 1 1 100%;
+    -webkit-flex: 1 0 100%; flex: 1 0 100%;
     min-width: 0; margin: 0 0 10px;
   }
   .live-status {
@@ -253,7 +254,7 @@
     display: -webkit-flex; display: flex;
     -webkit-align-items: center; align-items: center;
     -webkit-justify-content: flex-end; justify-content: flex-end;
-    -webkit-flex: 1 1 100%; flex: 1 1 100%;
+    -webkit-flex: 1 0 100%; flex: 1 0 100%;
     min-width: 0;
   }
   .live-actions .btn { margin-left: 8px; }

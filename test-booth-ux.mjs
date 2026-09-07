@@ -88,17 +88,33 @@ check("vendored letter black is served", letterBlack.ok && /viewBox="0 0 95\.7 8
 console.log("\namount keyboard");
 await click(btn("Deposit"));
 const amount = d.querySelector(".phone input");
-check("amount inputmode decimal", amount && amount.inputMode === "decimal", amount && amount.inputMode);
+const amountPad = (el, label) => {
+  check(label + " inputmode decimal", el && el.inputMode === "decimal", el && el.inputMode);
+  check(label + " inputmode attr", el && el.getAttribute("inputmode") === "decimal", el && el.getAttribute("inputmode"));
+  check(label + " pattern digit hint", el && el.getAttribute("pattern") === "[0-9]*", el && el.getAttribute("pattern"));
+  check(label + " enterkeyhint done", el && (el.enterKeyHint === "done" || el.getAttribute("enterkeyhint") === "done"), el && (el.enterKeyHint || el.getAttribute("enterkeyhint")));
+};
+amountPad(amount, "deposit");
 check("deposit continue is 44px", minH(btn("Continue")) >= 44, minH(btn("Continue")));
+const presetLabels = Array.from(d.querySelectorAll(".phone button"))
+  .map((b) => b.textContent.trim())
+  .filter((t) => /^\$\d+$/.test(t));
+check("deposit presets are $1 $5 $20 $100", presetLabels.join(" ") === "$1 $5 $20 $100", presetLabels.join(" "));
+check("deposit presets drop $250", !presetLabels.includes("$250") && !presetLabels.includes("$25"));
 await click(Array.from(d.querySelectorAll("button")).find((b) => b.getAttribute("aria-label") === "Go back"));
 
 console.log("\ndestination keyboard");
 await click(btn("Cash out"));
 const dest = d.querySelector(".phone input");
 check("dest inputmode email", dest && dest.inputMode === "email", dest && dest.inputMode);
+check("dest stays type text", dest && dest.type === "text", dest && dest.type);
 check("dest helper is short", txt().includes("Start a cashtag with $.") && !/Cash App is one of many/.test(txt()));
 await type(dest, "lnbc1pw");
 check("bolt11 inputmode text", dest.inputMode === "text", dest.inputMode);
+await type(d.querySelector(".phone input"), "$jestopher");
+await click(btn("Continue"));
+amountPad(d.querySelector(".phone input"), "cash out");
+await click(Array.from(d.querySelectorAll("button")).find((b) => b.getAttribute("aria-label") === "Go back"));
 await click(Array.from(d.querySelectorAll("button")).find((b) => b.getAttribute("aria-label") === "Go back"));
 
 console.log("\nlive pin + footer");
@@ -122,6 +138,13 @@ check("gap between caps and Fund", /\.live-meta\s*\{[^}]*margin:[^}]*16px/.test(
 check("meta does not shrink into the buttons", /\.live-meta\s*\{[^}]*flex:\s*1 0 auto/.test(css));
 check("actions do not shrink into the copy", /\.live-actions\s*\{[^}]*flex:\s*0 0 auto/.test(css));
 check("topbar three-slot layout is unchanged", Boolean(d.querySelector(".topbar-start") && d.querySelector(".modes") && d.querySelector(".topbar-end")));
+await click(btn("Deposit"));
+amountPad(d.querySelector(".phone input"), "live deposit");
+const livePresets = Array.from(d.querySelectorAll(".phone button"))
+  .map((b) => b.textContent.trim())
+  .filter((t) => /^\$\d+$/.test(t));
+check("live deposit presets are $1 $5 $20 $100", livePresets.join(" ") === "$1 $5 $20 $100", livePresets.join(" "));
+await click(Array.from(d.querySelectorAll("button")).find((b) => b.getAttribute("aria-label") === "Go back"));
 await click(btn("Fund"), 400);
 const pin = d.querySelector(".pin-input");
 check("pin inputmode numeric", pin && pin.inputMode === "numeric", pin && pin.inputMode);

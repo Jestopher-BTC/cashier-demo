@@ -681,7 +681,7 @@ export function usePayments() {
   return ctx;
 }
 
-const LIMITS = { depositMin: 10, depositMax: 2500, withdrawMin: 5, invoiceSeconds: 90 };
+const LIMITS = { depositMin: 1, depositMax: 2500, withdrawMin: 5, invoiceSeconds: 90 };
 
 function seedTransactions() {
   const now = Date.now();
@@ -1082,6 +1082,15 @@ function CopyButton({ theme, text, label = "Copy invoice" }) {
   );
 }
 
+/* iPad still opens QWERTY for type=text unless inputmode and the old
+   pattern="[0-9]*" hint are real content attributes at focus time. */
+function bindDecimalPad(el) {
+  if (!el) return;
+  el.setAttribute("inputmode", "decimal");
+  el.setAttribute("enterkeyhint", "done");
+  el.setAttribute("pattern", "[0-9]*");
+}
+
 function AmountField({ theme, value, onChange, autoFocus, hint, error, max }) {
   return (
     <div>
@@ -1098,6 +1107,7 @@ function AmountField({ theme, value, onChange, autoFocus, hint, error, max }) {
       >
         <span style={{ fontSize: 30, fontWeight: 700, color: value ? theme.text : theme.faint, ...NUM }}>$</span>
         <input
+          ref={bindDecimalPad}
           value={value}
           autoFocus={autoFocus}
           onChange={(e) => {
@@ -1107,8 +1117,12 @@ function AmountField({ theme, value, onChange, autoFocus, hint, error, max }) {
           }}
           type="text"
           inputMode="decimal"
+          enterKeyHint="done"
+          pattern="[0-9]*"
+          autoComplete="off"
           autoCorrect="off"
           autoCapitalize="none"
+          spellCheck={false}
           placeholder="0.00"
           aria-label="Amount in US dollars"
           style={{
@@ -1289,7 +1303,7 @@ export function DepositFlow({ onExit, onDone }) {
         />
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8, marginTop: 12 }}>
-          {[25, 50, 100, 250].map((v) => (
+          {[1, 5, 20, 100].map((v) => (
             <button
               key={v}
               onClick={() => setAmount(String(v))}

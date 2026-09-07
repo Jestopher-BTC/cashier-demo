@@ -1607,7 +1607,7 @@ function DiscoveryInvite({ theme, size = 168, compact }) {
     <div
       data-discovery-qr
       data-discovery-url={BOOTH.paymentsDiscoveryUrl}
-      style={{ marginTop: compact ? 12 : 22, textAlign: "center" }}
+      style={{ marginTop: compact ? 10 : 22, textAlign: "center" }}
     >
       <div style={{ background: "#FFFFFF", padding: compact ? 8 : 10, borderRadius: 14, lineHeight: 0, display: "inline-block" }}>
         <QrCode

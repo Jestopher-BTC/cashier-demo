@@ -80,7 +80,7 @@ check("mock app uses compact chrome class", Boolean(d.querySelector(".app.app-mo
 check("mock tagline is prominent", /\.booth-tagline\s*\{[^}]*font-size:\s*24px/.test(css) && /\.booth-tagline\s*\{[^}]*font-weight:\s*800/.test(css) && /\.booth-tagline\s*\{[^}]*var\(--muted\)/.test(css) && !/\.booth-tagline\s*\{[^}]*border:/.test(css));
 check("mock tagline is one line of copy", Boolean(tagline && tagline.childElementCount === 0 && !d.querySelector(".booth-tagline-sub")));
 check("mock trims stage and phone gutters", /\.app-mock \.stage\s*\{[^}]*padding:\s*10px/.test(css) && /\.app-mock \.phone\s*\{[^}]*padding:\s*12px/.test(css));
-check("landscape mock keeps QR above the fold", /max-height:\s*900px/.test(css) && /data-tx-list/.test(css) && /max-height:\s*168px/.test(css));
+check("landscape mock keeps QR above the fold", /max-height:\s*900px/.test(css) && /data-tx-list/.test(css) && /max-height:\s*156px/.test(css));
 const buildRule = (css.match(/\.booth-foot p\.booth-foot-build\s*\{[^}]+\}/) || [])[0] || "";
 check("footer build sits bottom right", /position:\s*absolute/.test(buildRule) && /right:/.test(buildRule) && /bottom:/.test(buildRule), buildRule);
 check("footer build is faint", /font-size:\s*10px/.test(buildRule) && /var\(--faint\)/.test(buildRule) && /opacity:\s*0\.7/.test(buildRule), buildRule);
@@ -130,7 +130,7 @@ check(
   mockWalletQr && mockWalletQr.getAttribute("data-discovery-url")
 );
 check("mock wallet invite copy", /Scan to book a payments discovery meeting/.test(txt()));
-check("mock tightens txn-list-to-QR gap", stylePx(mockWalletQr, "marginTop") <= 12, stylePx(mockWalletQr, "marginTop"));
+check("mock tightens txn-list-to-QR gap", stylePx(mockWalletQr, "marginTop") <= 10, stylePx(mockWalletQr, "marginTop"));
 check("mock transaction list is the compact target", Boolean(d.querySelector("[data-tx-list='mock']")));
 
 console.log("\nbalance + pay status spacing");

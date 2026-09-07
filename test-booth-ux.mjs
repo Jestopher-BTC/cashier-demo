@@ -72,6 +72,11 @@ const sha = execFileSync("git", ["rev-parse", "--short", "HEAD"], { encoding: "u
 const footBuild = foot && foot.querySelector(".booth-foot-build");
 check("footer shows git short SHA", Boolean(footBuild && footBuild.textContent.indexOf(sha) !== -1), footBuild && footBuild.textContent);
 const css = d.documentElement.innerHTML;
+const tagline = d.querySelector("[data-booth-tagline]");
+check("tagline is under the modes bar", Boolean(tagline && tagline.previousElementSibling && tagline.previousElementSibling.classList.contains("topbar") && tagline.nextElementSibling && tagline.nextElementSibling.classList.contains("content")));
+check("tagline copy", Boolean(tagline && tagline.textContent.trim() === "Pay in Bitcoin, deal in dollars."), tagline && tagline.textContent);
+check("tagline is not inside the phone", Boolean(tagline && d.querySelector(".phone") && !d.querySelector(".phone").contains(tagline)));
+check("tagline is a quiet one-liner", /\.booth-tagline\s*\{[^}]*font-size:\s*12\.5px/.test(css) && /\.booth-tagline\s*\{[^}]*var\(--faint\)/.test(css) && !/\.booth-tagline\s*\{[^}]*border:/.test(css) && !/\.booth-tagline\s*\{[^}]*background:\s*var\(--panel\)/.test(css));
 const buildRule = (css.match(/\.booth-foot p\.booth-foot-build\s*\{[^}]+\}/) || [])[0] || "";
 check("footer build sits bottom right", /position:\s*absolute/.test(buildRule) && /right:/.test(buildRule) && /bottom:/.test(buildRule), buildRule);
 check("footer build is faint", /font-size:\s*10px/.test(buildRule) && /var\(--faint\)/.test(buildRule) && /opacity:\s*0\.7/.test(buildRule), buildRule);
@@ -178,15 +183,15 @@ check(
   mockDiscovery && mockDiscovery.getAttribute("data-discovery-url")
 );
 check("mock success invites a payments discovery meeting", /Scan to book a payments discovery meeting/.test(txt()));
-const mockTagline = d.querySelector("[data-booth-tagline]");
-check("tagline default is the success screen near the QR", Boolean(mockTagline && mockTagline.textContent.trim() === "Pay in Bitcoin, deal in dollars." && mockDiscovery && mockDiscovery.contains(mockTagline)));
-check("tagline is not also in the footer", !d.querySelector(".booth-foot-tagline") && !/Pay in Bitcoin, deal in dollars/.test(d.querySelector(".booth-foot").textContent));
+check("success screen does not own the tagline", Boolean(mockDiscovery && !mockDiscovery.querySelector("[data-booth-tagline]")));
+check("tagline stays under the modes bar on success", Boolean(d.querySelector("[data-booth-tagline]") && d.querySelector("[data-booth-tagline]").previousElementSibling && d.querySelector("[data-booth-tagline]").previousElementSibling.classList.contains("topbar")));
 await click(btn("Back to wallet"));
 
 console.log("\nlive pin + footer");
 await click(btn("Live UI"), 1400);
 check("footer stays on live", Boolean(d.querySelector(".booth-foot a")));
 check("live footer still shows SHA", Boolean(d.querySelector(".booth-foot-build") && d.querySelector(".booth-foot-build").textContent.indexOf(sha) !== -1));
+check("live tagline stays under the modes bar", Boolean(d.querySelector("[data-booth-tagline]") && d.querySelector("[data-booth-tagline]").previousElementSibling.classList.contains("topbar")));
 check("live note is booth copy", /Tap New visitor between demos/.test(txt()) && !/Real invoices, real payouts, real money/.test(txt()));
 const livebar = d.querySelector(".livebar");
 const liveMeta = livebar && livebar.querySelector(".live-meta");
@@ -229,6 +234,7 @@ check("unlock is 44px", minH(Array.from(d.querySelectorAll("button")).find((b) =
 console.log("\ncode view hides footer");
 await click(btn("Code View"), 400);
 check("no footer on code view", !d.querySelector(".booth-foot"));
+check("no tagline on code view", !d.querySelector("[data-booth-tagline]"));
 
 console.log(`\n${pass} passed, ${fail} failed\n`);
 server.close();

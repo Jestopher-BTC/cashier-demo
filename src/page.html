@@ -119,6 +119,23 @@
 
   /* ---- stage ---- */
   .content { flex: 1 1 auto; min-height: 0; display: flex; }
+  /* Quiet one-liner under the modes bar. Not a banner: no fill, no border. */
+  .booth-tagline {
+    flex: 0 0 auto;
+    margin: 0;
+    padding: 10px 16px 0;
+    padding-left: calc(16px + constant(safe-area-inset-left));
+    padding-left: calc(16px + env(safe-area-inset-left, 0px));
+    padding-right: calc(16px + constant(safe-area-inset-right));
+    padding-right: calc(16px + env(safe-area-inset-right, 0px));
+    text-align: center;
+    font-size: 12.5px;
+    font-weight: 500;
+    line-height: 1.4;
+    letter-spacing: 0.01em;
+    color: var(--faint);
+    background: var(--bg);
+  }
   .stage {
     flex: 1 1 auto; overflow-y: auto; -webkit-overflow-scrolling: touch;
     padding: 20px 16px 24px; display: block; text-align: center;

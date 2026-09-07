@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
+  BOOTH,
   PaymentsProvider,
   Styles,
   WalletView,
@@ -751,6 +752,12 @@ export default function App() {
           </button>
         </div>
       </header>
+
+      {mode !== "code" ? (
+        <p className="booth-tagline" data-booth-tagline>
+          {BOOTH.tagline}
+        </p>
+      ) : null}
 
       <main className="content">
         {mode === "mock" ? (

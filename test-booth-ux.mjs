@@ -76,7 +76,7 @@ const tagline = d.querySelector("[data-booth-tagline]");
 check("tagline is under the modes bar", Boolean(tagline && tagline.previousElementSibling && tagline.previousElementSibling.classList.contains("topbar") && tagline.nextElementSibling && tagline.nextElementSibling.classList.contains("content")));
 check("tagline copy", Boolean(tagline && tagline.textContent.trim() === "Pay in Bitcoin, deal in dollars."), tagline && tagline.textContent);
 check("tagline is not inside the phone", Boolean(tagline && d.querySelector(".phone") && !d.querySelector(".phone").contains(tagline)));
-check("tagline is a quiet one-liner", /\.booth-tagline\s*\{[^}]*font-size:\s*12\.5px/.test(css) && /\.booth-tagline\s*\{[^}]*var\(--faint\)/.test(css) && !/\.booth-tagline\s*\{[^}]*border:/.test(css) && !/\.booth-tagline\s*\{[^}]*background:\s*var\(--panel\)/.test(css));
+check("mock tagline is prominent", /\.booth-tagline\s*\{[^}]*font-size:\s*16px/.test(css) && /\.booth-tagline\s*\{[^}]*font-weight:\s*700/.test(css) && /\.booth-tagline\s*\{[^}]*var\(--muted\)/.test(css) && !/\.booth-tagline\s*\{[^}]*border:/.test(css));
 const buildRule = (css.match(/\.booth-foot p\.booth-foot-build\s*\{[^}]+\}/) || [])[0] || "";
 check("footer build sits bottom right", /position:\s*absolute/.test(buildRule) && /right:/.test(buildRule) && /bottom:/.test(buildRule), buildRule);
 check("footer build is faint", /font-size:\s*10px/.test(buildRule) && /var\(--faint\)/.test(buildRule) && /opacity:\s*0\.7/.test(buildRule), buildRule);
@@ -114,6 +114,14 @@ check("icon keeps 28px before the text", stylePx(txIcon, "marginRight") >= 28, s
 check("row does not rely on flex gap for that space", Boolean(txRow && !/gap:\s*\d/.test(txRow.getAttribute("style") || "")), txRow && txRow.getAttribute("style"));
 check("sample cashtag is $jestoph", txt().includes("$jestoph") && !txt().includes("$jestopher"), txt().match(/\$jestoph\w*/g));
 check("mock has no staff section", !d.querySelector("[data-staff-section]"));
+const mockWalletQr = d.querySelector(".phone [data-discovery-qr]");
+check("mock wallet shows discovery QR below transactions", Boolean(mockWalletQr && mockWalletQr.previousElementSibling && !mockWalletQr.previousElementSibling.querySelector("[data-balance-actions]")));
+check(
+  "mock wallet QR is the Calendly",
+  Boolean(mockWalletQr && mockWalletQr.getAttribute("data-discovery-url") === "https://calendly.com/d/cwfn-s48-3b3/payments-discovery"),
+  mockWalletQr && mockWalletQr.getAttribute("data-discovery-url")
+);
+check("mock wallet invite copy", /Scan to book a payments discovery meeting/.test(txt()));
 
 console.log("\nbalance + pay status spacing");
 checkBalanceGap("mock");
@@ -191,7 +199,8 @@ console.log("\nlive pin + footer");
 await click(btn("Live UI"), 1400);
 check("footer stays on live", Boolean(d.querySelector(".booth-foot a")));
 check("live footer still shows SHA", Boolean(d.querySelector(".booth-foot-build") && d.querySelector(".booth-foot-build").textContent.indexOf(sha) !== -1));
-check("live tagline stays under the modes bar", Boolean(d.querySelector("[data-booth-tagline]") && d.querySelector("[data-booth-tagline]").previousElementSibling.classList.contains("topbar")));
+check("live omits the tagline", !d.querySelector("[data-booth-tagline]"));
+check("live wallet has no discovery QR", !d.querySelector(".phone [data-discovery-qr]"));
 check("live note is booth copy", /Tap New visitor between demos/.test(txt()) && !/Real invoices, real payouts, real money/.test(txt()));
 const livebar = d.querySelector(".livebar");
 const liveMeta = livebar && livebar.querySelector(".live-meta");

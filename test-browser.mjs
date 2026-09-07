@@ -33,6 +33,12 @@ check("mock mode default", txt().includes("Withdrawable balance"));
 const mockTagline = d.querySelector("[data-booth-tagline]");
 check("mock tagline is under the modes bar", Boolean(mockTagline && mockTagline.previousElementSibling && mockTagline.previousElementSibling.classList.contains("topbar")));
 check("mock tagline copy", Boolean(mockTagline && mockTagline.textContent.trim() === "Pay in Bitcoin, deal in dollars."));
+const mockWalletQr = d.querySelector(".phone [data-discovery-qr]");
+check("mock wallet shows discovery QR", Boolean(mockWalletQr && /Scan to book a payments discovery meeting/.test(txt())));
+check(
+  "mock wallet QR is the Calendly",
+  Boolean(mockWalletQr && mockWalletQr.getAttribute("data-discovery-url") === "https://calendly.com/d/cwfn-s48-3b3/payments-discovery")
+);
 
 console.log("\nmock cash out scan");
 await click(btn("Cash out"));
@@ -120,8 +126,8 @@ await click(btn("Live UI"), 1200);
 check("connected", txt().includes("LIVE"), txt().slice(0, 120));
 check("balance starts at zero", txt().includes("$0.00"));
 check("caps shown", /up to \$5 in/.test(txt()));
-const liveTagline = d.querySelector("[data-booth-tagline]");
-check("live tagline stays under the modes bar", Boolean(liveTagline && liveTagline.previousElementSibling && liveTagline.previousElementSibling.classList.contains("topbar") && liveTagline.textContent.trim() === "Pay in Bitcoin, deal in dollars."));
+check("live omits the tagline", !d.querySelector("[data-booth-tagline]"));
+check("live wallet has no discovery QR", !d.querySelector(".phone [data-discovery-qr]"));
 
 await click(btn("Deposit"));
 check("deposit screen", txt().includes("How much do you want to add"));
@@ -172,7 +178,7 @@ check(
 );
 check("discovery invite copy", /Scan to book a payments discovery meeting/.test(txt()));
 check("success screen does not own the tagline", Boolean(discovery && !discovery.querySelector("[data-booth-tagline]")));
-check("tagline remains under the modes bar", Boolean(d.querySelector("[data-booth-tagline]") && d.querySelector("[data-booth-tagline]").previousElementSibling.classList.contains("topbar")));
+check("live still omits the tagline on success", !d.querySelector("[data-booth-tagline]"));
 
 console.log("\nerrors:", errs.length ? errs : "none");
 console.log(`\n${pass} passed, ${fail} failed\n`);

@@ -97,8 +97,8 @@ const NUM = { fontVariantNumeric: "tabular-nums" };
 
 /* Booth conversion copy. Change the strings here; do not hunt through layout.
    paymentsDiscoveryUrl is Stacy's confirmed Calendly.
-   tagline is the quiet line under the Mock/Code/Live bar on Mock and Live
-   (data-booth-tagline). Do not put it on the cash-out success screen. */
+   tagline is Mock-only, prominent under the modes bar (data-booth-tagline).
+   Live stays clean. Cash-out success still shows the discovery QR. */
 export const BOOTH = {
   sampleCashtag: "$jestoph",
   tagline: "Pay in Bitcoin, deal in dollars.",
@@ -1601,7 +1601,28 @@ function TxDetail({ theme, tx, onClose }) {
   );
 }
 
-export function WalletView({ onDeposit, onWithdraw, staff }) {
+function DiscoveryInvite({ theme, size = 168 }) {
+  return (
+    <div
+      data-discovery-qr
+      data-discovery-url={BOOTH.paymentsDiscoveryUrl}
+      style={{ marginTop: 22, textAlign: "center" }}
+    >
+      <div style={{ background: "#FFFFFF", padding: 10, borderRadius: 14, lineHeight: 0, display: "inline-block" }}>
+        <QrCode
+          value={BOOTH.paymentsDiscoveryUrl}
+          size={size}
+          label="Payments discovery booking QR code"
+        />
+      </div>
+      <div style={{ color: theme.muted, fontSize: 13.5, marginTop: 12, lineHeight: 1.45 }}>
+        Scan to book a payments discovery meeting.
+      </div>
+    </div>
+  );
+}
+
+export function WalletView({ onDeposit, onWithdraw, staff, discovery }) {
   const { theme, balance, transactions } = usePayments();
   const [filter, setFilter] = useState("all");
   const [open, setOpen] = useState(null);
@@ -1710,6 +1731,8 @@ export function WalletView({ onDeposit, onWithdraw, staff }) {
           ))
         )}
       </Card>
+
+      {discovery ? <DiscoveryInvite theme={theme} size={152} /> : null}
 
       {staff ? (
         <div data-staff-section style={{ marginTop: 22 }}>
@@ -2344,22 +2367,7 @@ export function WithdrawFlow({ onExit, onDone }) {
           </div>
         </div>
 
-        <div
-          data-discovery-qr
-          data-discovery-url={BOOTH.paymentsDiscoveryUrl}
-          style={{ marginTop: 22, textAlign: "center" }}
-        >
-          <div style={{ background: "#FFFFFF", padding: 10, borderRadius: 14, lineHeight: 0, display: "inline-block" }}>
-            <QrCode
-              value={BOOTH.paymentsDiscoveryUrl}
-              size={168}
-              label="Payments discovery booking QR code"
-            />
-          </div>
-          <div style={{ color: theme.muted, fontSize: 13.5, marginTop: 12, lineHeight: 1.45 }}>
-            Scan to book a payments discovery meeting.
-          </div>
-        </div>
+        <DiscoveryInvite theme={theme} size={168} />
 
         <div style={{ marginTop: 24 }}>
           <Button theme={theme} full onClick={onDone}>

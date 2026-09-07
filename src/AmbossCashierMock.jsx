@@ -1750,9 +1750,9 @@ function Scanner({ theme, onCancel, onDetect, rate, capabilities, streamPromise 
       role="dialog"
       aria-modal="true"
       aria-label="Scan a code"
-      style={{ position: "absolute", top: 0, right: 0, bottom: 0, left: 0, background: "rgba(4,8,18,0.82)", borderRadius: 20, padding: 18, display: "flex", flexDirection: "column", zIndex: 30 }}
+      style={{ position: "absolute", top: 0, right: 0, bottom: 0, left: 0, background: "rgba(4,8,18,0.82)", borderRadius: 20, padding: 18, display: "flex", flexDirection: "column", zIndex: 30, boxSizing: "border-box" }}
     >
-      <div style={{ display: "flex", alignItems: "center", marginBottom: 14 }}>
+      <div style={{ display: "flex", alignItems: "center", marginBottom: 14, flex: "0 0 auto" }}>
         <span style={{ color: "#FFFFFF", fontWeight: 700, fontSize: 15 }}>Scan a code</span>
         <button
           onClick={onCancel}
@@ -1765,7 +1765,7 @@ function Scanner({ theme, onCancel, onDetect, rate, capabilities, streamPromise 
       </div>
 
       {showSamples ? (
-        <div style={{ background: theme.surface, borderRadius: 14, padding: 8 }}>
+        <div style={{ background: theme.surface, borderRadius: 14, padding: 8, flex: "1 1 auto", overflowY: "auto", WebkitOverflowScrolling: "touch" }}>
           {SAMPLE_CODES.map((s, i) => (
             <button
               key={s.id}
@@ -1794,7 +1794,8 @@ function Scanner({ theme, onCancel, onDetect, rate, capabilities, streamPromise 
           style={{
             position: "relative",
             width: "100%",
-            paddingTop: "100%",
+            flex: "1 1 auto",
+            minHeight: 180,
             borderRadius: 16,
             overflow: "hidden",
             background: "linear-gradient(160deg, #16233B 0%, #0B1424 60%, #101B2E 100%)",
@@ -1878,7 +1879,7 @@ function Scanner({ theme, onCancel, onDetect, rate, capabilities, streamPromise 
       <button
         onClick={() => setShowSamples((s) => !s)}
         className="amb-tap"
-        style={{ marginTop: 16, background: "transparent", border: "none", color: "rgba(255,255,255,0.75)", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: FONT, padding: "10px 8px", minHeight: 44 }}
+        style={{ marginTop: 12, flex: "0 0 auto", background: "transparent", border: "none", color: "rgba(255,255,255,0.75)", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: FONT, padding: "10px 8px", minHeight: 44 }}
       >
         {showSamples ? "Back to camera" : "Camera not working? Pick a sample code"}
       </button>

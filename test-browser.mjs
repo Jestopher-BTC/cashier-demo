@@ -33,6 +33,8 @@ check("mock mode default", txt().includes("Withdrawable balance"));
 const mockTagline = d.querySelector("[data-booth-tagline]");
 check("mock tagline is under the modes bar", Boolean(mockTagline && mockTagline.previousElementSibling && mockTagline.previousElementSibling.classList.contains("topbar")));
 check("mock tagline copy", Boolean(mockTagline && mockTagline.textContent.trim() === "Pay in Bitcoin, deal in dollars."));
+check("mock tagline is louder", /\.booth-tagline\s*\{[^}]*font-size:\s*24px/.test(d.documentElement.innerHTML) && /\.booth-tagline\s*\{[^}]*font-weight:\s*800/.test(d.documentElement.innerHTML));
+check("mock compact chrome class", Boolean(d.querySelector(".app.app-mock")));
 const mockWalletQr = d.querySelector(".phone [data-discovery-qr]");
 check("mock wallet shows discovery QR", Boolean(mockWalletQr && /Scan to book a payments discovery meeting/.test(txt())));
 check(
@@ -127,6 +129,7 @@ check("connected", txt().includes("LIVE"), txt().slice(0, 120));
 check("balance starts at zero", txt().includes("$0.00"));
 check("caps shown", /up to \$5 in/.test(txt()));
 check("live omits the tagline", !d.querySelector("[data-booth-tagline]"));
+check("live does not use mock compact chrome", !d.querySelector(".app-mock"));
 check("live wallet has no discovery QR", !d.querySelector(".phone [data-discovery-qr]"));
 
 await click(btn("Deposit"));

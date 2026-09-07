@@ -76,7 +76,11 @@ const tagline = d.querySelector("[data-booth-tagline]");
 check("tagline is under the modes bar", Boolean(tagline && tagline.previousElementSibling && tagline.previousElementSibling.classList.contains("topbar") && tagline.nextElementSibling && tagline.nextElementSibling.classList.contains("content")));
 check("tagline copy", Boolean(tagline && tagline.textContent.trim() === "Pay in Bitcoin, deal in dollars."), tagline && tagline.textContent);
 check("tagline is not inside the phone", Boolean(tagline && d.querySelector(".phone") && !d.querySelector(".phone").contains(tagline)));
-check("mock tagline is prominent", /\.booth-tagline\s*\{[^}]*font-size:\s*16px/.test(css) && /\.booth-tagline\s*\{[^}]*font-weight:\s*700/.test(css) && /\.booth-tagline\s*\{[^}]*var\(--muted\)/.test(css) && !/\.booth-tagline\s*\{[^}]*border:/.test(css));
+check("mock app uses compact chrome class", Boolean(d.querySelector(".app.app-mock")));
+check("mock tagline is prominent", /\.booth-tagline\s*\{[^}]*font-size:\s*24px/.test(css) && /\.booth-tagline\s*\{[^}]*font-weight:\s*800/.test(css) && /\.booth-tagline\s*\{[^}]*var\(--muted\)/.test(css) && !/\.booth-tagline\s*\{[^}]*border:/.test(css));
+check("mock tagline is one line of copy", Boolean(tagline && tagline.childElementCount === 0 && !d.querySelector(".booth-tagline-sub")));
+check("mock trims stage and phone gutters", /\.app-mock \.stage\s*\{[^}]*padding:\s*10px/.test(css) && /\.app-mock \.phone\s*\{[^}]*padding:\s*12px/.test(css));
+check("landscape mock keeps QR above the fold", /max-height:\s*900px/.test(css) && /data-tx-list/.test(css) && /max-height:\s*156px/.test(css));
 const buildRule = (css.match(/\.booth-foot p\.booth-foot-build\s*\{[^}]+\}/) || [])[0] || "";
 check("footer build sits bottom right", /position:\s*absolute/.test(buildRule) && /right:/.test(buildRule) && /bottom:/.test(buildRule), buildRule);
 check("footer build is faint", /font-size:\s*10px/.test(buildRule) && /var\(--faint\)/.test(buildRule) && /opacity:\s*0\.7/.test(buildRule), buildRule);
@@ -114,6 +118,10 @@ check("icon keeps 28px before the text", stylePx(txIcon, "marginRight") >= 28, s
 check("row does not rely on flex gap for that space", Boolean(txRow && !/gap:\s*\d/.test(txRow.getAttribute("style") || "")), txRow && txRow.getAttribute("style"));
 check("sample cashtag is $jestoph", txt().includes("$jestoph") && !txt().includes("$jestopher"), txt().match(/\$jestoph\w*/g));
 check("mock has no staff section", !d.querySelector("[data-staff-section]"));
+check("mock wallet is compact", d.querySelector("[data-wallet-compact='true']"));
+const mockTxHeading = d.querySelector("[data-tx-heading]");
+check("mock tightens tagline-to-balance and section gaps", stylePx(d.querySelector("[data-balance-caption]"), "marginTop") <= 6 && stylePx(mockTxHeading, "marginTop") <= 12 && stylePx(mockTxHeading, "marginBottom") <= 6, stylePx(mockTxHeading, "marginTop"));
+check("mock txn rows keep the 28px arrow gutter", stylePx(txIcon, "marginRight") >= 28, stylePx(txIcon, "marginRight"));
 const mockWalletQr = d.querySelector(".phone [data-discovery-qr]");
 check("mock wallet shows discovery QR below transactions", Boolean(mockWalletQr && mockWalletQr.previousElementSibling && !mockWalletQr.previousElementSibling.querySelector("[data-balance-actions]")));
 check(
@@ -122,6 +130,8 @@ check(
   mockWalletQr && mockWalletQr.getAttribute("data-discovery-url")
 );
 check("mock wallet invite copy", /Scan to book a payments discovery meeting/.test(txt()));
+check("mock tightens txn-list-to-QR gap", stylePx(mockWalletQr, "marginTop") <= 10, stylePx(mockWalletQr, "marginTop"));
+check("mock transaction list is the compact target", Boolean(d.querySelector("[data-tx-list='mock']")));
 
 console.log("\nbalance + pay status spacing");
 checkBalanceGap("mock");
@@ -200,6 +210,8 @@ await click(btn("Live UI"), 1400);
 check("footer stays on live", Boolean(d.querySelector(".booth-foot a")));
 check("live footer still shows SHA", Boolean(d.querySelector(".booth-foot-build") && d.querySelector(".booth-foot-build").textContent.indexOf(sha) !== -1));
 check("live omits the tagline", !d.querySelector("[data-booth-tagline]"));
+check("live does not use mock compact chrome", !d.querySelector(".app-mock"));
+check("live wallet is not compact", !d.querySelector("[data-wallet-compact='true']"));
 check("live wallet has no discovery QR", !d.querySelector(".phone [data-discovery-qr]"));
 check("live note is booth copy", /Tap New visitor between demos/.test(txt()) && !/Real invoices, real payouts, real money/.test(txt()));
 const livebar = d.querySelector(".livebar");
@@ -212,6 +224,10 @@ check("short caps copy is present", Boolean(livebar && livebar.querySelector(".l
 check("Fund and New visitor are not in the live strip", Boolean(livebar && !/Fund/.test(livebar.textContent) && !/New visitor/.test(livebar.textContent) && !/Staff/.test(livebar.textContent)), livebar && livebar.textContent);
 const staff = d.querySelector("[data-staff-section]");
 check("staff sits below the transactions list", Boolean(staff && staff.previousElementSibling && !staff.previousElementSibling.querySelector("[data-balance-actions]")));
+check("staff keeps its section gap", stylePx(staff, "marginTop") >= 22, stylePx(staff, "marginTop"));
+const liveTxHeading = d.querySelector("[data-tx-heading]");
+check("live keeps roomy section gaps", stylePx(liveTxHeading, "marginTop") >= 22 && stylePx(liveTxHeading, "marginBottom") >= 10, liveTxHeading && stylePx(liveTxHeading, "marginTop"));
+check("live transaction list is not height-capped", !d.querySelector("[data-tx-list]"));
 check("staff label marks Fund and New visitor", Boolean(staff && /^Staff/.test(staff.textContent.trim()) && /Fund/.test(staff.textContent) && /New visitor/.test(staff.textContent)), staff && staff.textContent);
 check("staff is inside the phone, not the strip", Boolean(staff && livebar && !livebar.contains(staff) && d.querySelector(".phone") && d.querySelector(".phone").contains(staff)));
 check("LIVE caps stay visitor-facing", Boolean(liveMeta && /LIVE/.test(liveMeta.textContent) && !/Staff/.test(liveMeta.textContent)));

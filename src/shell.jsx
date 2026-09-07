@@ -710,7 +710,7 @@ export default function App() {
   const [focusAction, setFocusAction] = useState(null);
 
   return (
-    <div className="app">
+    <div className={"app" + (mode === "mock" ? " app-mock" : "")}>
       <Styles />
       <header className="topbar">
         <div className="topbar-start">

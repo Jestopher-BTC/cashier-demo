@@ -33,11 +33,16 @@ check("mock mode default", txt().includes("Withdrawable balance"));
 
 console.log("\ncode view");
 await click(btn("Code View"));
+check("sdk cheat sheet", txt().includes("createReceive") && txt().includes("Official SDK"));
+check("sandbox callout", txt().includes("amb_sandbox_behavior"));
+check("walkthrough CTA", Boolean(d.querySelector("a.sdk-cta")));
+check("mock source collapsed", !d.querySelector("[data-mock-source]"));
+await click(btn("Show full mock source"));
 check("chips render", d.querySelectorAll(".chip").length >= 12, d.querySelectorAll(".chip").length);
 const seam = Array.from(d.querySelectorAll(".chip")).find((c) => c.textContent === "SDK seams");
 await click(seam);
 check("seam section opens", d.querySelector(".note h2").textContent === "SDK seams");
-check("seam code shown", d.querySelector(".codewrap").textContent.includes("createInvoice"));
+check("seam code shown", d.querySelector(".mock-source .codewrap").textContent.includes("createInvoice"));
 check("line numbers", d.querySelector("td.ln").textContent.trim().length > 0);
 
 console.log("\nlive mode");

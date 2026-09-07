@@ -312,7 +312,8 @@ systemctl reload ssh
 
 1. Open on **Mock UI**. Walk the deposit and cash out screens. Point out that
    the player never sees a rate, a sat, or the word Bitcoin.
-2. Tap **Code View** → **SDK seams**. Three calls. That is the integration.
+2. Tap **Code View**. Three official SDK calls: receive, send, webhook. That is
+   the integration. The React mock source is behind **Show full mock source**.
 3. Tap **Live UI**. Deposit a dollar, scan the QR with your phone wallet, watch
    the balance land. Cash out to your own cashtag. Money arrives while they
    watch.

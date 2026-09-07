@@ -24,7 +24,8 @@ Everything below is built, tested, and packaged. Nothing is half-finished.
 | Address-payout probe | `probe-address-payout.mjs` | written, **never run against the real API** |
 
 Tests, all green: `test-api` 23, `test-browser` 19, `test-session` 7,
-`test-theme` 7, `test-usdt-send-amount` (USDT $1 cash-out units).
+`test-theme` 7, `test-usdt-send-amount` (USDT $1 cash-out units),
+`test-sdk-guide` (official snippet accuracy), `test-code-view` (cheat-sheet UX).
 
 ---
 
@@ -62,13 +63,14 @@ rather than "Sorry, something went wrong."
 ```
 src/
   AmbossCashierMock.jsx   the deliverable. Provider + 3 flows + QR encoder.
-                          Also the text shown in Code View, so keep it readable.
   shell.jsx               booth chrome: Mock UI / Code View / Live UI
+  sdk-guide.js            official SDK snippets shown by default in Code View
   live-api.js             browser client implementing the seams against /api
   polyfills.js            hand-rolled ES5 gaps + XHR fetch, no core-js
   highlight.js            tokeniser for Code View
   page.html               chrome CSS, both themes
   generated-sections.js   BUILD ARTEFACT. Never edit; build.mjs rewrites it.
+                          Full mock source lives behind "Show full mock source".
 server/
   server.js               routes, caps, session gate, capability detection
   amboss.js               GraphQL receive/poll + official SDK send path
@@ -183,6 +185,8 @@ node test-browser.mjs          # three modes in jsdom against a live server
 node test-session.mjs          # a reload resumes the balance
 node test-theme.mjs            # chrome and card switch theme together
 node test-usdt-send-amount.mjs # $1 USDT cash-out is 1e6 minor units, not btc/100
+node test-sdk-guide.mjs        # official SDK snippets, not the React mock API
+node test-code-view.mjs        # Code View cheat-sheet, highlight, collapsed source
 
 # settle a mock deposit by hand while in dev
 curl -X POST localhost:8080/api/dev/settle/all -H 'content-type: application/json' -d '{}'
@@ -195,8 +199,9 @@ node probe-address-payout.mjs --to you@wallet.com --usd 0.50 --yes
 ```
 
 Always run `npm run build` after touching anything in `src/`, then re-run the
-browser tests. The build regenerates the Code View sections, and a build failure
-there means the section banners stopped reassembling into the source.
+browser tests. The build regenerates the collapsed mock-source sections, and a
+build failure there means the section banners stopped reassembling into the
+source. Default Code View is the official SDK cheat-sheet in `sdk-guide.js`.
 
 ---
 

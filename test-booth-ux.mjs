@@ -53,6 +53,17 @@ check("translucent status bar meta", /apple-mobile-web-app-status-bar-style/.tes
 check("theme-color meta", Boolean(d.querySelector('meta[name="theme-color"]')));
 check("topbar clears status bar", /safe-area-inset-top/.test(d.documentElement.innerHTML));
 check("footer clears home indicator", /safe-area-inset-bottom/.test(d.documentElement.innerHTML));
+const css = d.documentElement.innerHTML;
+const topbarRule = (css.match(/\.topbar\s*\{[^}]+\}/) || [])[0] || "";
+const modesRule = (css.match(/\.modes\s*\{[^}]+\}/) || [])[0] || "";
+check("topbar is three flex slots", Boolean(d.querySelector(".topbar-start") && d.querySelector(".modes") && d.querySelector(".topbar-end")));
+check("theme toggle sits in the end slot", Boolean(d.querySelector(".topbar-end .btn.icon")));
+check("topbar uses flex not grid", /display:\s*flex/.test(topbarRule) && !/display:\s*grid|grid-template/.test(topbarRule), topbarRule);
+check("modes stay on the row", /flex-shrink:\s*0/.test(modesRule) && /white-space:\s*nowrap/.test(modesRule), modesRule);
+check("modes are not absolutely centered", !/position:\s*absolute/.test(modesRule), modesRule);
+check("all three mode labels present", ["Mock UI", "Code View", "Live UI"].every((l) => Array.from(d.querySelectorAll(".mode")).some((b) => b.textContent.indexOf(l) === 0)));
+check("side slots take leftover width", /\.topbar-start,\s*\.topbar-end\s*\{[^}]*flex:\s*1 1 0%/.test(css));
+check("horizontal safe-area is on the side slots", /\.topbar-start\s*\{[^}]*safe-area-inset-left/.test(css) && /\.topbar-end\s*\{[^}]*safe-area-inset-right/.test(css));
 check("no docs.amboss.tech hotlink", !/docs\.amboss\.tech/.test(d.documentElement.innerHTML));
 check("sales note, not dry-run leftover", /iGaming/.test(txt()) && !/Nothing here touches a network/.test(txt()), txt().slice(0, 220));
 

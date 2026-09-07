@@ -8,6 +8,7 @@ import {
   decodeQrImage,
   imageDataFromMatrix,
   normalizeScannedText,
+  resolveCameraError,
 } from "./src/qr-scan.js";
 
 let pass = 0;
@@ -36,10 +37,41 @@ check("empty stays empty", normalizeScannedText("   ") === "");
 console.log("\ncamera errors");
 check("permission denied", classifyCameraError({ name: "NotAllowedError" }) === "denied");
 check("legacy permission name", classifyCameraError({ name: "PermissionDeniedError" }) === "denied");
-check("no device", classifyCameraError({ name: "NotFoundError" }) === "missing");
+check("notfound name is a candidate only", classifyCameraError({ name: "NotFoundError" }) === "missing");
+check("overconstrained is not missing", classifyCameraError({ name: "OverconstrainedError" }) === "failed");
 check("insecure context", classifyCameraError({ name: "SecurityError", message: "insecure context" }) === "insecure");
 check("generic fail", classifyCameraError({ name: "NotReadableError" }) === "failed");
-check("denied copy is actionable", /Settings/.test(CAMERA_COPY.denied));
+check("needs user gesture", classifyCameraError({ name: "NotAllowedError", message: "The request requires a user gesture" }) === "gesture");
+check("api unavailable is failed", classifyCameraError({ name: "NotSupportedError", message: "camera api unavailable" }) === "failed");
+check("denied copy is actionable", /Settings/.test(CAMERA_COPY.denied) && /Allow camera/.test(CAMERA_COPY.denied));
+check("gesture copy asks for a tap", /Allow camera/.test(CAMERA_COPY.gesture));
+
+const emptyDenied = await resolveCameraError(
+  { name: "NotFoundError" },
+  { listVideoInputs: async () => [], listAllMediaDevices: async () => [], cameraPermissionState: async () => null }
+);
+check("empty device list without permission is denied", emptyDenied === "denied", emptyDenied);
+
+const emptyGranted = await resolveCameraError(
+  { name: "NotFoundError" },
+  { listVideoInputs: async () => [], listAllMediaDevices: async () => [], cameraPermissionState: async () => "granted" }
+);
+check("empty devices after grant is missing", emptyGranted === "missing", emptyGranted);
+
+const hasCamera = await resolveCameraError(
+  { name: "NotFoundError" },
+  { listVideoInputs: async () => [{ kind: "videoinput" }], listAllMediaDevices: async () => [{ kind: "videoinput" }], cameraPermissionState: async () => null }
+);
+check("notfound with a camera is denied", hasCamera === "denied", hasCamera);
+
+const audioOnly = await resolveCameraError(
+  { name: "NotFoundError" },
+  { listVideoInputs: async () => [], listAllMediaDevices: async () => [{ kind: "audioinput" }], cameraPermissionState: async () => null }
+);
+check("audio-only device list is missing", audioOnly === "missing", audioOnly);
+
+const noEnumerate = await resolveCameraError({ name: "NotFoundError" }, {});
+check("notfound without enumerate is not missing", noEnumerate === "failed", noEnumerate);
 
 console.log("\nencoder round-trip");
 const built = await esbuild.build({

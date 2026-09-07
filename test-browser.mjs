@@ -29,7 +29,7 @@ const type = async (el, v) => {
 
 console.log("\nchrome");
 check("three modes", d.querySelectorAll(".mode").length === 3, d.querySelectorAll(".mode").length);
-check("mock mode default", txt().includes("Withdrawable balance"));
+check("mock mode default", txt().includes("Account balance"));
 const mockTagline = d.querySelector("[data-booth-tagline]");
 check("mock tagline is under the modes bar", Boolean(mockTagline && mockTagline.previousElementSibling && mockTagline.previousElementSibling.classList.contains("topbar")));
 check("mock tagline copy", Boolean(mockTagline && mockTagline.textContent.trim() === "Pay in Bitcoin, deal in dollars."));
@@ -107,7 +107,7 @@ d.querySelector("input").focus();
 d.querySelector("input").dispatchEvent(new w.Event("paste", { bubbles: true }));
 check("paste field still accepts a cashtag", d.querySelector("input").value === "$jestoph");
 await click(d.querySelector('[aria-label="Go back"]'));
-check("back at wallet", txt().includes("Withdrawable balance"));
+check("back at wallet", txt().includes("Account balance"));
 
 console.log("\ncode view");
 await click(btn("Code View"));
@@ -133,7 +133,7 @@ check("live does not use mock compact chrome", !d.querySelector(".app-mock"));
 check("live wallet has no discovery QR", !d.querySelector(".phone [data-discovery-qr]"));
 
 await click(btn("Deposit"));
-check("deposit screen", txt().includes("How much do you want to add"));
+check("deposit screen", txt().includes("How much do you want credited to your account"));
 await type(d.querySelector("input"), "3");
 await click(btn("Continue"), 900);
 check("real invoice returned", /lnbc\d+n1p/i.test(d.querySelector(".codewrap, .phone").textContent) || d.querySelectorAll("svg[role='img']").length > 0);
@@ -147,7 +147,7 @@ check("sats hint present", /may show this as 3,000 sats/.test(txt()), txt().matc
 
 await fetch("http://127.0.0.1:8182/api/dev/settle/all", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({}) });
 await sleep(7000);
-check("deposit credited in UI", txt().includes("$3.00 added"), txt().slice(0, 200));
+check("deposit credited in UI", txt().includes("$3.00 added") && txt().includes("Credited to your account. Ready to play."), txt().slice(0, 200));
 await click(btn("Back to wallet"), 600);
 check("balance updated from server", txt().includes("$3.00"), txt().slice(0, 160));
 const liveIcon = d.querySelector("[data-tx-icon]");
@@ -171,7 +171,7 @@ await type(d.querySelector("input"), "2");
 await click(btn("Review"));
 check("review shows destination", txt().includes("$jestoph"));
 await click(btn("Send"), 3500);
-check("sent", txt().includes("sent"), txt().slice(0, 200));
+check("paid out", txt().includes("paid out from your account"), txt().slice(0, 200));
 const discovery = d.querySelector("[data-discovery-qr]");
 check("cash-out success shows discovery QR", Boolean(discovery && d.querySelector('[aria-label="Payments discovery booking QR code"]')));
 check(

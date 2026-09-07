@@ -24,7 +24,8 @@ import {
    The player sees dollars and nothing else. They deposit dollars, hold
    dollars, and cash out to a Cash App cashtag. Bitcoin is the rail underneath
    and the exchange rate is a parameter of the mock, not something the player
-   is ever shown.
+   is ever shown. Operator-controlled receive credits the house ledger;
+   Amboss is rails/API.
 
    The one place sats surface is the deposit invoice, because a Lightning
    wallet will display sats and the two numbers have to reconcile. Cash App is
@@ -1302,7 +1303,7 @@ export function DepositFlow({ onExit, onDone }) {
       <div className="amb-rise">
         <BackBar theme={theme} title="Deposit" onBack={onExit} />
         <div style={{ color: theme.muted, fontSize: 13.5, lineHeight: 1.5, marginBottom: 20 }}>
-          How much do you want to add to your balance?
+          How much do you want credited to your account?
         </div>
 
         <AmountField
@@ -1445,7 +1446,7 @@ export function DepositFlow({ onExit, onDone }) {
           <Spinner color={theme.accent} size={30} />
         </div>
         <div style={{ fontSize: 17, fontWeight: 700, color: theme.text }}>Payment received</div>
-        <div style={{ color: theme.muted, fontSize: 13.5, marginTop: 6 }}>Adding {usd(req.amountUsd)} to your balance.</div>
+        <div style={{ color: theme.muted, fontSize: 13.5, marginTop: 6 }}>Crediting {usd(req.amountUsd)} to your account…</div>
       </div>
     );
 
@@ -1459,7 +1460,7 @@ export function DepositFlow({ onExit, onDone }) {
             </svg>
           </div>
           <div style={{ fontSize: 25, fontWeight: 700, color: theme.text, ...NUM }}>{usd(req.amountUsd)} added</div>
-          <div style={{ color: theme.muted, fontSize: 13.5, marginTop: 5 }}>Your balance is ready to play.</div>
+          <div style={{ color: theme.muted, fontSize: 13.5, marginTop: 5 }}>Credited to your account. Ready to play.</div>
         </div>
 
         <div style={{ display: "grid", gap: 10, marginTop: 28 }}>
@@ -1638,7 +1639,7 @@ export function WalletView({ onDeposit, onWithdraw, staff, discovery }) {
     <div className="amb-rise" data-wallet-compact={compact ? "true" : undefined}>
       <Card theme={theme} style={{ padding: compact ? "14px 16px 12px" : "18px 18px 16px", background: theme.surfaceAlt }}>
         <span style={{ fontSize: 11, color: theme.faint, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" }}>
-          Withdrawable balance
+          Account balance
         </span>
         <div style={{ fontSize: 38, fontWeight: 700, color: theme.text, marginTop: compact ? 6 : 10, ...NUM }}>{usd(balance)}</div>
         <div data-balance-caption style={{ fontSize: 12, color: theme.muted, marginTop: compact ? 4 : 8, lineHeight: 1.45 }}>
@@ -2364,7 +2365,7 @@ export function WithdrawFlow({ onExit, onDone }) {
               <path d="M20 6L9 17l-5-5" />
             </svg>
           </div>
-          <div style={{ fontSize: 25, fontWeight: 700, color: theme.text, ...NUM }}>{usd(final.amountUsd)} sent</div>
+          <div style={{ fontSize: 25, fontWeight: 700, color: theme.text, ...NUM }}>{usd(final.amountUsd)} paid out from your account</div>
           <div style={{ color: theme.muted, fontSize: 13.5, marginTop: 5 }}>
             {final.dest.display} has the money. Your balance is {usd(Math.max(0, balance))}.
           </div>

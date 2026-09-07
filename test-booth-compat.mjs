@@ -45,7 +45,7 @@ const type = async (el, v) => {
 };
 
 console.log("\nmock still boots");
-check("mock wallet visible", txt().includes("Withdrawable balance"));
+check("mock wallet visible", txt().includes("Account balance"));
 check("no script-error card on mock", !txt().includes("undefined is not an object"));
 
 console.log("\nlive survives broken native fetch");

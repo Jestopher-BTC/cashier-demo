@@ -61,7 +61,7 @@ check("source hides again", !d.querySelector("[data-mock-source]"));
 console.log("\nhighlight follows deposit");
 await click(btn("Mock UI"));
 await click(btn("Deposit"));
-check("opened deposit", txt().includes("How much do you want to add"));
+check("opened deposit", txt().includes("How much do you want credited to your account"));
 await click(btn("Code View"));
 check("receive highlighted after deposit", d.querySelector('[data-snippet="receive"]').getAttribute("data-active") === "true");
 check("deposit hint shown", txt().includes("Highlighted from Deposit"));

@@ -648,6 +648,7 @@ function LiveMode({ theme, onDemoAction }) {
           </span>
         </div>
         <div className="live-actions">
+          <span className="live-staff-label">Staff</span>
           <button className="btn" onClick={fund}>
             Fund
           </button>

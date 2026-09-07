@@ -38,6 +38,27 @@ const minH = (el) => {
   const cs = w.getComputedStyle(el);
   return parseFloat(cs.minHeight) || parseFloat(cs.height) || 0;
 };
+const stylePx = (el, prop) => {
+  if (!el) return 0;
+  const style = el.getAttribute("style") || "";
+  const kebab = prop.replace(/[A-Z]/g, (c) => "-" + c.toLowerCase());
+  const m = new RegExp(kebab + ":\\s*(\\d+)px").exec(style);
+  if (m) return Number(m[1]);
+  const cs = w.getComputedStyle(el);
+  return parseFloat(cs[prop]) || 0;
+};
+const checkBalanceGap = (label) => {
+  const actions = d.querySelector("[data-balance-actions]");
+  const gap = stylePx(actions, "marginTop") + stylePx(actions, "paddingTop");
+  check(label + " caption has room above Deposit / Cash out", gap >= 16, gap);
+};
+const checkPayStatus = (label) => {
+  const row = d.querySelector("[data-pay-status]");
+  const dot = d.querySelector("[data-pay-status-dot]");
+  check(label + " status row present", Boolean(row && dot && /Waiting for payment/.test(row.textContent)));
+  check(label + " status dot uses margin, not flex gap", stylePx(dot, "marginRight") >= 8, stylePx(dot, "marginRight"));
+  check(label + " status row sits below Open in wallet", stylePx(row, "marginTop") >= 18, stylePx(row, "marginTop"));
+};
 
 console.log("\nfooter");
 const foot = d.querySelector(".booth-foot");
@@ -49,7 +70,11 @@ check("footer copy", Boolean(foot && /Powered by Amboss Payments/.test(foot.text
 const sha = execFileSync("git", ["rev-parse", "--short", "HEAD"], { encoding: "utf8" }).trim();
 const footBuild = foot && foot.querySelector(".booth-foot-build");
 check("footer shows git short SHA", Boolean(footBuild && footBuild.textContent.indexOf(sha) !== -1), footBuild && footBuild.textContent);
-check("footer build is its own muted line", Boolean(footBuild) && /\.booth-foot p\.booth-foot-build/.test(d.documentElement.innerHTML));
+const css = d.documentElement.innerHTML;
+const buildRule = (css.match(/\.booth-foot p\.booth-foot-build\s*\{[^}]+\}/) || [])[0] || "";
+check("footer build sits bottom right", /position:\s*absolute/.test(buildRule) && /right:/.test(buildRule) && /bottom:/.test(buildRule), buildRule);
+check("footer build is faint", /font-size:\s*10px/.test(buildRule) && /var\(--faint\)/.test(buildRule) && /opacity:\s*0\.7/.test(buildRule), buildRule);
+check("footer credit stays centered", /\.booth-foot\s*\{[^}]*text-align:\s*center/.test(css));
 const offlineHtml = fs.readFileSync(new URL("./offline/cashier-offline.html", import.meta.url), "utf8");
 check("offline bundle includes SHA", offlineHtml.indexOf(sha) !== -1);
 check("footer link", Boolean(footLink && footLink.getAttribute("href") === "https://amboss.tech"), footLink && footLink.getAttribute("href"));
@@ -62,7 +87,6 @@ check("translucent status bar meta", /apple-mobile-web-app-status-bar-style/.tes
 check("theme-color meta", Boolean(d.querySelector('meta[name="theme-color"]')));
 check("topbar clears status bar", /safe-area-inset-top/.test(d.documentElement.innerHTML));
 check("footer clears home indicator", /safe-area-inset-bottom/.test(d.documentElement.innerHTML));
-const css = d.documentElement.innerHTML;
 const topbarRule = (css.match(/\.topbar\s*\{[^}]+\}/) || [])[0] || "";
 const modesRule = (css.match(/\.modes\s*\{[^}]+\}/) || [])[0] || "";
 check("topbar is three flex slots", Boolean(d.querySelector(".topbar-start") && d.querySelector(".modes") && d.querySelector(".topbar-end")));
@@ -75,6 +99,18 @@ check("side slots take leftover width", /\.topbar-start,\s*\.topbar-end\s*\{[^}]
 check("horizontal safe-area is on the side slots", /\.topbar-start\s*\{[^}]*safe-area-inset-left/.test(css) && /\.topbar-end\s*\{[^}]*safe-area-inset-right/.test(css));
 check("no docs.amboss.tech hotlink", !/docs\.amboss\.tech/.test(d.documentElement.innerHTML));
 check("sales note, not dry-run leftover", /iGaming/.test(txt()) && !/Nothing here touches a network/.test(txt()), txt().slice(0, 220));
+
+console.log("\nbalance + pay status spacing");
+checkBalanceGap("mock");
+await click(btn("Deposit"));
+const firstAmount = d.querySelector(".phone input");
+await type(firstAmount, "5");
+await click(btn("Continue"), 900);
+checkPayStatus("mock");
+const demoBar = d.querySelector("[data-demo-bar]");
+check("mock status has space above demo controls", Boolean(demoBar) && stylePx(demoBar, "marginTop") >= 22, demoBar && stylePx(demoBar, "marginTop"));
+await click(Array.from(d.querySelectorAll("button")).find((b) => b.getAttribute("aria-label") === "Go back"));
+await click(Array.from(d.querySelectorAll("button")).find((b) => b.getAttribute("aria-label") === "Go back"));
 
 const logoRes = await fetch(BASE + "logo_gradient.svg");
 const logoBody = await logoRes.text();
@@ -131,6 +167,10 @@ check("status stays with the caps copy", Boolean(liveMeta && liveMeta.querySelec
 check("caps keep in/out as wrap units", Boolean(liveCap && /\$5 in/.test(liveCap.textContent)), liveCap && liveCap.textContent);
 check("short caps copy is present", Boolean(livebar && livebar.querySelector(".live-caps-short") && /in\/out/.test(livebar.querySelector(".live-caps-short").textContent)));
 check("Fund and New visitor sit in the action row", Boolean(liveActions && /Fund/.test(liveActions.textContent) && /New visitor/.test(liveActions.textContent)));
+const staffLabel = liveActions && liveActions.querySelector(".live-staff-label");
+check("staff label marks Fund and New visitor", Boolean(staffLabel && staffLabel.textContent.trim() === "Staff"));
+check("staff controls sit in a soft panel", /\.live-actions\s*\{[^}]*background:\s*var\(--bg\)/.test(css) && /\.live-actions\s*\{[^}]*border-radius:\s*10px/.test(css));
+check("LIVE caps stay visitor-facing", Boolean(liveMeta && /LIVE/.test(liveMeta.textContent) && !/Staff/.test(liveMeta.textContent)));
 check("livebar wraps instead of crushing", /\.livebar\s*\{[^}]*flex-wrap:\s*wrap/.test(css));
 check("short caps is the visible line", /\.live-caps-full\s*\{[^}]*display:\s*none/.test(css) && /\.live-caps-short\s*\{[^}]*display:\s*inline/.test(css));
 check("caps line does not wrap mid-unit", /\.live-caps\s*\{[^}]*white-space:\s*nowrap/.test(css));
@@ -144,6 +184,13 @@ const livePresets = Array.from(d.querySelectorAll(".phone button"))
   .map((b) => b.textContent.trim())
   .filter((t) => /^\$\d+$/.test(t));
 check("live deposit presets are $1 $5 $20 $100", livePresets.join(" ") === "$1 $5 $20 $100", livePresets.join(" "));
+await click(Array.from(d.querySelectorAll("button")).find((b) => b.getAttribute("aria-label") === "Go back"));
+checkBalanceGap("live");
+await click(btn("Deposit"));
+await type(d.querySelector(".phone input"), "5");
+await click(btn("Continue"), 1200);
+checkPayStatus("live");
+await click(Array.from(d.querySelectorAll("button")).find((b) => b.getAttribute("aria-label") === "Go back"));
 await click(Array.from(d.querySelectorAll("button")).find((b) => b.getAttribute("aria-label") === "Go back"));
 await click(btn("Fund"), 400);
 const pin = d.querySelector(".pin-input");

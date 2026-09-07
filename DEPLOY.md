@@ -372,9 +372,12 @@ Two edges worth knowing:
   deposited, so cashing out returns their own dollar.
 - **Fund** is the only source of free money. It needs `OPERATOR_PIN`, grants
   `SESSION_START_USD`, and stops at `DAILY_FLOAT_USD` per day across all
-  visitors.
+  visitors. Every Fund tap asks for the PIN again.
 - Every deposit and cash out is capped at `MAX_*_USD`.
-- Leave `OPERATOR_PIN` blank and funding is off entirely.
+- **To disable Fund** (no float, button grayed out): leave `OPERATOR_PIN`
+  blank or unset, and/or set `FUND_ENABLED=false`. An empty PIN does **not**
+  skip the password prompt and grant money. Restart the service after changing
+  either value.
 
 Worst case for the day is `DAILY_FLOAT_USD`. Set it to what you would be
 relaxed about losing.

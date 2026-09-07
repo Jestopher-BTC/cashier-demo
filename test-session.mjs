@@ -38,6 +38,12 @@ const call = async (path, opts = {}) => {
 console.log("\nserver keeps the balance");
 const s = await call("/api/session", { method: "POST", body: {} });
 const sid = s.json.sessionId;
+const cfg = await call("/api/config");
+check("empty OPERATOR_PIN disables fund in config", cfg.json.fundEnabled === false && cfg.json.pinRequired === false, cfg.json);
+const unfunded = await call("/api/session/fund", { method: "POST", body: { sessionId: sid, pin: "" } });
+check("fund refused when pin is unset", unfunded.status === 403 && /off/i.test(unfunded.json.error || ""), unfunded.json);
+const stillEmpty = await call(`/api/state?s=${sid}`);
+check("refused fund does not credit", stillEmpty.json.balanceUsd === 0, stillEmpty.json);
 const dep = await call("/api/deposit", { method: "POST", body: { sessionId: sid, amountUsd: 4 } });
 await call("/api/dev/settle/all", { method: "POST", body: {} });
 await call(`/api/deposit/${dep.json.id}?s=${sid}`);

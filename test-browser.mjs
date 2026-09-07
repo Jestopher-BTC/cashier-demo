@@ -131,6 +131,12 @@ check("caps shown", /up to \$5 in/.test(txt()));
 check("live omits the tagline", !d.querySelector("[data-booth-tagline]"));
 check("live does not use mock compact chrome", !d.querySelector(".app-mock"));
 check("live wallet has no discovery QR", !d.querySelector(".phone [data-discovery-qr]"));
+const fundBtn = d.querySelector("[data-fund]") || btn("Fund");
+check("empty pin grays out Fund", Boolean(fundBtn && fundBtn.disabled), fundBtn && fundBtn.disabled);
+check("empty pin Fund is not clickable", Boolean(fundBtn && fundBtn.getAttribute("aria-disabled") === "true"));
+await click(fundBtn, 400);
+check("empty pin does not open pin dialog", !d.querySelector(".pin-overlay"));
+check("empty pin does not grant float", txt().includes("$0.00") && !txt().includes("$2.00"), txt().slice(0, 220));
 
 await click(btn("Deposit"));
 check("deposit screen", txt().includes("How much do you want credited to your account"));

@@ -877,8 +877,8 @@ function Button({ theme, variant = "primary", full, disabled, children, style, .
   const skins = {
     primary: { background: theme.accent, color: theme.accentText },
     secondary: {
-      background: theme.surfaceAlt,
-      color: theme.text,
+      background: disabled ? theme.inset : theme.surfaceAlt,
+      color: disabled ? theme.faint : theme.text,
       borderColor: theme.border,
     },
     ghost: { background: "transparent", color: theme.muted, padding: "12px 12px" },
@@ -985,8 +985,10 @@ function Notice({ theme, tone = "warn", title, body, action }) {
 }
 
 function BackBar({ theme, title, onBack, right }) {
+  /* Old iPad Safari ignores flex gap (Safari 14.1+). Use margins so the back
+     button and heading do not sit flush on ~1024×768 booth devices. */
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
+    <div data-back-bar style={{ display: "flex", WebkitAlignItems: "center", alignItems: "center", marginBottom: 22 }}>
       {onBack ? (
         <button
           onClick={onBack}
@@ -1001,8 +1003,14 @@ function BackBar({ theme, title, onBack, right }) {
             borderRadius: 10,
             cursor: "pointer",
             display: "flex",
+            WebkitAlignItems: "center",
             alignItems: "center",
+            WebkitJustifyContent: "center",
             justifyContent: "center",
+            marginRight: 14,
+            marginBottom: 2,
+            flex: "0 0 auto",
+            WebkitFlex: "0 0 auto",
           }}
         >
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
@@ -1010,7 +1018,9 @@ function BackBar({ theme, title, onBack, right }) {
           </svg>
         </button>
       ) : null}
-      <div style={{ fontSize: 17, fontWeight: 700, color: theme.text, letterSpacing: "-0.01em" }}>{title}</div>
+      <div data-back-title style={{ fontSize: 17, fontWeight: 700, color: theme.text, letterSpacing: "-0.01em", paddingTop: 2, paddingBottom: 2 }}>
+        {title}
+      </div>
       <div style={{ marginLeft: "auto" }}>{right}</div>
     </div>
   );
@@ -1315,7 +1325,7 @@ export function DepositFlow({ onExit, onDone }) {
           hint={`Between ${usd(limits.depositMin, { whole: true })} and ${usd(limits.depositMax, { whole: true })}`}
         />
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8, marginTop: 12 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gridGap: 8, marginTop: 12 }}>
           {[1, 5, 20, 100].map((v) => (
             <button
               key={v}
@@ -1381,7 +1391,7 @@ export function DepositFlow({ onExit, onDone }) {
             />
           </div>
 
-          <div style={{ display: "grid", gap: 10, marginTop: 16 }}>
+          <div style={{ display: "grid", gridGap: 10, marginTop: 16 }}>
             <CopyButton theme={theme} text={req.invoice} label="Copy invoice" />
             <Button
               theme={theme}
@@ -1463,7 +1473,7 @@ export function DepositFlow({ onExit, onDone }) {
           <div style={{ color: theme.muted, fontSize: 13.5, marginTop: 5 }}>Credited to your account. Ready to play.</div>
         </div>
 
-        <div style={{ display: "grid", gap: 10, marginTop: 28 }}>
+        <div style={{ display: "grid", gridGap: 10, marginTop: 28 }}>
           <Button theme={theme} full onClick={onDone}>
             Back to wallet
           </Button>
@@ -1484,7 +1494,7 @@ export function DepositFlow({ onExit, onDone }) {
           title="This invoice expired"
           body={`Nothing was charged. Start a new ${usd(req.amountUsd)} invoice whenever you are ready.`}
         />
-        <div style={{ display: "grid", gap: 10, marginTop: 24 }}>
+        <div style={{ display: "grid", gridGap: 10, marginTop: 24 }}>
           <Button theme={theme} full onClick={() => createRequest(req.amountUsd)}>
             New invoice for {usd(req.amountUsd)}
           </Button>
@@ -1504,7 +1514,7 @@ export function DepositFlow({ onExit, onDone }) {
         title="The payment did not go through"
         body="Nothing left your account. Start a new invoice and try again."
       />
-      <div style={{ display: "grid", gap: 10, marginTop: 24 }}>
+      <div style={{ display: "grid", gridGap: 10, marginTop: 24 }}>
         <Button theme={theme} full onClick={() => createRequest(req.amountUsd)}>
           Try again
         </Button>
@@ -1646,7 +1656,7 @@ export function WalletView({ onDeposit, onWithdraw, staff, discovery }) {
           Available to play or cash out
         </div>
 
-        <div data-balance-actions style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: compact ? 10 : 16, paddingTop: compact ? 8 : 16 }}>
+        <div data-balance-actions style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gridGap: 12, marginTop: compact ? 10 : 16, paddingTop: compact ? 8 : 16 }}>
           <Button theme={theme} onClick={onDeposit} full>
             Deposit
           </Button>
@@ -1753,7 +1763,16 @@ export function WalletView({ onDeposit, onWithdraw, staff, discovery }) {
             Staff
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gridGap: 10 }}>
-            <Button theme={theme} variant="secondary" full onClick={staff.onFund}>
+            <Button
+              theme={theme}
+              variant="secondary"
+              full
+              data-fund
+              disabled={!staff.fundEnabled}
+              aria-disabled={!staff.fundEnabled ? "true" : undefined}
+              title={staff.fundEnabled ? undefined : "Funding is off"}
+              onClick={staff.fundEnabled ? staff.onFund : undefined}
+            >
               Fund
             </Button>
             <Button theme={theme} variant="secondary" full onClick={staff.onNewVisitor}>

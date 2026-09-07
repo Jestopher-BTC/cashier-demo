@@ -254,6 +254,11 @@ source. Default Code View is the official SDK cheat-sheet in `sdk-guide.js`.
   and Amboss RFQ-quotes it to ~$800 USDT. Convert dollars to sats with the
   real BTC/USD rate for address sends; never multiply a USDT amount by
   `usdPerBtc`.
+- **Empty `OPERATOR_PIN` used to skip Fund auth.** `fundSession` only checked
+  the pin when one was set, and Live skipped the dialog when `pinRequired`
+  was false, so clearing the pin granted float. Empty/missing PIN or
+  `FUND_ENABLED=false` now disables Fund: the button is grayed out and
+  `/session/fund` refuses. A set PIN still prompts on every Fund click.
 
 ---
 

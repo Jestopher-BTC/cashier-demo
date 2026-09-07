@@ -1171,8 +1171,9 @@ function DemoBar({ theme, actions }) {
   if (!actions.length) return null;
   return (
     <div
+      data-demo-bar
       style={{
-        marginTop: 18,
+        marginTop: 24,
         border: `1px dashed ${theme.borderStrong}`,
         borderRadius: 12,
         padding: "10px 12px",
@@ -1383,9 +1384,34 @@ export function DepositFlow({ onExit, onDone }) {
           </div>
         </Card>
 
-        <div style={{ display: "flex", alignItems: "center", gap: 8, justifyContent: "center", marginTop: 14, color: theme.muted, fontSize: 12.5 }}>
-          <span data-anim style={{ width: 7, height: 7, borderRadius: "50%", background: theme.accent, animation: "amb-pulse 1.4s ease-in-out infinite" }} />
-          Waiting for payment
+        <div
+          data-pay-status
+          style={{
+            display: "flex",
+            WebkitAlignItems: "center",
+            alignItems: "center",
+            justifyContent: "center",
+            marginTop: 20,
+            marginBottom: 8,
+            color: theme.muted,
+            fontSize: 12.5,
+          }}
+        >
+          <span
+            data-anim
+            data-pay-status-dot
+            style={{
+              width: 7,
+              height: 7,
+              borderRadius: "50%",
+              background: theme.accent,
+              marginRight: 8,
+              flex: "0 0 auto",
+              WebkitFlex: "0 0 auto",
+              animation: "amb-pulse 1.4s ease-in-out infinite",
+            }}
+          />
+          <span>Waiting for payment</span>
         </div>
 
         {demo ? (
@@ -1566,9 +1592,11 @@ export function WalletView({ onDeposit, onWithdraw }) {
           Withdrawable balance
         </span>
         <div style={{ fontSize: 38, fontWeight: 700, color: theme.text, marginTop: 10, ...NUM }}>{usd(balance)}</div>
-        <div style={{ fontSize: 12, color: theme.muted, marginTop: 8, lineHeight: 1.45 }}>Available to play or cash out</div>
+        <div data-balance-caption style={{ fontSize: 12, color: theme.muted, marginTop: 8, lineHeight: 1.45 }}>
+          Available to play or cash out
+        </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 24 }}>
+        <div data-balance-actions style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 16, paddingTop: 16 }}>
           <Button theme={theme} onClick={onDeposit} full>
             Deposit
           </Button>

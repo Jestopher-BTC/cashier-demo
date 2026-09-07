@@ -38,6 +38,27 @@ const minH = (el) => {
   const cs = w.getComputedStyle(el);
   return parseFloat(cs.minHeight) || parseFloat(cs.height) || 0;
 };
+const stylePx = (el, prop) => {
+  if (!el) return 0;
+  const style = el.getAttribute("style") || "";
+  const kebab = prop.replace(/[A-Z]/g, (c) => "-" + c.toLowerCase());
+  const m = new RegExp(kebab + ":\\s*(\\d+)px").exec(style);
+  if (m) return Number(m[1]);
+  const cs = w.getComputedStyle(el);
+  return parseFloat(cs[prop]) || 0;
+};
+const checkBalanceGap = (label) => {
+  const actions = d.querySelector("[data-balance-actions]");
+  const gap = stylePx(actions, "marginTop") + stylePx(actions, "paddingTop");
+  check(label + " caption has room above Deposit / Cash out", gap >= 16, gap);
+};
+const checkPayStatus = (label) => {
+  const row = d.querySelector("[data-pay-status]");
+  const dot = d.querySelector("[data-pay-status-dot]");
+  check(label + " status row present", Boolean(row && dot && /Waiting for payment/.test(row.textContent)));
+  check(label + " status dot uses margin, not flex gap", stylePx(dot, "marginRight") >= 8, stylePx(dot, "marginRight"));
+  check(label + " status row sits below Open in wallet", stylePx(row, "marginTop") >= 18, stylePx(row, "marginTop"));
+};
 
 console.log("\nfooter");
 const foot = d.querySelector(".booth-foot");
@@ -75,6 +96,18 @@ check("side slots take leftover width", /\.topbar-start,\s*\.topbar-end\s*\{[^}]
 check("horizontal safe-area is on the side slots", /\.topbar-start\s*\{[^}]*safe-area-inset-left/.test(css) && /\.topbar-end\s*\{[^}]*safe-area-inset-right/.test(css));
 check("no docs.amboss.tech hotlink", !/docs\.amboss\.tech/.test(d.documentElement.innerHTML));
 check("sales note, not dry-run leftover", /iGaming/.test(txt()) && !/Nothing here touches a network/.test(txt()), txt().slice(0, 220));
+
+console.log("\nbalance + pay status spacing");
+checkBalanceGap("mock");
+await click(btn("Deposit"));
+const firstAmount = d.querySelector(".phone input");
+await type(firstAmount, "5");
+await click(btn("Continue"), 900);
+checkPayStatus("mock");
+const demoBar = d.querySelector("[data-demo-bar]");
+check("mock status has space above demo controls", Boolean(demoBar) && stylePx(demoBar, "marginTop") >= 22, demoBar && stylePx(demoBar, "marginTop"));
+await click(Array.from(d.querySelectorAll("button")).find((b) => b.getAttribute("aria-label") === "Go back"));
+await click(Array.from(d.querySelectorAll("button")).find((b) => b.getAttribute("aria-label") === "Go back"));
 
 const logoRes = await fetch(BASE + "logo_gradient.svg");
 const logoBody = await logoRes.text();
@@ -144,6 +177,13 @@ const livePresets = Array.from(d.querySelectorAll(".phone button"))
   .map((b) => b.textContent.trim())
   .filter((t) => /^\$\d+$/.test(t));
 check("live deposit presets are $1 $5 $20 $100", livePresets.join(" ") === "$1 $5 $20 $100", livePresets.join(" "));
+await click(Array.from(d.querySelectorAll("button")).find((b) => b.getAttribute("aria-label") === "Go back"));
+checkBalanceGap("live");
+await click(btn("Deposit"));
+await type(d.querySelector(".phone input"), "5");
+await click(btn("Continue"), 1200);
+checkPayStatus("live");
+await click(Array.from(d.querySelectorAll("button")).find((b) => b.getAttribute("aria-label") === "Go back"));
 await click(Array.from(d.querySelectorAll("button")).find((b) => b.getAttribute("aria-label") === "Go back"));
 await click(btn("Fund"), 400);
 const pin = d.querySelector(".pin-input");

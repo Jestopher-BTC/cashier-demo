@@ -31,6 +31,31 @@ console.log("\nchrome");
 check("three modes", d.querySelectorAll(".mode").length === 3, d.querySelectorAll(".mode").length);
 check("mock mode default", txt().includes("Withdrawable balance"));
 
+console.log("\nmock cash out scan");
+await click(btn("Cash out"));
+check("destination field", Boolean(d.querySelector("input")));
+const scanBtn = d.querySelector('[aria-label="Scan a code"]');
+check("scan button present", Boolean(scanBtn));
+await click(scanBtn, 2700);
+check("scanner overlay stays open", Boolean(d.querySelector('[role="dialog"][aria-label="Scan a code"]')));
+check("scanner does not auto-pick a destination", txt().includes("Scan a code") && !txt().includes("How much?"), txt().slice(0, 240));
+check(
+  "camera state is visible",
+  /Allow camera|No camera|Starting camera|Point the camera|blocked|HTTPS/i.test(txt()),
+  txt().slice(0, 300)
+);
+const sampleToggle = Array.from(d.querySelectorAll("button")).find((b) => /sample code/i.test(b.textContent));
+check("sample fallback present", Boolean(sampleToggle));
+await click(sampleToggle);
+check("sample codes listed", txt().includes("A cashtag"));
+await click(Array.from(d.querySelectorAll("button")).find((b) => /A cashtag/i.test(b.textContent)));
+check("sample cashtag accepted", txt().includes("How much?"));
+await click(d.querySelector('[aria-label="Go back"]'));
+await type(d.querySelector("input"), "$jestopher");
+check("typed cashtag still works", /You choose the amount next/.test(txt()), txt().slice(0, 220));
+await click(d.querySelector('[aria-label="Go back"]'));
+check("back at wallet", txt().includes("Withdrawable balance"));
+
 console.log("\ncode view");
 await click(btn("Code View"));
 check("sdk cheat sheet", txt().includes("createReceive") && txt().includes("Official SDK"));

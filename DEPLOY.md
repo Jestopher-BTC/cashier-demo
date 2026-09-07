@@ -290,11 +290,15 @@ systemctl reload ssh
 1. Open `boltda.sh/cashier/check.html`. Green means go. Amber items are
    cosmetic. Red means that iPad cannot run it: the floor is roughly iOS 12, and
    iOS 15 or newer looks right in every detail.
-2. Open `boltda.sh/cashier`, then Share → **Add to Home Screen**. It launches
+2. Tap **Test camera** on that page (or open Cash out → Scan a code) and allow
+   the camera while you can still see the iOS permission prompt. Guided Access
+   will not show that prompt after it is locked. If the camera was denied,
+   Settings → Safari (or the home-screen app name) → Camera → Allow.
+3. Open `boltda.sh/cashier`, then Share → **Add to Home Screen**. It launches
    full screen with no Safari chrome.
-3. Settings → Display → **Auto-Lock: Never**, and turn on **Guided Access**
+4. Settings → Display → **Auto-Lock: Never**, and turn on **Guided Access**
    (Accessibility → Guided Access) so a visitor cannot wander out of the app.
-4. Set the brightness high. Booth lighting is bad and the QR has to scan.
+5. Set the brightness high. Booth lighting is bad and the QR has to scan.
 
 ---
 

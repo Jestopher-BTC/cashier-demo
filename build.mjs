@@ -123,6 +123,11 @@ const CHECK = `<!DOCTYPE html>
 <p class="sub">Run this on the booth iPad before the doors open.</p>
 <table id="t"></table>
 <div class="note" id="verdict"></div>
+<p class="note" style="margin-top:18px">
+  <button id="cam-test" style="background:#14C58F;color:#04231A;border:0;border-radius:10px;padding:12px 16px;font:600 15px -apple-system,Helvetica,Arial,sans-serif;min-height:44px">Test camera</button>
+  <span id="cam-status" style="display:block;margin-top:10px"></span>
+  Grant the camera here, or from Scan a code, before turning on Guided Access. iOS will not show the permission prompt once Guided Access is locked.
+</p>
 <script>
 function row(name, pass, detail, soft) {
   var tr = document.createElement('tr');
@@ -154,12 +159,36 @@ soft = row('AbortController', typeof AbortController === 'function', 'Not requir
 soft = row('window.prompt', typeof window.prompt === 'function', 'Fund uses an in-page PIN dialog because prompt is silent on iPad Chrome', true) && soft;
 soft = row('Clipboard API', !!(navigator.clipboard && navigator.clipboard.writeText), 'Falls back to execCommand', true) && soft;
 soft = row('Sticky position', supports('position', 'sticky'), '', true) && soft;
+soft = row('Secure context', window.isSecureContext !== false, 'Camera requires HTTPS or localhost', true) && soft;
+soft = row('getUserMedia', !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia) || !!(navigator.getUserMedia || navigator.webkitGetUserMedia), 'Needed to scan cash-out QR codes', true) && soft;
+soft = row('BarcodeDetector', typeof BarcodeDetector === 'function', 'jsQR decodes if this is missing', true) && soft;
+row('Standalone', true, (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) ? 'home screen' : 'browser tab');
 row('Screen', true, window.innerWidth + ' x ' + window.innerHeight + ' css px, dpr ' + (window.devicePixelRatio || 1));
 row('Browser', true, navigator.userAgent);
 var v = document.getElementById('verdict');
 v.innerHTML = hard
   ? '<b style="color:#14C58F">Good to go.</b> ' + (soft ? 'Everything supported.' : 'Some cosmetic gaps, listed above in amber. The demo still runs.')
   : '<b style="color:#FF6A5E">This device cannot run the app.</b> Use a newer iPad, or run the demo from a laptop.';
+function setCam(msg, ok) {
+  var el = document.getElementById('cam-status');
+  el.textContent = msg;
+  el.style.color = ok ? '#14C58F' : '#FF6A5E';
+}
+document.getElementById('cam-test').onclick = function () {
+  var gum = navigator.mediaDevices && navigator.mediaDevices.getUserMedia
+    ? function (c) { return navigator.mediaDevices.getUserMedia(c); }
+    : null;
+  if (!gum) { setCam('No camera API on this browser.', false); return; }
+  if (window.isSecureContext === false) { setCam('Open this page over HTTPS first.', false); return; }
+  setCam('Asking for the camera…', true);
+  gum({ audio: false, video: { facingMode: { ideal: 'environment' } } }).then(function (stream) {
+    var tracks = stream.getTracks ? stream.getTracks() : [];
+    for (var i = 0; i < tracks.length; i++) tracks[i].stop();
+    setCam('Camera allowed. Grant this before Guided Access, then Add to Home Screen.', true);
+  }).catch(function (err) {
+    setCam((err && err.message) ? err.message : 'Camera blocked. Allow it in iPad Settings.', false);
+  });
+};
 try {
   var x = new XMLHttpRequest();
   x.open('GET', 'healthz', true);

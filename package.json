@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "@ambosstech/payments": "^1.1.1",
+    "jsqr": "^1.4.0",
     "regenerator-runtime": "^0.14.1"
   }
 }

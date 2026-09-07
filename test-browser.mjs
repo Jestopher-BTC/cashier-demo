@@ -53,7 +53,12 @@ await click(scanBtn, 2700);
 const sheet = d.querySelector(".amb-scan-sheet");
 check("scanner overlay stays open", Boolean(d.querySelector('[role="dialog"][aria-label="Scan a code"]')));
 check("scanner is an opaque sheet", Boolean(sheet) && sheet.getAttribute("data-scan-sheet") === "1", sheet && sheet.getAttribute("class"));
-check("sheet background is opaque", Boolean(sheet) && /background:\s*#070C17/.test(sheet.getAttribute("style") || "") && !/rgba/i.test(sheet.getAttribute("style") || ""), sheet && sheet.getAttribute("style"));
+const sheetStyle = (sheet && sheet.getAttribute("style")) || "";
+check(
+  "sheet background is opaque",
+  /background:\s*(#070C17|rgb\(\s*7,\s*12,\s*23\s*\))/.test(sheetStyle) && !/rgba\s*\(/i.test(sheetStyle),
+  sheetStyle
+);
 check("recent cashtag is not under the sheet", !txt().includes("$jestopher"), txt().slice(0, 280));
 check("scanner does not auto-pick a destination", txt().includes("Scan a code") && !txt().includes("How much?"), txt().slice(0, 240));
 check(

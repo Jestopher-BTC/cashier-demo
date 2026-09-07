@@ -1082,6 +1082,15 @@ function CopyButton({ theme, text, label = "Copy invoice" }) {
   );
 }
 
+/* iPad still opens QWERTY for type=text unless inputmode and the old
+   pattern="[0-9]*" hint are real content attributes at focus time. */
+function bindDecimalPad(el) {
+  if (!el) return;
+  el.setAttribute("inputmode", "decimal");
+  el.setAttribute("enterkeyhint", "done");
+  el.setAttribute("pattern", "[0-9]*");
+}
+
 function AmountField({ theme, value, onChange, autoFocus, hint, error, max }) {
   return (
     <div>
@@ -1098,6 +1107,7 @@ function AmountField({ theme, value, onChange, autoFocus, hint, error, max }) {
       >
         <span style={{ fontSize: 30, fontWeight: 700, color: value ? theme.text : theme.faint, ...NUM }}>$</span>
         <input
+          ref={bindDecimalPad}
           value={value}
           autoFocus={autoFocus}
           onChange={(e) => {
@@ -1107,8 +1117,12 @@ function AmountField({ theme, value, onChange, autoFocus, hint, error, max }) {
           }}
           type="text"
           inputMode="decimal"
+          enterKeyHint="done"
+          pattern="[0-9]*"
+          autoComplete="off"
           autoCorrect="off"
           autoCapitalize="none"
+          spellCheck={false}
           placeholder="0.00"
           aria-label="Amount in US dollars"
           style={{

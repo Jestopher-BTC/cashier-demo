@@ -616,26 +616,43 @@ function LiveMode({ theme, onDemoAction }) {
     );
 
   var cfg = config || {};
+  var depositCap = cfg.maxDepositUsd;
+  var withdrawCap = cfg.maxWithdrawUsd;
+  var invoicesOnly = !cfg.addressPayouts;
+  var sameCap = depositCap === withdrawCap;
 
   return (
     <div className="stage">
       <div className="livebar">
-        <span className="live-dot" />
-        <span className="live-label">
-          LIVE · {cfg.asset || "wallet"}
-          {cfg.mock ? " · mock api" : ""}
-        </span>
-        <span className="live-caps">
-          up to ${cfg.maxDepositUsd} in, ${cfg.maxWithdrawUsd} out
-          {cfg.addressPayouts ? "" : " · invoices only"}
-        </span>
-        <span className="grow" />
-        <button className="btn" onClick={fund}>
-          Fund
-        </button>
-        <button className="btn" onClick={newVisitor}>
-          New visitor
-        </button>
+        <div className="live-meta">
+          <span className="live-status">
+            <span className="live-dot" />
+            <span className="live-label">
+              LIVE · {cfg.asset || "wallet"}
+              {cfg.mock ? " · mock api" : ""}
+            </span>
+          </span>
+          <span className="live-caps">
+            <span className="live-caps-full">
+              <span className="live-cap">up to ${depositCap} in</span>
+              {", "}
+              <span className="live-cap">${withdrawCap} out</span>
+              {invoicesOnly ? <span className="live-cap"> · invoices only</span> : null}
+            </span>
+            <span className="live-caps-short">
+              {sameCap ? "≤$" + depositCap + " in/out" : "≤$" + depositCap + " in / $" + withdrawCap + " out"}
+              {invoicesOnly ? " · invoices" : ""}
+            </span>
+          </span>
+        </div>
+        <div className="live-actions">
+          <button className="btn" onClick={fund}>
+            Fund
+          </button>
+          <button className="btn" onClick={newVisitor}>
+            New visitor
+          </button>
+        </div>
       </div>
 
       {notice ? <div className="livenotice">{notice}</div> : null}

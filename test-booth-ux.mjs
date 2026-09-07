@@ -70,6 +70,7 @@ check("footer copy", Boolean(foot && /Powered by Amboss Payments/.test(foot.text
 const sha = execFileSync("git", ["rev-parse", "--short", "HEAD"], { encoding: "utf8" }).trim();
 const footBuild = foot && foot.querySelector(".booth-foot-build");
 check("footer shows git short SHA", Boolean(footBuild && footBuild.textContent.indexOf(sha) !== -1), footBuild && footBuild.textContent);
+const css = d.documentElement.innerHTML;
 const buildRule = (css.match(/\.booth-foot p\.booth-foot-build\s*\{[^}]+\}/) || [])[0] || "";
 check("footer build sits bottom right", /position:\s*absolute/.test(buildRule) && /right:/.test(buildRule) && /bottom:/.test(buildRule), buildRule);
 check("footer build is faint", /font-size:\s*10px/.test(buildRule) && /var\(--faint\)/.test(buildRule) && /opacity:\s*0\.7/.test(buildRule), buildRule);
@@ -86,7 +87,6 @@ check("translucent status bar meta", /apple-mobile-web-app-status-bar-style/.tes
 check("theme-color meta", Boolean(d.querySelector('meta[name="theme-color"]')));
 check("topbar clears status bar", /safe-area-inset-top/.test(d.documentElement.innerHTML));
 check("footer clears home indicator", /safe-area-inset-bottom/.test(d.documentElement.innerHTML));
-const css = d.documentElement.innerHTML;
 const topbarRule = (css.match(/\.topbar\s*\{[^}]+\}/) || [])[0] || "";
 const modesRule = (css.match(/\.modes\s*\{[^}]+\}/) || [])[0] || "";
 check("topbar is three flex slots", Boolean(d.querySelector(".topbar-start") && d.querySelector(".modes") && d.querySelector(".topbar-end")));

@@ -14,6 +14,8 @@ import { createLiveApi } from "./live-api.js";
 import { DOCS, MAP_LINE, SANDBOX_META, SNIPPETS, snippetById, snippetIdForAction } from "./sdk-guide.js";
 
 const HOST = (typeof window !== "undefined" && window.__CASHIER__) || { live: false };
+/* Injected by build.mjs. typeof of an undeclared identifier is safe. */
+const BUILD_ID = typeof __BUILD__ === "string" ? __BUILD__ : "dev";
 
 /* --------------------------------------------------------------- shared --- */
 
@@ -773,6 +775,7 @@ export default function App() {
               amboss.tech
             </a>
           </p>
+          <p className="booth-foot-build">{BUILD_ID}</p>
         </footer>
       ) : null}
     </div>

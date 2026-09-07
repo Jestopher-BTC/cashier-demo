@@ -1,6 +1,9 @@
 /* Booth polish: iOS keyboards, Amboss footer, and copy that belongs on the
    iPad kiosk. Does not re-test Fund PIN-every-click or the Live send path. */
 
+import { execFileSync } from "node:child_process";
+import fs from "node:fs";
+
 process.env.MOCK_AMBOSS = "1";
 process.env.PORT = "8191";
 process.env.OPERATOR_PIN = "4242";
@@ -43,6 +46,12 @@ const footLogo = foot && foot.querySelector("svg");
 const brandLogo = d.querySelector(".brand svg");
 check("footer on mock", Boolean(foot));
 check("footer copy", Boolean(foot && /Powered by Amboss Payments/.test(foot.textContent) && /amboss\.tech/.test(foot.textContent)), foot && foot.textContent);
+const sha = execFileSync("git", ["rev-parse", "--short", "HEAD"], { encoding: "utf8" }).trim();
+const footBuild = foot && foot.querySelector(".booth-foot-build");
+check("footer shows git short SHA", Boolean(footBuild && footBuild.textContent.indexOf(sha) !== -1), footBuild && footBuild.textContent);
+check("footer build is its own muted line", Boolean(footBuild) && /\.booth-foot p\.booth-foot-build/.test(d.documentElement.innerHTML));
+const offlineHtml = fs.readFileSync(new URL("./offline/cashier-offline.html", import.meta.url), "utf8");
+check("offline bundle includes SHA", offlineHtml.indexOf(sha) !== -1);
 check("footer link", Boolean(footLink && footLink.getAttribute("href") === "https://amboss.tech"), footLink && footLink.getAttribute("href"));
 check("footer uses real Amboss wordmark", Boolean(footLogo && /640\.4/.test(footLogo.getAttribute("viewBox"))), footLogo && footLogo.getAttribute("viewBox"));
 check("topbar uses Amboss letter mark", Boolean(brandLogo && /95\.7/.test(brandLogo.getAttribute("viewBox"))), brandLogo && brandLogo.getAttribute("viewBox"));
@@ -95,6 +104,7 @@ await click(Array.from(d.querySelectorAll("button")).find((b) => b.getAttribute(
 console.log("\nlive pin + footer");
 await click(btn("Live UI"), 1400);
 check("footer stays on live", Boolean(d.querySelector(".booth-foot a")));
+check("live footer still shows SHA", Boolean(d.querySelector(".booth-foot-build") && d.querySelector(".booth-foot-build").textContent.indexOf(sha) !== -1));
 check("live note is booth copy", /Tap New visitor between demos/.test(txt()) && !/Real invoices, real payouts, real money/.test(txt()));
 const livebar = d.querySelector(".livebar");
 const liveMeta = livebar && livebar.querySelector(".live-meta");

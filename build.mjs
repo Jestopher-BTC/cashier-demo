@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -6,6 +7,36 @@ import babel from "@babel/core";
 
 const root = path.dirname(fileURLToPath(import.meta.url));
 const p = (...bits) => path.join(root, ...bits);
+
+function gitShortSha() {
+  try {
+    return execFileSync("git", ["rev-parse", "--short", "HEAD"], {
+      cwd: root,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    }).trim();
+  } catch {
+    return "";
+  }
+}
+
+function packageVersion() {
+  try {
+    const pkg = JSON.parse(fs.readFileSync(p("package.json"), "utf8"));
+    return typeof pkg.version === "string" && pkg.version ? pkg.version : "";
+  } catch {
+    return "";
+  }
+}
+
+function formatBuildId(version, sha) {
+  if (version && sha) return "v" + version + " · " + sha;
+  if (sha) return "build " + sha;
+  if (version) return "v" + version;
+  return "build unknown";
+}
+
+const BUILD_ID = formatBuildId(packageVersion(), gitShortSha());
 
 /* ------------------------------------------------------------ sections --- */
 
@@ -78,7 +109,10 @@ async function buildBundle() {
     format: "iife",
     target: "es2017",
     jsx: "transform",
-    define: { "process.env.NODE_ENV": '"production"' },
+    define: {
+      "process.env.NODE_ENV": '"production"',
+      __BUILD__: JSON.stringify(BUILD_ID),
+    },
     loader: { ".js": "jsx" },
     logLevel: "warning",
   });
@@ -226,6 +260,7 @@ fs.writeFileSync(
 
 const kb = (n) => Math.round(n / 1024) + " KB";
 console.log("sections   ", sections.length, "covering", lines, "lines");
+console.log("build id   ", BUILD_ID);
 console.log("app.js     ", kb(bundle.length));
 console.log("index.html ", kb(fs.statSync(p("public", "index.html")).size));
 console.log("offline    ", kb(fs.statSync(p("offline", "cashier-offline.html")).size));

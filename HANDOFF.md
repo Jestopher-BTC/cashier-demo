@@ -23,9 +23,10 @@ Everything below is built, tested, and packaged. Nothing is half-finished.
 | Deploy kit | `deploy/`, `DEPLOY.md` | done |
 | Address-payout probe | `probe-address-payout.mjs` | written, **never run against the real API** |
 
-Tests, all green: `test-api` 23, `test-browser` 19, `test-session` 7,
+Tests, all green: `test-api` 36, `test-browser` 29, `test-session` 7,
 `test-theme` 7, `test-usdt-send-amount` (USDT $1 cash-out units),
-`test-sdk-guide` (official snippet accuracy), `test-code-view` (cheat-sheet UX).
+`test-sdk-guide` (official snippet accuracy), `test-code-view` (cheat-sheet UX),
+`test-qr-scan` 22 (camera unwrap + jsQR round-trip).
 
 ---
 
@@ -165,6 +166,9 @@ supports.
   new ones should use margins.
 - **Do not use CSS `aspect-ratio`.** The scanner viewport uses a `padding-top:
   100%` square for this reason.
+- **Cash-out QR scan is a real camera.** `getUserMedia` plus `BarcodeDetector`
+  when present, `jsQR` otherwise. Video must stay `playsInline` and muted.
+  Grant the camera before Guided Access; iOS will not prompt once it is locked.
 - `toLocaleString` is wrapped in try/catch with a manual grouping fallback,
   because old WebKit ships a partial Intl.
 - Artifact rule that also applies here: no `localStorage` inside Claude
@@ -187,6 +191,7 @@ node test-theme.mjs            # chrome and card switch theme together
 node test-usdt-send-amount.mjs # $1 USDT cash-out is 1e6 minor units, not btc/100
 node test-sdk-guide.mjs        # official SDK snippets, not the React mock API
 node test-code-view.mjs        # Code View cheat-sheet, highlight, collapsed source
+node test-qr-scan.mjs          # unwrap lightning QRs, jsQR round-trip, no auto-detect
 
 # settle a mock deposit by hand while in dev
 curl -X POST localhost:8080/api/dev/settle/all -H 'content-type: application/json' -d '{}'

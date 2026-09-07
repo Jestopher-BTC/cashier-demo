@@ -134,6 +134,11 @@ const lnurlp = parseDestination("https://walletofsatoshi.com/.well-known/lnurlp/
 check("lnurlp URL is a Lightning address", lnurlp.address === "player@walletofsatoshi.com", lnurlp);
 const wide = parseDestination("\uFF04jestopher");
 check("fullwidth dollar sign is a cashtag", wide.address === "jestopher@cash.app", wide);
+const bolt = "lnbc4250u1p" + "q".repeat(80);
+const wrapped = parseDestination("lightning:" + bolt);
+check("lightning: prefix unwraps to an invoice", wrapped.kind === "invoice" && wrapped.bolt11.toLowerCase().indexOf("lnbc") === 0, wrapped);
+const btcUri = parseDestination("bitcoin:?lightning=" + bolt);
+check("bitcoin URI lightning= query is an invoice", btcUri.kind === "invoice", btcUri);
 check(
   "liquidity errors do not disable address payouts",
   addressSendLooksUnsupported("Liquidity not available") === false
@@ -159,6 +164,7 @@ check("config exposes the same rate to Live UI", cfgRate.json.usdPerBtc === 1000
 console.log("\nstatic");
 const index = await fetch(BASE + "/");
 check("index served", index.status === 200 && (await index.text()).includes("__CASHIER__"));
+check("camera permission policy", /camera=\(self\)/.test(index.headers.get("permissions-policy") || ""), index.headers.get("permissions-policy"));
 const appjs = await fetch(BASE + "/app.js");
 check("bundle served", appjs.status === 200);
 

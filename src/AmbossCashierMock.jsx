@@ -7,6 +7,16 @@ import React, {
   useRef,
   useState,
 } from "react";
+import {
+  CAMERA_COPY,
+  attachStream,
+  classifyCameraError,
+  decodeVideoFrame,
+  normalizeScannedText,
+  openCameraStream,
+  startCamera,
+  stopStream,
+} from "./qr-scan.js";
 
 /* ============================================================================
    Amboss Payments SDK - iGaming cashier mock, v2
@@ -424,6 +434,8 @@ function qrMatrix(text) {
   return null;
 }
 
+export { qrMatrix };
+
 function QrCode({ value, size = 224, quiet = 3 }) {
   const path = useMemo(() => {
     const m = qrMatrix(value);
@@ -518,12 +530,8 @@ const reference = () => {
 
 /* Destinations. A cashtag is a Lightning address wearing a costume: strip the
    dollar sign, append the Cash App domain. The player never sees that. */
-function parseDestination(raw, rate) {
-  const input = String(raw || "")
-    .trim()
-    .replace(/^lightning:/i, "")
-    .replace(/[\u200B-\u200D\uFEFF]/g, "")
-    .replace(/^[\uFF04\uFE69]/, "$");
+export function parseDestination(raw, rate) {
+  const input = normalizeScannedText(raw).replace(/^[\uFF04\uFE69]/, "$");
   if (!input) return { kind: "empty" };
 
   const cashApp = /^(?:https?:\/\/)?(?:www\.)?cash\.app\/\$?([a-z0-9_]{1,20})\/?$/i.exec(input);
@@ -1633,13 +1641,109 @@ const SAMPLE_CODES = [
   { id: "fixed", title: "An invoice for a set amount", detail: "Amount already filled in", value: makeInvoice(42500) },
 ];
 
-function Scanner({ theme, onCancel, onDetect }) {
+function usableDestination(text, rate, capabilities) {
+  const d = payoutCheck(parseDestination(text, rate), capabilities);
+  return d.kind === "cashtag" || d.kind === "address" || d.kind === "request";
+}
+
+function Scanner({ theme, onCancel, onDetect, rate, capabilities, streamPromise }) {
   const [showSamples, setShowSamples] = useState(false);
+  const [phase, setPhase] = useState("starting");
+  const videoRef = useRef(null);
+  const streamRef = useRef(null);
+  const timerRef = useRef(0);
+  const cancelledRef = useRef(false);
+  const acceptedRef = useRef(false);
+  const warmupUsedRef = useRef(false);
+  const onDetectRef = useRef(onDetect);
+  onDetectRef.current = onDetect;
+
+  const stopTick = function () {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = 0;
+    }
+  };
+
+  const release = function () {
+    stopTick();
+    stopStream(streamRef.current);
+    streamRef.current = null;
+    const video = videoRef.current;
+    if (video) video.srcObject = null;
+  };
+
+  const beginTick = function (video) {
+    const canvas = document.createElement("canvas");
+    const tick = async function () {
+      if (cancelledRef.current || acceptedRef.current) return;
+      try {
+        const raw = await decodeVideoFrame(video, canvas);
+        if (raw && !acceptedRef.current && !cancelledRef.current) {
+          const text = normalizeScannedText(raw);
+          if (usableDestination(text, rate, capabilities)) {
+            acceptedRef.current = true;
+            onDetectRef.current(text);
+            return;
+          }
+          setPhase("unreadable");
+        }
+      } catch (e) {
+        /* keep scanning */
+      }
+      if (!cancelledRef.current && !acceptedRef.current) timerRef.current = setTimeout(tick, 110);
+    };
+    timerRef.current = setTimeout(tick, 80);
+  };
+
+  const runCamera = async function (fromWarmup) {
+    const video = videoRef.current;
+    if (!video) return;
+    stopTick();
+    setPhase("starting");
+    try {
+      let stream = null;
+      if (fromWarmup && streamPromise && !warmupUsedRef.current) {
+        warmupUsedRef.current = true;
+        stream = await streamPromise;
+        if (cancelledRef.current) {
+          stopStream(stream);
+          return;
+        }
+        await attachStream(video, stream);
+      } else {
+        stopStream(streamRef.current);
+        streamRef.current = null;
+        stream = await startCamera(video);
+      }
+      if (cancelledRef.current) {
+        stopStream(stream);
+        return;
+      }
+      streamRef.current = stream;
+      setPhase("live");
+      beginTick(video);
+    } catch (e) {
+      if (!cancelledRef.current) setPhase(classifyCameraError(e));
+    }
+  };
+
   useEffect(() => {
-    if (showSamples) return undefined;
-    const t = setTimeout(() => onDetect(SAMPLE_CODES[0].value), 2400);
-    return () => clearTimeout(t);
-  }, [showSamples, onDetect]);
+    if (showSamples) {
+      release();
+      return undefined;
+    }
+    cancelledRef.current = false;
+    acceptedRef.current = false;
+    runCamera(true);
+    return function () {
+      cancelledRef.current = true;
+      release();
+    };
+  }, [showSamples]);
+
+  const status = CAMERA_COPY[phase] || CAMERA_COPY.failed;
+  const canRetry = phase === "denied" || phase === "failed" || phase === "missing" || phase === "insecure";
 
   return (
     <div
@@ -1696,6 +1800,23 @@ function Scanner({ theme, onCancel, onDetect }) {
             background: "linear-gradient(160deg, #16233B 0%, #0B1424 60%, #101B2E 100%)",
           }}
         >
+          <video
+            ref={videoRef}
+            muted
+            autoPlay
+            playsInline
+            aria-label="Camera preview"
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              width: "100%",
+              height: "100%",
+              objectFit: "cover",
+              background: "#000",
+              visibility: phase === "live" || phase === "unreadable" ? "visible" : "hidden",
+            }}
+          />
           {[
             { top: 14, left: 14, rot: 0 },
             { top: 14, right: 14, rot: 90 },
@@ -1719,12 +1840,37 @@ function Scanner({ theme, onCancel, onDetect }) {
               }}
             />
           ))}
-          <div
-            data-anim
-            style={{ position: "absolute", left: "8%", right: "8%", height: 2, background: theme.accent, boxShadow: `0 0 14px ${theme.accent}`, animation: "amb-scan 2.2s ease-in-out infinite" }}
-          />
-          <div style={{ position: "absolute", bottom: 16, left: 0, right: 0, textAlign: "center", color: "rgba(255,255,255,0.7)", fontSize: 12.5 }}>
-            Point the camera at the code
+          {(phase === "live" || phase === "unreadable") ? (
+            <div
+              data-anim
+              style={{ position: "absolute", left: "8%", right: "8%", height: 2, background: theme.accent, boxShadow: `0 0 14px ${theme.accent}`, animation: "amb-scan 2.2s ease-in-out infinite" }}
+            />
+          ) : null}
+          <div style={{ position: "absolute", left: 16, right: 16, bottom: 16, textAlign: "center" }}>
+            <div style={{ color: "rgba(255,255,255,0.82)", fontSize: 12.5, lineHeight: 1.45 }}>{status}</div>
+            {canRetry ? (
+              <button
+                onClick={() => {
+                  runCamera(false);
+                }}
+                className="amb-tap"
+                style={{
+                  marginTop: 10,
+                  background: "rgba(255,255,255,0.14)",
+                  border: "1px solid rgba(255,255,255,0.22)",
+                  color: "#FFFFFF",
+                  borderRadius: 10,
+                  padding: "10px 14px",
+                  minHeight: 44,
+                  fontSize: 13,
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  fontFamily: FONT,
+                }}
+              >
+                Allow camera
+              </button>
+            ) : null}
           </div>
         </div>
       )}
@@ -1773,6 +1919,7 @@ export function WithdrawFlow({ onExit, onDone }) {
   const [amount, setAmount] = useState("");
   const [final, setFinal] = useState(null);
   const [scanning, setScanning] = useState(false);
+  const scanWarmup = useRef(null);
   const alive = useRef(true);
   useEffect(() => () => { alive.current = false; }, []);
 
@@ -1858,7 +2005,12 @@ export function WithdrawFlow({ onExit, onDone }) {
             }}
           />
           <button
-            onClick={() => setScanning(true)}
+            onClick={() => {
+              const warmup = openCameraStream();
+              warmup.catch(function () {});
+              scanWarmup.current = warmup;
+              setScanning(true);
+            }}
             aria-label="Scan a code"
             className="amb-tap"
             style={{ background: theme.surfaceAlt, border: `1px solid ${theme.border}`, color: theme.text, width: 44, height: 44, borderRadius: 10, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flex: "0 0 auto" }}
@@ -1910,9 +2062,16 @@ export function WithdrawFlow({ onExit, onDone }) {
         {scanning ? (
           <Scanner
             theme={theme}
-            onCancel={() => setScanning(false)}
+            rate={rate}
+            capabilities={capabilities}
+            streamPromise={scanWarmup.current}
+            onCancel={() => {
+              setScanning(false);
+              scanWarmup.current = null;
+            }}
             onDetect={(v) => {
               setScanning(false);
+              scanWarmup.current = null;
               accept(v);
             }}
           />

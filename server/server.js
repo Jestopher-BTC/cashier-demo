@@ -4,6 +4,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { config, assertReady, money, addressSendAmounts, round2 } from "./config.js";
+import { normalizeScannedText } from "../src/scan-payload.js";
 import { amboss as liveAmboss } from "./amboss.js";
 import { mockAmboss } from "./mock-amboss.js";
 import {
@@ -92,11 +93,7 @@ function rateLimited(ip, cost = 1, perMinute = 60) {
 /* ------------------------------------------------------- destinations --- */
 
 export function parseDestination(raw) {
-  const input = String(raw || "")
-    .trim()
-    .replace(/^lightning:/i, "")
-    .replace(/[\u200B-\u200D\uFEFF]/g, "")
-    .replace(/^[\uFF04\uFE69]/, "$");
+  const input = normalizeScannedText(raw).replace(/^[\uFF04\uFE69]/, "$");
   if (!input) return { kind: "invalid", reason: "Enter a destination." };
 
   const cashApp = /^(?:https?:\/\/)?(?:www\.)?cash\.app\/\$?([a-z0-9_]{1,20})\/?$/i.exec(input);
@@ -498,6 +495,8 @@ function serveStatic(req, res, url) {
     res.writeHead(200, {
       "content-type": type,
       "cache-control": file.endsWith(".html") ? "no-store" : "public, max-age=300",
+      "permissions-policy": "camera=(self)",
+      "feature-policy": "camera 'self'",
     });
     res.end(data);
   });

@@ -198,6 +198,7 @@ node test-usdt-send-amount.mjs # $1 USDT cash-out is 1e6 minor units, not btc/10
 node test-sdk-guide.mjs        # official SDK snippets, not the React mock API
 node test-code-view.mjs        # Code View cheat-sheet, highlight, collapsed source
 node test-qr-scan.mjs          # unwrap lightning QRs, jsQR round-trip, no auto-detect
+node test-fund-gate.mjs        # FUND_ENABLED=0 disables Fund even with a PIN
 
 # settle a mock deposit by hand while in dev
 curl -X POST localhost:8080/api/dev/settle/all -H 'content-type: application/json' -d '{}'
@@ -254,6 +255,12 @@ source. Default Code View is the official SDK cheat-sheet in `sdk-guide.js`.
   and Amboss RFQ-quotes it to ~$800 USDT. Convert dollars to sats with the
   real BTC/USD rate for address sends; never multiply a USDT amount by
   `usdPerBtc`.
+- **Empty `OPERATOR_PIN` used to skip Fund auth.** `fundSession` only checked
+  the pin when one was set, and Live skipped the dialog when `pinRequired`
+  was false, so clearing the pin granted float. Fund is on only when
+  `FUND_ENABLED` is on (default; `false` / `0` / `no` to kill) **and**
+  `OPERATOR_PIN` is non-empty. Either off-switch grays the button and
+  `/session/fund` refuses. A set PIN still prompts on every Fund click.
 
 ---
 

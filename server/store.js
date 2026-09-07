@@ -129,7 +129,8 @@ function sweep() {
 
 export function fundSession(session, pin) {
   rollFloat();
-  if (config.operatorPin && pin !== config.operatorPin) return { error: "Wrong pin." };
+  if (!config.fundEnabled) return { error: "Funding is off." };
+  if (String(pin || "") !== config.operatorPin) return { error: "Wrong pin." };
   const amount = config.sessionStartUsd;
   if (float.grantedUsd + amount > config.dailyFloatUsd)
     return { error: `Daily demo float of $${config.dailyFloatUsd} is used up.` };

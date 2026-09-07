@@ -559,18 +559,17 @@ function LiveMode({ theme, onDemoAction }) {
   const fund = useCallback(
     function () {
       if (!apiRef.current) return;
+      /* Fund is off unless FUND_ENABLED is on AND OPERATOR_PIN is set.
+         Do not treat "no PIN" as unlocked — that used to grant float. */
+      if (!config || !config.fundEnabled) return;
       /* Live UI is public. The PIN is only for this Fund click. window.prompt
          is a no-op on many iPad Chrome/Safari builds, so the unlock UI is
          in-page. Never cache the PIN across Fund events. */
-      if (config && config.pinRequired) {
-        setPinDraft("");
-        setPinError("");
-        setPinOpen(true);
-        return;
-      }
-      submitFund("");
+      setPinDraft("");
+      setPinError("");
+      setPinOpen(true);
     },
-    [config, submitFund]
+    [config]
   );
 
   if (!HOST.live)
@@ -671,7 +670,7 @@ function LiveMode({ theme, onDemoAction }) {
       >
         <Screens
           onDemoAction={onDemoAction}
-          staff={{ onFund: fund, onNewVisitor: newVisitor }}
+          staff={{ onFund: fund, onNewVisitor: newVisitor, fundEnabled: Boolean(cfg.fundEnabled) }}
         />
       </PaymentsProvider>
 

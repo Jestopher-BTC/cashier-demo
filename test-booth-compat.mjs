@@ -55,6 +55,8 @@ check("live connected", txt().includes("LIVE"), txt().slice(0, 180));
 check("session starts at zero", txt().includes("$0.00"));
 
 console.log("\nfund pin dialog");
+const fundBtn = d.querySelector("[data-fund]") || btn("Fund");
+check("pin set leaves Fund enabled", Boolean(fundBtn && !fundBtn.disabled), fundBtn && fundBtn.disabled);
 await click(btn("Fund"), 400);
 const overlay = d.querySelector(".pin-overlay");
 check("pin dialog opens", Boolean(overlay), "missing .pin-overlay");

@@ -22,6 +22,26 @@ const asset = env("AMBOSS_ASSET", "BTC").toUpperCase();
 if (!["BTC", "USDT", "USDC"].includes(asset))
   throw new Error(`AMBOSS_ASSET must be BTC, USDT, or USDC, got "${asset}"`);
 
+/* FUND_ENABLED kill switch. Unset or blank defaults to on. false / 0 / no
+   (also off) turn Fund off even when a PIN is still set. */
+export function parseFundEnabledFlag(raw) {
+  if (raw == null) return true;
+  const v = String(raw).trim().toLowerCase();
+  if (!v) return true;
+  if (v === "false" || v === "0" || v === "no" || v === "off") return false;
+  return v === "true" || v === "1" || v === "yes" || v === "on";
+}
+
+/* Fund is on only when FUND_ENABLED is on AND OPERATOR_PIN is non-empty.
+   An empty PIN used to skip auth and grant float; treat "no PIN" as disabled. */
+export function resolveFundEnabled(operatorPin, fundFlag) {
+  if (fundFlag === false) return false;
+  return Boolean(String(operatorPin || "").trim());
+}
+
+const operatorPin = String(env("OPERATOR_PIN", "")).trim();
+const fundEnabled = resolveFundEnabled(operatorPin, parseFundEnabledFlag(process.env.FUND_ENABLED));
+
 export const config = {
   port: num("PORT", 8080),
   mock: bool("MOCK_AMBOSS", false),
@@ -54,11 +74,13 @@ export const config = {
   minWithdrawUsd: num("MIN_WITHDRAW_USD", 1),
   maxWithdrawUsd: num("MAX_WITHDRAW_USD", 5),
 
-  /* Free balance handed to a visitor when the operator taps Fund. Guarded by
-     the pin and by the daily cap below. */
+  /* Free balance handed to a visitor when the operator taps Fund. On only when
+     FUND_ENABLED is on (default) AND OPERATOR_PIN is set. Either kill switch
+     grays the button out and makes /session/fund refuse. */
   sessionStartUsd: num("SESSION_START_USD", 2),
   dailyFloatUsd: num("DAILY_FLOAT_USD", 25),
-  operatorPin: env("OPERATOR_PIN", ""),
+  operatorPin,
+  fundEnabled,
 
   invoiceSeconds: num("INVOICE_SECONDS", 180),
   live: true,

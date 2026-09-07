@@ -58,6 +58,8 @@ const checkPayStatus = (label) => {
   check(label + " status row present", Boolean(row && dot && /Waiting for payment/.test(row.textContent)));
   check(label + " status dot uses margin, not flex gap", stylePx(dot, "marginRight") >= 8, stylePx(dot, "marginRight"));
   check(label + " status row sits below Open in wallet", stylePx(row, "marginTop") >= 18, stylePx(row, "marginTop"));
+  const payBack = d.querySelector('[aria-label="Go back"]');
+  check(label + " pay-step back button keeps a horizontal gutter", stylePx(payBack, "marginRight") >= 12, stylePx(payBack, "marginRight"));
 };
 
 console.log("\nfooter");
@@ -136,6 +138,12 @@ check("mock transaction list is the compact target", Boolean(d.querySelector("[d
 console.log("\nbalance + pay status spacing");
 checkBalanceGap("mock");
 await click(btn("Deposit"));
+const backBar = d.querySelector("[data-back-bar]");
+const backBtn = d.querySelector('[aria-label="Go back"]');
+check("deposit amount has a back bar", Boolean(backBar && backBtn && /Deposit/.test(txt())));
+check("deposit back button keeps a horizontal gutter", stylePx(backBtn, "marginRight") >= 12, stylePx(backBtn, "marginRight"));
+check("back bar does not rely on flex gap", Boolean(backBar && !/gap:\s*\d/.test(backBar.getAttribute("style") || "")), backBar && backBar.getAttribute("style"));
+check("back bar keeps space below the heading", stylePx(backBar, "marginBottom") >= 20, stylePx(backBar, "marginBottom"));
 const firstAmount = d.querySelector(".phone input");
 await type(firstAmount, "5");
 await click(btn("Continue"), 900);
@@ -237,6 +245,10 @@ check("caps line does not wrap mid-unit", /\.live-caps\s*\{[^}]*white-space:\s*n
 check("no leftover staff box styles in the strip", !/\.live-actions\s*\{/.test(css) && !/\.live-staff-label\s*\{/.test(css));
 check("topbar three-slot layout is unchanged", Boolean(d.querySelector(".topbar-start") && d.querySelector(".modes") && d.querySelector(".topbar-end")));
 await click(btn("Deposit"));
+const liveBack = d.querySelector('[aria-label="Go back"]');
+const liveBackBar = d.querySelector("[data-back-bar]");
+check("live deposit back button keeps a horizontal gutter", stylePx(liveBack, "marginRight") >= 12, stylePx(liveBack, "marginRight"));
+check("live deposit back bar does not rely on flex gap", Boolean(liveBackBar && !/gap:\s*\d/.test(liveBackBar.getAttribute("style") || "")));
 amountPad(d.querySelector(".phone input"), "live deposit");
 const livePresets = Array.from(d.querySelectorAll(".phone button"))
   .map((b) => b.textContent.trim())

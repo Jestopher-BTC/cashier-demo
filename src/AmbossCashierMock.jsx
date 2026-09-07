@@ -10,10 +10,10 @@ import React, {
 import {
   CAMERA_COPY,
   attachStream,
-  classifyCameraError,
   decodeVideoFrame,
   normalizeScannedText,
   openCameraStream,
+  resolveCameraError,
   startCamera,
   stopStream,
 } from "./qr-scan.js";
@@ -822,6 +822,21 @@ export function Styles() {
         -webkit-filter: none !important;
         text-shadow: none !important;
         box-shadow: none !important;
+      }
+      /* Scanner sheet: never composite with opacity/transform/filter. iPad
+         WebKit double-paints those and ghosts "Scan a code" over the
+         destination page (same class of bug as the muddy Mock UI). */
+      .amb-scan-sheet,
+      .amb-scan-sheet * {
+        animation: none !important;
+        transition: none !important;
+        -webkit-transform: none !important;
+        transform: none !important;
+        filter: none !important;
+        -webkit-filter: none !important;
+        text-shadow: none !important;
+        box-shadow: none !important;
+        -webkit-text-stroke: 0 !important;
       }
     `}</style>
   );
@@ -1655,6 +1670,7 @@ function Scanner({ theme, onCancel, onDetect, rate, capabilities, streamPromise 
   const cancelledRef = useRef(false);
   const acceptedRef = useRef(false);
   const warmupUsedRef = useRef(false);
+  const pendingRef = useRef(null);
   const onDetectRef = useRef(onDetect);
   onDetectRef.current = onDetect;
 
@@ -1696,14 +1712,24 @@ function Scanner({ theme, onCancel, onDetect, rate, capabilities, streamPromise 
     timerRef.current = setTimeout(tick, 80);
   };
 
-  const runCamera = async function (fromWarmup) {
+  const runCamera = async function (fromWarmup, pending) {
     const video = videoRef.current;
     if (!video) return;
     stopTick();
     setPhase("starting");
     try {
       let stream = null;
-      if (fromWarmup && streamPromise && !warmupUsedRef.current) {
+      const handed = pending || pendingRef.current;
+      pendingRef.current = null;
+      if (handed) {
+        warmupUsedRef.current = true;
+        stream = await handed;
+        if (cancelledRef.current) {
+          stopStream(stream);
+          return;
+        }
+        await attachStream(video, stream);
+      } else if (fromWarmup && streamPromise && !warmupUsedRef.current) {
         warmupUsedRef.current = true;
         stream = await streamPromise;
         if (cancelledRef.current) {
@@ -1724,7 +1750,9 @@ function Scanner({ theme, onCancel, onDetect, rate, capabilities, streamPromise 
       setPhase("live");
       beginTick(video);
     } catch (e) {
-      if (!cancelledRef.current) setPhase(classifyCameraError(e));
+      if (cancelledRef.current) return;
+      const next = await resolveCameraError(e);
+      if (!cancelledRef.current) setPhase(next);
     }
   };
 
@@ -1743,29 +1771,63 @@ function Scanner({ theme, onCancel, onDetect, rate, capabilities, streamPromise 
   }, [showSamples]);
 
   const status = CAMERA_COPY[phase] || CAMERA_COPY.failed;
-  const canRetry = phase === "denied" || phase === "failed" || phase === "missing" || phase === "insecure";
+  const canRetry = phase === "denied" || phase === "failed" || phase === "missing" || phase === "insecure" || phase === "gesture";
+
+  const retryCamera = function () {
+    /* Start getUserMedia in the tap turn so iOS standalone still counts it
+       as a user gesture. Do not reuse the failed warmup promise. */
+    stopStream(streamRef.current);
+    streamRef.current = null;
+    const pending = openCameraStream();
+    pending.catch(function () {});
+    pendingRef.current = pending;
+    runCamera(false, pending);
+  };
+
+  const corners = [
+    { top: 14, left: 14, borderTop: `3px solid ${theme.accent}`, borderLeft: `3px solid ${theme.accent}`, borderRadius: "6px 0 0 0" },
+    { top: 14, right: 14, borderTop: `3px solid ${theme.accent}`, borderRight: `3px solid ${theme.accent}`, borderRadius: "0 6px 0 0" },
+    { bottom: 14, right: 14, borderBottom: `3px solid ${theme.accent}`, borderRight: `3px solid ${theme.accent}`, borderRadius: "0 0 6px 0" },
+    { bottom: 14, left: 14, borderBottom: `3px solid ${theme.accent}`, borderLeft: `3px solid ${theme.accent}`, borderRadius: "0 0 0 6px" },
+  ];
 
   return (
     <div
+      className="amb-scan-sheet"
       role="dialog"
       aria-modal="true"
       aria-label="Scan a code"
-      style={{ position: "absolute", top: 0, right: 0, bottom: 0, left: 0, background: "rgba(4,8,18,0.82)", borderRadius: 20, padding: 18, display: "flex", flexDirection: "column", zIndex: 30, boxSizing: "border-box" }}
+      data-scan-sheet="1"
+      style={{
+        position: "relative",
+        background: "#070C17",
+        borderRadius: 20,
+        padding: 18,
+        display: "flex",
+        flexDirection: "column",
+        zIndex: 40,
+        boxSizing: "border-box",
+        minHeight: 420,
+        isolation: "isolate",
+      }}
     >
-      <div style={{ display: "flex", alignItems: "center", marginBottom: 14, flex: "0 0 auto" }}>
+      <div style={{ display: "flex", alignItems: "center", marginBottom: 14, flex: "0 0 auto", background: "#070C17" }}>
         <span style={{ color: "#FFFFFF", fontWeight: 700, fontSize: 15 }}>Scan a code</span>
         <button
           onClick={onCancel}
           aria-label="Close scanner"
           className="amb-tap"
-          style={{ marginLeft: "auto", background: "rgba(255,255,255,0.12)", border: "none", color: "#FFFFFF", width: 44, height: 44, borderRadius: 8, cursor: "pointer" }}
+          style={{ marginLeft: "auto", background: "#1A2438", border: "none", color: "#FFFFFF", width: 44, height: 44, borderRadius: 8, cursor: "pointer" }}
         >
           ✕
         </button>
       </div>
 
       {showSamples ? (
-        <div style={{ background: theme.surface, borderRadius: 14, padding: 8, flex: "1 1 auto", overflowY: "auto", WebkitOverflowScrolling: "touch" }}>
+        <div
+          data-scan-samples="1"
+          style={{ background: theme.surface, borderRadius: 14, padding: 8, flex: "1 1 auto", minHeight: 0, overflowY: "auto", WebkitOverflowScrolling: "touch" }}
+        >
           {SAMPLE_CODES.map((s, i) => (
             <button
               key={s.id}
@@ -1775,7 +1837,7 @@ function Scanner({ theme, onCancel, onDetect, rate, capabilities, streamPromise 
                 display: "block",
                 width: "100%",
                 textAlign: "left",
-                background: "transparent",
+                background: theme.surface,
                 border: "none",
                 borderTop: i ? `1px solid ${theme.border}` : "none",
                 padding: "12px 10px",
@@ -1791,6 +1853,7 @@ function Scanner({ theme, onCancel, onDetect, rate, capabilities, streamPromise 
         </div>
       ) : (
         <div
+          data-scan-viewfinder="1"
           style={{
             position: "relative",
             width: "100%",
@@ -1798,7 +1861,7 @@ function Scanner({ theme, onCancel, onDetect, rate, capabilities, streamPromise 
             minHeight: 180,
             borderRadius: 16,
             overflow: "hidden",
-            background: "linear-gradient(160deg, #16233B 0%, #0B1424 60%, #101B2E 100%)",
+            background: "#0B1424",
           }}
         >
           <video
@@ -1818,22 +1881,18 @@ function Scanner({ theme, onCancel, onDetect, rate, capabilities, streamPromise 
               visibility: phase === "live" || phase === "unreadable" ? "visible" : "hidden",
             }}
           />
-          {[
-            { top: 14, left: 14, rot: 0 },
-            { top: 14, right: 14, rot: 90 },
-            { bottom: 14, right: 14, rot: 180 },
-            { bottom: 14, left: 14, rot: 270 },
-          ].map((c, i) => (
+          {corners.map((c, i) => (
             <div
               key={i}
               style={{
                 position: "absolute",
                 width: 30,
                 height: 30,
-                borderTop: `3px solid ${theme.accent}`,
-                borderLeft: `3px solid ${theme.accent}`,
-                borderRadius: "6px 0 0 0",
-                transform: `rotate(${c.rot}deg)`,
+                borderTop: c.borderTop,
+                borderRight: c.borderRight,
+                borderBottom: c.borderBottom,
+                borderLeft: c.borderLeft,
+                borderRadius: c.borderRadius,
                 top: c.top,
                 left: c.left,
                 right: c.right,
@@ -1842,23 +1901,18 @@ function Scanner({ theme, onCancel, onDetect, rate, capabilities, streamPromise 
             />
           ))}
           {(phase === "live" || phase === "unreadable") ? (
-            <div
-              data-anim
-              style={{ position: "absolute", left: "8%", right: "8%", height: 2, background: theme.accent, boxShadow: `0 0 14px ${theme.accent}`, animation: "amb-scan 2.2s ease-in-out infinite" }}
-            />
+            <div style={{ position: "absolute", left: "8%", right: "8%", top: "42%", height: 2, background: theme.accent }} />
           ) : null}
-          <div style={{ position: "absolute", left: 16, right: 16, bottom: 16, textAlign: "center" }}>
-            <div style={{ color: "rgba(255,255,255,0.82)", fontSize: 12.5, lineHeight: 1.45 }}>{status}</div>
+          <div style={{ position: "absolute", left: 16, right: 16, bottom: 16, textAlign: "center", background: "#0B1424", borderRadius: 12, padding: "10px 8px" }}>
+            <div style={{ color: "#E8EEF9", fontSize: 12.5, lineHeight: 1.45 }}>{status}</div>
             {canRetry ? (
               <button
-                onClick={() => {
-                  runCamera(false);
-                }}
+                onClick={retryCamera}
                 className="amb-tap"
                 style={{
                   marginTop: 10,
-                  background: "rgba(255,255,255,0.14)",
-                  border: "1px solid rgba(255,255,255,0.22)",
+                  background: "#1A2438",
+                  border: "1px solid #33456B",
                   color: "#FFFFFF",
                   borderRadius: 10,
                   padding: "10px 14px",
@@ -1877,9 +1931,10 @@ function Scanner({ theme, onCancel, onDetect, rate, capabilities, streamPromise 
       )}
 
       <button
+        data-scan-helper="1"
         onClick={() => setShowSamples((s) => !s)}
         className="amb-tap"
-        style={{ marginTop: 12, flex: "0 0 auto", background: "transparent", border: "none", color: "rgba(255,255,255,0.75)", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: FONT, padding: "10px 8px", minHeight: 44 }}
+        style={{ marginTop: 12, flex: "0 0 auto", background: "#070C17", border: "none", color: "#C5D0E4", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: FONT, padding: "10px 8px", minHeight: 44 }}
       >
         {showSamples ? "Back to camera" : "Camera not working? Pick a sample code"}
       </button>
@@ -1965,7 +2020,26 @@ export function WithdrawFlow({ onExit, onDone }) {
     setStep(result.status === "complete" ? "sent" : result.status);
   };
 
-  if (step === "destination")
+  if (step === "destination") {
+    if (scanning) {
+      return (
+        <Scanner
+          theme={theme}
+          rate={rate}
+          capabilities={capabilities}
+          streamPromise={scanWarmup.current}
+          onCancel={() => {
+            setScanning(false);
+            scanWarmup.current = null;
+          }}
+          onDetect={(v) => {
+            setScanning(false);
+            scanWarmup.current = null;
+            accept(v);
+          }}
+        />
+      );
+    }
     return (
       <div className="amb-rise">
         <BackBar theme={theme} title="Cash out" onBack={onExit} />
@@ -2059,26 +2133,9 @@ export function WithdrawFlow({ onExit, onDone }) {
             </button>
           </Card>
         </div>
-
-        {scanning ? (
-          <Scanner
-            theme={theme}
-            rate={rate}
-            capabilities={capabilities}
-            streamPromise={scanWarmup.current}
-            onCancel={() => {
-              setScanning(false);
-              scanWarmup.current = null;
-            }}
-            onDetect={(v) => {
-              setScanning(false);
-              scanWarmup.current = null;
-              accept(v);
-            }}
-          />
-        ) : null}
       </div>
     );
+  }
 
   if (step === "amount")
     return (

@@ -26,7 +26,7 @@ Everything below is built, tested, and packaged. Nothing is half-finished.
 Tests, all green: `test-api` 36, `test-browser` 33, `test-session` 7,
 `test-theme` 7, `test-usdt-send-amount` (USDT $1 cash-out units),
 `test-sdk-guide` (official snippet accuracy), `test-code-view` (cheat-sheet UX),
-`test-qr-scan` 22 (camera unwrap + jsQR round-trip).
+`test-qr-scan` (camera unwrap, error classes, jsQR round-trip).
 
 ---
 
@@ -168,7 +168,13 @@ supports.
   100%` square for this reason.
 - **Cash-out QR scan is a real camera.** `getUserMedia` plus `BarcodeDetector`
   when present, `jsQR` otherwise. Video must stay `playsInline` and muted.
-  Grant the camera before Guided Access; iOS will not prompt once it is locked.
+  Grant Camera to the **home-screen app** (Settings → Cashier → Camera →
+  Allow) **before** Guided Access. Safari's Camera switch is a different
+  permission; iOS will not prompt once Guided Access is locked. Do not treat
+  `NotFoundError` or an empty `enumerateDevices` list as "no camera" on iPad —
+  that is usually permission denied in standalone. The scanner sheet must stay
+  opaque with no opacity/transform/filter compositing (iPad WebKit double-paints
+  those, same class of bug as the muddy Mock UI).
 - `toLocaleString` is wrapped in try/catch with a manual grouping fallback,
   because old WebKit ships a partial Intl.
 - Artifact rule that also applies here: no `localStorage` inside Claude
@@ -235,6 +241,13 @@ source. Default Code View is the official SDK cheat-sheet in `sdk-guide.js`.
 - **rsync from the wrong directory.** The original deploy line used `./`, which
   from a home directory would upload the home directory. `deploy/push.sh` now
   guards this. Keep the guard.
+- **iPad `NotFoundError` is not "no camera".** Standalone / A2HS and a
+  blocked Camera switch often reject `getUserMedia` as `NotFoundError` and
+  return an empty `enumerateDevices` list. Show Settings + Allow camera unless
+  devices are actually empty after permission is granted.
+- **Translucent scanner overlays double-paint on booth WebKit.** The sheet
+  replaces the destination page, stays opaque (`#070C17`), and must not use
+  opacity animations, `transform` on corner marks, or `filter` / `box-shadow`.
 - **USDT cash-out `amountSats` is sats, not micro-USDT.** `usdToMinor($1)` is
   `1_000_000` on a USDT wallet (correct for `create_receive`). The Live SDK
   field `amountSats` is LNURL satoshis. Passing `1_000_000` there is 0.01 BTC

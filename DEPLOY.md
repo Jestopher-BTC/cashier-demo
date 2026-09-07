@@ -292,10 +292,12 @@ systemctl reload ssh
    iOS 15 or newer looks right in every detail.
 2. Tap **Test camera** on that page (or open Cash out → Scan a code) and allow
    the camera while you can still see the iOS permission prompt. Guided Access
-   will not show that prompt after it is locked. If the camera was denied,
-   Settings → Safari (or the home-screen app name) → Camera → Allow.
+   will not show that prompt after it is locked.
 3. Open `boltda.sh/cashier`, then Share → **Add to Home Screen**. It launches
-   full screen with no Safari chrome.
+   full screen with no Safari chrome. Open the home-screen app once and allow
+   Camera there too — Settings → the Cashier app → Camera → Allow. Safari and
+   the home-screen icon are different permission switches. Do this **before**
+   Guided Access.
 4. Settings → Display → **Auto-Lock: Never**, and turn on **Guided Access**
    (Accessibility → Guided Access) so a visitor cannot wander out of the app.
 5. Set the brightness high. Booth lighting is bad and the QR has to scan.

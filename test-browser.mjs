@@ -36,23 +36,59 @@ await click(btn("Cash out"));
 check("destination field", Boolean(d.querySelector("input")));
 const scanBtn = d.querySelector('[aria-label="Scan a code"]');
 check("scan button present", Boolean(scanBtn));
+/* Booth iPad / A2HS: permission blocked often arrives as NotFoundError plus
+   an empty device list. That must not become "No camera on this device". */
+w.navigator.mediaDevices = w.navigator.mediaDevices || {};
+let gumCalls = 0;
+w.navigator.mediaDevices.getUserMedia = function () {
+  gumCalls++;
+  const err = new w.Error("Requested device not found");
+  err.name = "NotFoundError";
+  return Promise.reject(err);
+};
+w.navigator.mediaDevices.enumerateDevices = function () {
+  return Promise.resolve([]);
+};
 await click(scanBtn, 2700);
+const sheet = d.querySelector(".amb-scan-sheet");
 check("scanner overlay stays open", Boolean(d.querySelector('[role="dialog"][aria-label="Scan a code"]')));
+check("scanner is an opaque sheet", Boolean(sheet) && sheet.getAttribute("data-scan-sheet") === "1", sheet && sheet.getAttribute("class"));
+check("sheet background is opaque", Boolean(sheet) && /background:\s*#070C17/.test(sheet.getAttribute("style") || "") && !/rgba/i.test(sheet.getAttribute("style") || ""), sheet && sheet.getAttribute("style"));
+check("recent cashtag is not under the sheet", !txt().includes("$jestopher"), txt().slice(0, 280));
 check("scanner does not auto-pick a destination", txt().includes("Scan a code") && !txt().includes("How much?"), txt().slice(0, 240));
 check(
   "camera state is visible",
-  /Allow camera|No camera|Starting camera|Point the camera|blocked|HTTPS/i.test(txt()),
+  /Allow camera|Starting camera|Point the camera|Settings|HTTPS|Tap Allow camera/i.test(txt()),
   txt().slice(0, 300)
 );
+check("blocked camera is Settings, not 'no device'", /Allow camera in Settings/.test(txt()) && !/No camera on this device/i.test(txt()), txt().slice(0, 300));
+check("scan tap requested the camera", gumCalls >= 1, gumCalls);
+const allowBtn = Array.from(d.querySelectorAll("button")).find((b) => b.textContent.trim() === "Allow camera");
+check("allow camera retry is offered", Boolean(allowBtn));
+const gumBeforeRetry = gumCalls;
+await click(allowBtn, 600);
+check("allow camera re-requests getUserMedia", gumCalls > gumBeforeRetry, gumCalls + " after " + gumBeforeRetry);
 const sampleToggle = Array.from(d.querySelectorAll("button")).find((b) => /sample code/i.test(b.textContent));
 check("sample fallback present", Boolean(sampleToggle));
+check(
+  "helper sits below the viewfinder",
+  Boolean(d.querySelector("[data-scan-helper]") && d.querySelector("[data-scan-viewfinder]") && d.querySelector("[data-scan-helper]").previousElementSibling === d.querySelector("[data-scan-viewfinder]"))
+);
 await click(sampleToggle);
+const samples = d.querySelector("[data-scan-samples]");
+const helper = d.querySelector("[data-scan-helper]");
 check("sample codes listed", txt().includes("A cashtag"));
+check("samples replace the viewfinder", Boolean(samples) && !d.querySelector("[data-scan-viewfinder]"));
+check("helper is not inside the sample list", Boolean(helper && samples && helper.previousElementSibling === samples));
+check("back to camera copy", /Back to camera/.test(txt()));
 await click(Array.from(d.querySelectorAll("button")).find((b) => /A cashtag/i.test(b.textContent)));
 check("sample cashtag accepted", txt().includes("How much?"));
 await click(d.querySelector('[aria-label="Go back"]'));
 await type(d.querySelector("input"), "$jestopher");
 check("typed cashtag still works", /You choose the amount next/.test(txt()), txt().slice(0, 220));
+d.querySelector("input").focus();
+d.querySelector("input").dispatchEvent(new w.Event("paste", { bubbles: true }));
+check("paste field still accepts a cashtag", d.querySelector("input").value === "$jestopher");
 await click(d.querySelector('[aria-label="Go back"]'));
 check("back at wallet", txt().includes("Withdrawable balance"));
 
@@ -97,6 +133,12 @@ check("balance updated from server", txt().includes("$3.00"), txt().slice(0, 160
 
 console.log("\nlive withdraw");
 await click(btn("Cash out"));
+const liveScan = d.querySelector('[aria-label="Scan a code"]');
+check("live scan button", Boolean(liveScan));
+await click(liveScan, 900);
+check("live scanner is the same opaque sheet", Boolean(d.querySelector(".amb-scan-sheet")) && !txt().includes("$jestopher"), txt().slice(0, 240));
+await click(d.querySelector('[aria-label="Close scanner"]'));
+check("live paste field returns", Boolean(d.querySelector("input")));
 await type(d.querySelector("input"), "$jestopher");
 await click(btn("Continue"));
 check("amount step", txt().includes("How much?"));

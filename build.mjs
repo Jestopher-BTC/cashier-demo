@@ -126,7 +126,7 @@ const CHECK = `<!DOCTYPE html>
 <p class="note" style="margin-top:18px">
   <button id="cam-test" style="background:#14C58F;color:#04231A;border:0;border-radius:10px;padding:12px 16px;font:600 15px -apple-system,Helvetica,Arial,sans-serif;min-height:44px">Test camera</button>
   <span id="cam-status" style="display:block;margin-top:10px"></span>
-  Grant the camera here, or from Scan a code, before turning on Guided Access. iOS will not show the permission prompt once Guided Access is locked.
+  Grant Camera to this page, then Add to Home Screen, then grant Camera again to the home-screen app (Settings → Cashier → Camera → Allow) before turning on Guided Access. iOS will not show the permission prompt once Guided Access is locked. Safari and the home-screen app are different switches.
 </p>
 <script>
 function row(name, pass, detail, soft) {
@@ -186,7 +186,14 @@ document.getElementById('cam-test').onclick = function () {
     for (var i = 0; i < tracks.length; i++) tracks[i].stop();
     setCam('Camera allowed. Grant this before Guided Access, then Add to Home Screen.', true);
   }).catch(function (err) {
-    setCam((err && err.message) ? err.message : 'Camera blocked. Allow it in iPad Settings.', false);
+    var name = err && err.name ? String(err.name) : '';
+    var msg = err && err.message ? String(err.message) : '';
+    if (name === 'NotAllowedError' || /permission|denied|blocked/i.test(name + ' ' + msg))
+      setCam('Camera blocked. Settings → this app → Camera → Allow, then tap Test camera again.', false);
+    else if (window.isSecureContext === false)
+      setCam('Open this page over HTTPS first.', false);
+    else
+      setCam(msg || 'Could not start the camera. Tap Test camera again.', false);
   });
 };
 try {

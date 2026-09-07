@@ -1,6 +1,10 @@
 /* Camera + QR decode for the cash-out scanner. iPad Safari / A2HS path:
    getUserMedia with playsInline, environment camera when it exists, then
-   BarcodeDetector if the browser has it and jsQR otherwise. */
+   BarcodeDetector if the browser has it and jsQR otherwise.
+
+   iOS standalone often rejects with NotFoundError (or an empty
+   enumerateDevices list) when Camera is blocked for the home-screen app.
+   That is permission, not missing hardware. */
 
 import jsQR from "jsqr";
 import { normalizeScannedText } from "./scan-payload.js";
@@ -10,10 +14,11 @@ export { normalizeScannedText };
 export const CAMERA_COPY = {
   starting: "Starting camera",
   live: "Point the camera at the code",
-  denied: "Camera is blocked. Allow it in iPad Settings, then tap Allow camera.",
+  denied: "Allow camera in Settings, then tap Allow camera.",
   missing: "No camera on this device.",
   insecure: "Camera needs HTTPS. Open the cashier from the booth URL.",
-  failed: "Could not start the camera.",
+  gesture: "Tap Allow camera to start the camera.",
+  failed: "Could not start the camera. Tap Allow camera to try again.",
   unreadable: "Could not read that code. Try again, or paste it.",
 };
 
@@ -46,17 +51,93 @@ export function classifyCameraError(err) {
   const name = err && err.name ? String(err.name) : "";
   const msg = err && err.message ? String(err.message) : "";
   const text = (name + " " + msg).toLowerCase();
-  if (name === "NotAllowedError" || name === "PermissionDeniedError" || /permission|not allowed|denied/.test(text))
+  if (/gesture|user activation|transient activation|not been activated/.test(text)) return "gesture";
+  if (name === "NotAllowedError" || name === "PermissionDeniedError" || /permission|not allowed|denied|blocked/.test(text))
     return "denied";
+  if (name === "SecurityError" || /insecure|https required/.test(text)) return "insecure";
+  if (name === "NotSupportedError" || /camera api unavailable/.test(text)) return "failed";
+  /* OverconstrainedError means the constraint failed, not that the iPad has
+     no camera. NotFoundError is also what iOS throws when Settings blocked
+     the home-screen app — do not treat the name alone as "no device". */
   if (
     name === "NotFoundError" ||
     name === "DevicesNotFoundError" ||
-    name === "OverconstrainedError" ||
     /requested device not found|no camera|no video/.test(text)
   )
     return "missing";
-  if (name === "SecurityError" || /insecure|https required/.test(text)) return "insecure";
   return "failed";
+}
+
+export async function listVideoInputs() {
+  try {
+    if (typeof navigator === "undefined") return null;
+    const md = navigator.mediaDevices;
+    if (!md || typeof md.enumerateDevices !== "function") return null;
+    const all = await md.enumerateDevices();
+    if (!all) return null;
+    const videos = [];
+    for (let i = 0; i < all.length; i++) {
+      if (all[i] && all[i].kind === "videoinput") videos.push(all[i]);
+    }
+    return videos;
+  } catch (e) {
+    return null;
+  }
+}
+
+export async function listAllMediaDevices() {
+  try {
+    if (typeof navigator === "undefined") return null;
+    const md = navigator.mediaDevices;
+    if (!md || typeof md.enumerateDevices !== "function") return null;
+    const all = await md.enumerateDevices();
+    return all ? Array.prototype.slice.call(all) : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+export async function cameraPermissionState() {
+  try {
+    if (typeof navigator === "undefined" || !navigator.permissions || typeof navigator.permissions.query !== "function")
+      return null;
+    const status = await navigator.permissions.query({ name: "camera" });
+    return status && status.state ? String(status.state) : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+/* NotFoundError / empty enumerateDevices is the iOS A2HS permission wall more
+   often than a tablet with no camera. "missing" only after devices are
+   actually empty in a trustworthy way. */
+export async function resolveCameraError(err, probe) {
+  const named = classifyCameraError(err);
+  if (named === "denied" || named === "insecure" || named === "gesture") return named;
+
+  const listVideos = probe && probe.listVideoInputs ? probe.listVideoInputs : listVideoInputs;
+  const listAll = probe && probe.listAllMediaDevices ? probe.listAllMediaDevices : listAllMediaDevices;
+  const permOf = probe && probe.cameraPermissionState ? probe.cameraPermissionState : cameraPermissionState;
+
+  if (named === "missing") {
+    const devices = await listVideos();
+    const all = await listAll();
+    const perm = await permOf();
+    if (perm === "denied") return "denied";
+    if (devices && devices.length > 0) return "denied";
+    if (devices && devices.length === 0) {
+      if (perm === "granted") return "missing";
+      if (perm === "prompt") return "denied";
+      /* iOS hides every device until Camera is allowed. A list that also
+         includes audio/other inputs is a real "no video device". A totally
+         empty list is permission, not hardware. */
+      if (all && all.length > 0) return "missing";
+      return "denied";
+    }
+    return "failed";
+  }
+
+  return named;
 }
 
 export function stopStream(stream) {
@@ -84,15 +165,7 @@ export function prepareVideo(video) {
 }
 
 const CONSTRAINTS = [
-  {
-    audio: false,
-    video: {
-      facingMode: { ideal: "environment" },
-      width: { ideal: 1280 },
-      height: { ideal: 720 },
-    },
-  },
-  { audio: false, video: { facingMode: "environment" } },
+  { audio: false, video: { facingMode: { ideal: "environment" } } },
   { audio: false, video: true },
 ];
 
@@ -116,32 +189,48 @@ function waitForVideo(video) {
 export async function openCameraStream() {
   const support = cameraSupport();
   if (!support.ok) {
-    const err = new Error(support.reason === "insecure" ? "insecure context" : "no camera");
-    err.name = support.reason === "insecure" ? "SecurityError" : "NotFoundError";
+    const insecure = support.reason === "insecure";
+    const err = new Error(insecure ? "insecure context" : "camera api unavailable");
+    err.name = insecure ? "SecurityError" : "NotSupportedError";
     throw err;
   }
   let lastErr = null;
+  let denied = null;
   for (let i = 0; i < CONSTRAINTS.length; i++) {
     try {
       return await support.getUserMedia(CONSTRAINTS[i]);
     } catch (e) {
       lastErr = e;
+      const kind = classifyCameraError(e);
+      if (kind === "denied") denied = e;
+      if (kind === "denied" || kind === "insecure") break;
     }
   }
-  throw lastErr || new Error("Could not start the camera");
+  throw denied || lastErr || new Error("Could not start the camera");
 }
 
 export async function attachStream(video, stream) {
   prepareVideo(video);
   video.srcObject = stream;
-  await waitForVideo(video);
+  /* Call play() in the same turn as srcObject so an iOS user-gesture from
+     Allow camera still counts. Waiting for metadata first drops the gesture. */
+  let playErr = null;
   try {
     const play = video.play();
     if (play && typeof play.then === "function") await play;
   } catch (e) {
-    stopStream(stream);
-    video.srcObject = null;
-    throw e;
+    playErr = e;
+  }
+  await waitForVideo(video);
+  if (video.paused || playErr) {
+    try {
+      const play = video.play();
+      if (play && typeof play.then === "function") await play;
+    } catch (e) {
+      stopStream(stream);
+      video.srcObject = null;
+      throw e;
+    }
   }
   return stream;
 }

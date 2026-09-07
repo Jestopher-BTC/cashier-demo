@@ -382,6 +382,21 @@
     box-shadow: none !important;
   }
   html.flat-paint .amb-tap > svg { margin-right: 8px; }
+
+  /* Opaque QR scanner sheet. Always on — even iOS 15+ WebKit double-paints
+     translucent overlays, opacity animations, and rotated corner marks. */
+  .amb-scan-sheet,
+  .amb-scan-sheet * {
+    animation: none !important;
+    transition: none !important;
+    -webkit-transform: none !important;
+    transform: none !important;
+    filter: none !important;
+    -webkit-filter: none !important;
+    text-shadow: none !important;
+    box-shadow: none !important;
+    -webkit-text-stroke: 0 !important;
+  }
 </style>
 </head>
 <body>

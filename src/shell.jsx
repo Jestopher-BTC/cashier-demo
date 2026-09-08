@@ -2,12 +2,15 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 
 import {
   BOOTH,
+  DiscoveryInvite,
   PaymentsProvider,
   Styles,
   WalletView,
   DepositFlow,
   WithdrawFlow,
+  usePayments,
 } from "./AmbossCashierMock.jsx";
+import { SHOW_DISCOVERY_CTA } from "./booth-sales.js";
 import { SECTIONS, SOURCE } from "./generated-sections.js";
 import { highlight } from "./highlight.js";
 import { AmbossLetter, AmbossLogo } from "./AmbossLogo.jsx";
@@ -46,32 +49,38 @@ function useTheme() {
 
 /* The three flows behind one router. Identical in Mock and Live: only the api
    object handed to the provider differs. */
-function Screens({ onDemoAction, staff, discovery }) {
+function Screens({ onDemoAction, staff, compact, showWalletDiscovery }) {
+  const { theme } = usePayments();
   const [screen, setScreen] = useState("wallet");
   const toWallet = useCallback(function () {
     setScreen("wallet");
   }, []);
 
   return (
-    <div className="phone">
-      {screen === "wallet" ? (
-        <WalletView
-          staff={staff}
-          discovery={discovery}
-          onDeposit={function () {
-            if (onDemoAction) onDemoAction("deposit");
-            setScreen("deposit");
-          }}
-          onWithdraw={function () {
-            if (onDemoAction) onDemoAction("withdraw");
-            setScreen("withdraw");
-          }}
-        />
-      ) : screen === "deposit" ? (
-        <DepositFlow onExit={toWallet} onDone={toWallet} />
-      ) : (
-        <WithdrawFlow onExit={toWallet} onDone={toWallet} />
-      )}
+    <div className="cashier-column">
+      <div className="phone">
+        {screen === "wallet" ? (
+          <WalletView
+            staff={staff}
+            compact={compact}
+            onDeposit={function () {
+              if (onDemoAction) onDemoAction("deposit");
+              setScreen("deposit");
+            }}
+            onWithdraw={function () {
+              if (onDemoAction) onDemoAction("withdraw");
+              setScreen("withdraw");
+            }}
+          />
+        ) : screen === "deposit" ? (
+          <DepositFlow onExit={toWallet} onDone={toWallet} />
+        ) : (
+          <WithdrawFlow onExit={toWallet} onDone={toWallet} />
+        )}
+      </div>
+      {showWalletDiscovery && screen === "wallet" ? (
+        <DiscoveryInvite theme={theme} placement="stage" showCta size={152} />
+      ) : null}
     </div>
   );
 }
@@ -82,7 +91,7 @@ function MockMode({ theme, onDemoAction }) {
   return (
     <div className="stage">
       <PaymentsProvider defaultTheme={theme} demo={true} initialBalanceUsd={1247.85}>
-        <Screens onDemoAction={onDemoAction} discovery={true} />
+        <Screens onDemoAction={onDemoAction} compact showWalletDiscovery={SHOW_DISCOVERY_CTA} />
       </PaymentsProvider>
       <p className="stage-note">Amboss Payments cashier for iGaming. Deposit and cash out in dollars.</p>
     </div>

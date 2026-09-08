@@ -16,7 +16,8 @@ Everything below is built, tested, and packaged. Nothing is half-finished.
 
 | Piece | Where | State |
 |---|---|---|
-| Cashier components | `src/AmbossCashierMock.jsx` (2,055 lines, single file) | done |
+| Cashier components | `src/AmbossCashierMock.jsx` (single file) | done |
+| Booth sales / discovery | `src/booth-sales.js` (`SHOW_DISCOVERY_CTA`) | done |
 | Three-mode booth app | `src/shell.jsx` → `public/` | done |
 | Offline single file | `offline/cashier-offline.html` | done |
 | Demo server | `server/` | done; live payouts use `@ambosstech/payments` |
@@ -64,6 +65,7 @@ rather than "Sorry, something went wrong."
 ```
 src/
   AmbossCashierMock.jsx   the deliverable. Provider + 3 flows + QR encoder.
+  booth-sales.js          SHOW_DISCOVERY_CTA: Calendly QR + sales CTA. Flip off to strip.
   shell.jsx               booth chrome: Mock UI / Code View / Live UI
   sdk-guide.js            official SDK snippets shown by default in Code View
   live-api.js             browser client implementing the seams against /api
@@ -290,3 +292,9 @@ file. Colour comes from a `theme` object with two palettes, so brand changes are
 a one-object edit. Before adding an element, check whether removing something
 would serve the player better. That instinct is the reason this version is
 smaller than the first one and better.
+
+Booth sales chrome (Calendly QR + "Bring this payment UX to your platform!")
+is not mixed into the cashier card. It lives in `src/booth-sales.js` behind
+`SHOW_DISCOVERY_CTA`. Set that to false to hand the cashier off without hunting
+layout. Mock shows the CTA outside the main card. Live stays clean on the
+wallet. Cash-out success shows CTA + QR outside the success card.

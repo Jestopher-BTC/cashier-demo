@@ -148,6 +148,37 @@
     -webkit-transform: none;
     transform: none;
   }
+  /* Phone + discovery sit as siblings. Same width, QR is not nested in the card. */
+  .cashier-column {
+    width: 420px; max-width: 100%; margin: 0 auto; text-align: left;
+  }
+  .cashier-column .phone { width: auto; max-width: none; margin: 0; }
+  .discovery-box {
+    margin-top: 14px;
+    padding: 18px 16px 16px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    text-align: center;
+    box-shadow: var(--shadow);
+    -webkit-transform: none;
+    transform: none;
+  }
+  .discovery-cta {
+    margin: 0 0 14px;
+    font-size: 17px;
+    font-weight: 700;
+    line-height: 1.3;
+    letter-spacing: 0.01em;
+    color: var(--fg);
+  }
+  .discovery-hint {
+    margin: 10px 0 0;
+    font-size: 13px;
+    line-height: 1.45;
+    color: var(--muted);
+  }
+  .discovery-plate { line-height: 0; }
   .stage-note {
     max-width: 420px; margin: 18px auto 0; font-size: 12px; line-height: 1.6; color: var(--faint);
     text-align: center;
@@ -156,6 +187,8 @@
   .app-mock .stage { padding: 10px 16px 12px; }
   .app-mock .phone { padding: 12px; }
   .app-mock .stage-note { margin-top: 10px; }
+  .app-mock .discovery-box { margin-top: 10px; padding: 14px 12px 12px; }
+  .app-mock .discovery-cta { margin-bottom: 12px; font-size: 16px; }
   /* ~11" iPad landscape (~834px tall): keep the Calendly QR above the fold.
      Modest chrome trims plus a 3-row txn window; do not shrink Live. */
   @media (orientation: landscape) and (max-height: 900px) {
@@ -163,6 +196,8 @@
     .app-mock .stage { padding: 6px 16px 8px; }
     .app-mock .phone { padding: 10px 12px; }
     .app-mock .stage-note { margin-top: 6px; }
+    .app-mock .discovery-box { margin-top: 8px; padding: 12px 12px 10px; }
+    .app-mock .discovery-cta { margin-bottom: 10px; font-size: 15px; }
     .app-mock [data-tx-list] {
       max-height: 156px;
       overflow-y: auto;
@@ -442,6 +477,7 @@
      misalign button radii on WebKit before iOS 15. */
   html.flat-paint body { -webkit-font-smoothing: subpixel-antialiased; }
   html.flat-paint .phone,
+  html.flat-paint .discovery-box,
   html.flat-paint .offline-card,
   html.flat-paint .pin-card,
   html.flat-paint .livebar,

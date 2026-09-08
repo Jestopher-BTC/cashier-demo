@@ -124,16 +124,27 @@ check("mock wallet is compact", d.querySelector("[data-wallet-compact='true']"))
 const mockTxHeading = d.querySelector("[data-tx-heading]");
 check("mock tightens tagline-to-balance and section gaps", stylePx(d.querySelector("[data-balance-caption]"), "marginTop") <= 6 && stylePx(mockTxHeading, "marginTop") <= 12 && stylePx(mockTxHeading, "marginBottom") <= 6, stylePx(mockTxHeading, "marginTop"));
 check("mock txn rows keep the 28px arrow gutter", stylePx(txIcon, "marginRight") >= 28, stylePx(txIcon, "marginRight"));
-const mockWalletQr = d.querySelector(".phone [data-discovery-qr]");
-check("mock wallet shows discovery QR below transactions", Boolean(mockWalletQr && mockWalletQr.previousElementSibling && !mockWalletQr.previousElementSibling.querySelector("[data-balance-actions]")));
+const mockPhone = d.querySelector(".phone");
+const mockWalletQr = d.querySelector("[data-discovery-qr]");
+const mockCta = d.querySelector("[data-discovery-cta]");
+check("mock wallet QR is outside the cashier card", Boolean(mockWalletQr && mockPhone && !mockPhone.contains(mockWalletQr)));
+check(
+  "mock wallet QR is a sibling below the card",
+  Boolean(mockPhone && mockWalletQr && mockPhone.nextElementSibling === mockWalletQr),
+  mockPhone && mockPhone.nextElementSibling && mockPhone.nextElementSibling.getAttribute("data-discovery-qr")
+);
 check(
   "mock wallet QR is the Calendly",
   Boolean(mockWalletQr && mockWalletQr.getAttribute("data-discovery-url") === "https://calendly.com/d/cwfn-s48-3b3/payments-discovery"),
   mockWalletQr && mockWalletQr.getAttribute("data-discovery-url")
 );
+check("mock wallet shows the bold sales CTA", Boolean(mockCta && mockCta.textContent.trim() === "Bring this payment UX to your platform!"), mockCta && mockCta.textContent);
 check("mock wallet invite copy", /Scan to book a payments discovery meeting/.test(txt()));
-check("mock tightens txn-list-to-QR gap", stylePx(mockWalletQr, "marginTop") <= 10, stylePx(mockWalletQr, "marginTop"));
+check("mock discovery sits in its own box", Boolean(mockWalletQr && mockWalletQr.classList.contains("discovery-box")));
+check("mock tightens card-to-QR gap", /\.app-mock \.discovery-box\s*\{[^}]*margin-top:\s*10px/.test(css));
 check("mock transaction list is the compact target", Boolean(d.querySelector("[data-tx-list='mock']")));
+const salesSrc = fs.readFileSync(new URL("./src/booth-sales.js", import.meta.url), "utf8");
+check("sales chrome is gated in booth-sales.js", /export const SHOW_DISCOVERY_CTA = true/.test(salesSrc) && /Bring this payment UX to your platform!/.test(salesSrc));
 
 console.log("\nbalance + pay status spacing");
 checkBalanceGap("mock");
@@ -202,6 +213,7 @@ await type(d.querySelector(".phone input"), "5");
 await click(btn("Review"));
 await click(btn("Send"), 2500);
 const mockDiscovery = d.querySelector("[data-discovery-qr]");
+const mockSuccess = d.querySelector("[data-success-card]");
 check("mock success shows discovery QR", Boolean(mockDiscovery && d.querySelector('[aria-label="Payments discovery booking QR code"]')));
 check(
   "mock discovery QR uses the Calendly constant",
@@ -209,6 +221,12 @@ check(
   mockDiscovery && mockDiscovery.getAttribute("data-discovery-url")
 );
 check("mock success invites a payments discovery meeting", /Scan to book a payments discovery meeting/.test(txt()));
+check("mock success QR sits outside the success card", Boolean(mockSuccess && mockDiscovery && !mockSuccess.contains(mockDiscovery)));
+check(
+  "mock success QR is a sibling below the success card",
+  Boolean(mockSuccess && mockSuccess.nextElementSibling === mockDiscovery)
+);
+check("mock success keeps the CTA on the wallet only", !d.querySelector("[data-discovery-cta]"));
 check("success screen does not own the tagline", Boolean(mockDiscovery && !mockDiscovery.querySelector("[data-booth-tagline]")));
 check("tagline stays under the modes bar on success", Boolean(d.querySelector("[data-booth-tagline]") && d.querySelector("[data-booth-tagline]").previousElementSibling && d.querySelector("[data-booth-tagline]").previousElementSibling.classList.contains("topbar")));
 await click(btn("Back to wallet"));
@@ -220,7 +238,8 @@ check("live footer still shows SHA", Boolean(d.querySelector(".booth-foot-build"
 check("live omits the tagline", !d.querySelector("[data-booth-tagline]"));
 check("live does not use mock compact chrome", !d.querySelector(".app-mock"));
 check("live wallet is not compact", !d.querySelector("[data-wallet-compact='true']"));
-check("live wallet has no discovery QR", !d.querySelector(".phone [data-discovery-qr]"));
+check("live wallet has no discovery QR", !d.querySelector("[data-discovery-qr]"));
+check("live wallet has no sales CTA", !d.querySelector("[data-discovery-cta]"));
 check("live note is booth copy", /Tap New visitor between demos/.test(txt()) && !/Real invoices, real payouts, real money/.test(txt()));
 const livebar = d.querySelector(".livebar");
 const liveMeta = livebar && livebar.querySelector(".live-meta");

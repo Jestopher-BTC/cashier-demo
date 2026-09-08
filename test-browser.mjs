@@ -35,12 +35,15 @@ check("mock tagline is under the modes bar", Boolean(mockTagline && mockTagline.
 check("mock tagline copy", Boolean(mockTagline && mockTagline.textContent.trim() === "Pay in Bitcoin, deal in dollars."));
 check("mock tagline is louder", /\.booth-tagline\s*\{[^}]*font-size:\s*24px/.test(d.documentElement.innerHTML) && /\.booth-tagline\s*\{[^}]*font-weight:\s*800/.test(d.documentElement.innerHTML));
 check("mock compact chrome class", Boolean(d.querySelector(".app.app-mock")));
-const mockWalletQr = d.querySelector(".phone [data-discovery-qr]");
+const mockWalletQr = d.querySelector("[data-discovery-qr]");
+const mockPhone = d.querySelector(".phone");
 check("mock wallet shows discovery QR", Boolean(mockWalletQr && /Scan to book a payments discovery meeting/.test(txt())));
+check("mock wallet QR is outside the cashier card", Boolean(mockWalletQr && mockPhone && !mockPhone.contains(mockWalletQr)));
 check(
   "mock wallet QR is the Calendly",
   Boolean(mockWalletQr && mockWalletQr.getAttribute("data-discovery-url") === "https://calendly.com/d/cwfn-s48-3b3/payments-discovery")
 );
+check("mock wallet shows the bold sales CTA", /Bring this payment UX to your platform!/.test(txt()));
 
 console.log("\nmock cash out scan");
 await click(btn("Cash out"));
@@ -130,7 +133,7 @@ check("balance starts at zero", txt().includes("$0.00"));
 check("caps shown", /up to \$5 in/.test(txt()));
 check("live omits the tagline", !d.querySelector("[data-booth-tagline]"));
 check("live does not use mock compact chrome", !d.querySelector(".app-mock"));
-check("live wallet has no discovery QR", !d.querySelector(".phone [data-discovery-qr]"));
+check("live wallet has no discovery QR", !d.querySelector("[data-discovery-qr]"));
 const fundBtn = d.querySelector("[data-fund]") || btn("Fund");
 const newVisitorBtn = btn("New visitor");
 const fundStyle = (fundBtn && fundBtn.getAttribute("style")) || "";
@@ -183,6 +186,7 @@ check("review shows destination", txt().includes("$jestoph"));
 await click(btn("Send"), 3500);
 check("paid out", txt().includes("paid out from your account"), txt().slice(0, 200));
 const discovery = d.querySelector("[data-discovery-qr]");
+const successCard = d.querySelector("[data-success-card]");
 check("cash-out success shows discovery QR", Boolean(discovery && d.querySelector('[aria-label="Payments discovery booking QR code"]')));
 check(
   "discovery QR is the Amboss Calendly",
@@ -190,6 +194,9 @@ check(
   discovery && discovery.getAttribute("data-discovery-url")
 );
 check("discovery invite copy", /Scan to book a payments discovery meeting/.test(txt()));
+check("success QR sits outside the success card", Boolean(successCard && discovery && !successCard.contains(discovery)));
+check("success QR is a sibling below the success card", Boolean(successCard && successCard.nextElementSibling === discovery));
+check("live success has no sales CTA", !d.querySelector("[data-discovery-cta]"));
 check("success screen does not own the tagline", Boolean(discovery && !discovery.querySelector("[data-booth-tagline]")));
 check("live still omits the tagline on success", !d.querySelector("[data-booth-tagline]"));
 

@@ -17,6 +17,7 @@ import {
   startCamera,
   stopStream,
 } from "./qr-scan.js";
+import { BOOTH_SALES, SHOW_DISCOVERY_CTA } from "./booth-sales.js";
 
 /* ============================================================================
    Amboss Payments SDK - iGaming cashier mock, v2
@@ -96,15 +97,14 @@ const MONO =
   'ui-monospace, SFMono-Regular, Menlo, Monaco, "Roboto Mono", "Courier New", monospace';
 const NUM = { fontVariantNumeric: "tabular-nums" };
 
-/* Booth conversion copy. Change the strings here; do not hunt through layout.
-   paymentsDiscoveryUrl is Stacy's confirmed Calendly.
+/* Product + demo copy. Sales / Calendly chrome is gated in booth-sales.js
+   (SHOW_DISCOVERY_CTA). Flip that flag to strip QR + CTA for a handoff.
    tagline is Mock-only, louder under the modes bar (data-booth-tagline):
-   bigger + bolder, same line, no subtitle. Live stays clean.
-   Cash-out success still shows the discovery QR. */
+   bigger + bolder, same line, no subtitle. Live stays clean. */
 export const BOOTH = {
   sampleCashtag: "$jestoph",
   tagline: "Pay in Bitcoin, deal in dollars.",
-  paymentsDiscoveryUrl: "https://calendly.com/d/cwfn-s48-3b3/payments-discovery",
+  paymentsDiscoveryUrl: BOOTH_SALES.url,
 };
 
 
@@ -1615,33 +1615,63 @@ function TxDetail({ theme, tx, onClose }) {
   );
 }
 
-function DiscoveryInvite({ theme, size = 168, compact }) {
+export function DiscoveryInvite({ theme, size = 168, showCta, placement }) {
+  if (!SHOW_DISCOVERY_CTA) return null;
+  const stage = placement === "stage";
+  const qrSize = size || (stage ? 152 : 168);
   return (
     <div
+      className={stage ? "discovery-box" : undefined}
       data-discovery-qr
+      data-discovery-placement={stage ? "stage" : "flow"}
       data-discovery-url={BOOTH.paymentsDiscoveryUrl}
-      style={{ marginTop: compact ? 10 : 22, textAlign: "center" }}
+      style={
+        stage
+          ? undefined
+          : {
+              marginTop: 16,
+              padding: "18px 16px 16px",
+              background: theme.surface,
+              border: `1px solid ${theme.border}`,
+              borderRadius: 16,
+              textAlign: "center",
+            }
+      }
     >
-      <div style={{ background: "#FFFFFF", padding: compact ? 8 : 10, borderRadius: 14, lineHeight: 0, display: "inline-block" }}>
+      {showCta ? (
+        <p className="discovery-cta" data-discovery-cta>
+          {BOOTH_SALES.cta}
+        </p>
+      ) : null}
+      <div
+        className="discovery-plate"
+        style={{
+          background: "#FFFFFF",
+          padding: stage ? 8 : 10,
+          borderRadius: 14,
+          lineHeight: 0,
+          display: "inline-block",
+        }}
+      >
         <QrCode
           value={BOOTH.paymentsDiscoveryUrl}
-          size={size}
+          size={qrSize}
           label="Payments discovery booking QR code"
         />
       </div>
-      <div style={{ color: theme.muted, fontSize: compact ? 13 : 13.5, marginTop: compact ? 8 : 12, lineHeight: 1.45 }}>
-        Scan to book a payments discovery meeting.
-      </div>
+      <p className="discovery-hint" style={stage ? undefined : { color: theme.muted, fontSize: 13.5, marginTop: 12, lineHeight: 1.45 }}>
+        {BOOTH_SALES.hint}
+      </p>
     </div>
   );
 }
 
-export function WalletView({ onDeposit, onWithdraw, staff, discovery }) {
+export function WalletView({ onDeposit, onWithdraw, staff, compact }) {
   const { theme, balance, transactions } = usePayments();
   const [filter, setFilter] = useState("all");
   const [open, setOpen] = useState(null);
-  /* Mock wallet only (discovery QR). Live keeps the roomier card + Staff. */
-  const compact = Boolean(discovery);
+  /* Mock wallet is compact so the sibling discovery box stays on screen.
+     Live keeps the roomier card + Staff. */
 
   const list = transactions.filter((t) =>
     filter === "all" ? true : filter === "in" ? t.type === "deposit" : t.type === "withdrawal"
@@ -1747,8 +1777,6 @@ export function WalletView({ onDeposit, onWithdraw, staff, discovery }) {
           ))
         )}
       </Card>
-
-      {discovery ? <DiscoveryInvite theme={theme} size={152} compact /> : null}
 
       {staff ? (
         <div data-staff-section style={{ marginTop: 22 }}>
@@ -2379,8 +2407,8 @@ export function WithdrawFlow({ onExit, onDone }) {
 
   if (step === "sent")
     return (
-      <div className="amb-rise" style={{ paddingTop: 30 }}>
-        <div style={{ textAlign: "center" }}>
+      <div className="amb-rise" style={{ paddingTop: 8 }}>
+        <Card theme={theme} data-success-card style={{ padding: "22px 18px 20px", textAlign: "center" }}>
           <div style={{ width: 54, height: 54, borderRadius: "50%", background: theme.accentSoft, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 14px" }}>
             <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke={theme.accent} strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
               <path d="M20 6L9 17l-5-5" />
@@ -2390,15 +2418,14 @@ export function WithdrawFlow({ onExit, onDone }) {
           <div style={{ color: theme.muted, fontSize: 13.5, marginTop: 5 }}>
             {final.dest.display} has the money. Your balance is {usd(Math.max(0, balance))}.
           </div>
-        </div>
+          <div style={{ marginTop: 24 }}>
+            <Button theme={theme} full onClick={onDone}>
+              Back to wallet
+            </Button>
+          </div>
+        </Card>
 
-        <DiscoveryInvite theme={theme} size={168} />
-
-        <div style={{ marginTop: 24 }}>
-          <Button theme={theme} full onClick={onDone}>
-            Back to wallet
-          </Button>
-        </div>
+        <DiscoveryInvite theme={theme} size={168} placement="flow" />
       </div>
     );
 

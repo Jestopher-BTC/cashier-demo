@@ -51,7 +51,7 @@ const NOTES = {
   "shared pieces": ["Shared pieces", "Countdown, copy button, dollar amount field, and the demo control strip.", "keep"],
   "theme toggle": ["ThemeToggle", "Small enough to inline. Drop it if your host app owns the theme.", "keep"],
   deposit: ["DepositFlow", "Amount, then invoice with QR and countdown, then credited. Seam 1 mints the invoice, seam 2 reports the payment. Expiry and failure both offer a new invoice for the same amount. Operator-controlled receive credits the house ledger; Amboss is rails/API.", "keep"],
-  wallet: ["WalletView", "Balance, deposit and cash out, filtered history, detail sheet. Dollars only.", "keep"],
+  wallet: ["WalletView", "Balance, deposit and cash out, filtered history, detail sheet. Dollars only. Discovery QR is a sibling outside this card, gated by SHOW_DISCOVERY_CTA in booth-sales.js.", "keep"],
   withdraw: ["WithdrawFlow", "Destination first. An invoice carrying an amount skips amount entry and goes straight to review with the balance check. A cashtag, address, or zero-amount invoice routes through amount entry. Seam 3 sends.", "keep"],
   shell: ["Shell and mount", "The standalone harness. The conference app replaces this with its own three-mode chrome and mounts the same three flows.", "replace"],
 };

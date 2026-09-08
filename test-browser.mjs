@@ -196,7 +196,16 @@ check(
 check("discovery invite copy", /Scan to book a payments discovery meeting/.test(txt()));
 check("success QR sits outside the success card", Boolean(successCard && discovery && !successCard.contains(discovery)));
 check("success QR is a sibling below the success card", Boolean(successCard && successCard.nextElementSibling === discovery));
-check("live success has no sales CTA", !d.querySelector("[data-discovery-cta]"));
+const liveSuccessCta = d.querySelector("[data-discovery-cta]");
+check(
+  "live success shows the sales CTA",
+  Boolean(liveSuccessCta && liveSuccessCta.textContent.trim() === "Bring this payment UX to your platform!"),
+  liveSuccessCta && liveSuccessCta.textContent
+);
+check(
+  "live success CTA sits in the discovery box, not the success card",
+  Boolean(successCard && discovery && liveSuccessCta && !successCard.contains(liveSuccessCta) && discovery.contains(liveSuccessCta))
+);
 check("success screen does not own the tagline", Boolean(discovery && !discovery.querySelector("[data-booth-tagline]")));
 check("live still omits the tagline on success", !d.querySelector("[data-booth-tagline]"));
 

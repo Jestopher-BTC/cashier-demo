@@ -10,8 +10,8 @@
    AmbossCashierMock.jsx and is not gated here.
 
    Mock shows the sales CTA on the wallet, in its own box outside the cashier
-   card. Live stays cleaner: no wallet QR. Cash-out success still shows the
-   discovery QR outside the success card when this flag is on.
+   card. Live stays cleaner: no wallet QR. Cash-out success shows the same
+   CTA + discovery QR outside the success card when this flag is on.
    ============================================================================ */
 
 /* Integrators: set this to false to ship the cashier without sales chrome. */

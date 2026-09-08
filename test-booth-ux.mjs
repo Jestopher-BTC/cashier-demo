@@ -226,7 +226,16 @@ check(
   "mock success QR is a sibling below the success card",
   Boolean(mockSuccess && mockSuccess.nextElementSibling === mockDiscovery)
 );
-check("mock success keeps the CTA on the wallet only", !d.querySelector("[data-discovery-cta]"));
+const mockSuccessCta = d.querySelector("[data-discovery-cta]");
+check(
+  "mock success shows the sales CTA",
+  Boolean(mockSuccessCta && mockSuccessCta.textContent.trim() === "Bring this payment UX to your platform!"),
+  mockSuccessCta && mockSuccessCta.textContent
+);
+check(
+  "mock success CTA sits in the discovery box, not the success card",
+  Boolean(mockSuccess && mockDiscovery && mockSuccessCta && !mockSuccess.contains(mockSuccessCta) && mockDiscovery.contains(mockSuccessCta))
+);
 check("success screen does not own the tagline", Boolean(mockDiscovery && !mockDiscovery.querySelector("[data-booth-tagline]")));
 check("tagline stays under the modes bar on success", Boolean(d.querySelector("[data-booth-tagline]") && d.querySelector("[data-booth-tagline]").previousElementSibling && d.querySelector("[data-booth-tagline]").previousElementSibling.classList.contains("topbar")));
 await click(btn("Back to wallet"));

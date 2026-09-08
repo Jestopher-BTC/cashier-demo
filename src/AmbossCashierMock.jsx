@@ -100,7 +100,8 @@ const NUM = { fontVariantNumeric: "tabular-nums" };
 /* Product + demo copy. Sales / Calendly chrome is gated in booth-sales.js
    (SHOW_DISCOVERY_CTA). Flip that flag to strip QR + CTA for a handoff.
    tagline is Mock-only, louder under the modes bar (data-booth-tagline):
-   bigger + bolder, same line, no subtitle. Live stays clean. */
+   bigger + bolder, same line, no subtitle. Live stays clean on the wallet.
+   Cash-out success still shows CTA + QR outside the success card. */
 export const BOOTH = {
   sampleCashtag: "$jestoph",
   tagline: "Pay in Bitcoin, deal in dollars.",
@@ -2425,7 +2426,7 @@ export function WithdrawFlow({ onExit, onDone }) {
           </div>
         </Card>
 
-        <DiscoveryInvite theme={theme} size={168} placement="flow" />
+        <DiscoveryInvite theme={theme} size={168} placement="flow" showCta />
       </div>
     );
 

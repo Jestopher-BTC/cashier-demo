@@ -296,5 +296,5 @@ smaller than the first one and better.
 Booth sales chrome (Calendly QR + "Bring this payment UX to your platform!")
 is not mixed into the cashier card. It lives in `src/booth-sales.js` behind
 `SHOW_DISCOVERY_CTA`. Set that to false to hand the cashier off without hunting
-layout. Mock shows the CTA outside the main card. Live stays clean, with the
-QR only on cash-out success, still outside the success card.
+layout. Mock shows the CTA outside the main card. Live stays clean on the
+wallet. Cash-out success shows CTA + QR outside the success card.

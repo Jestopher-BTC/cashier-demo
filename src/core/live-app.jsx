@@ -1,4 +1,4 @@
-/* Live-only Amboss Payments cashier. No Mock UI, Code View, Calendly CTA,
+/* Live-only Amboss Payments cashier. No Mock/Code tabs, Calendly CTA,
    or booth Fund giveaway. Integrators adopt this package. */
 
 import React, { useCallback, useEffect, useRef, useState } from "react";

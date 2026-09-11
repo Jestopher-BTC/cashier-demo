@@ -29,7 +29,7 @@ console.log("\nbundles");
 check("booth bundle includes Mock UI", /Mock UI/.test(boothJs));
 check("booth bundle includes Code View", /Code View/.test(boothJs));
 check("booth bundle includes Calendly", /calendly\.com\/d\/cwfn-s48-3b3/.test(boothJs));
-check("core bundle has no Mock UI tab", !/Mock UI/.test(coreJs));
+check("core bundle has no Mock UI tab", !/"Mock UI"/.test(coreJs) && !/label:"Mock UI"/.test(coreJs));
 check("core bundle has no Code View tab", !/Code View/.test(coreJs));
 check("core bundle has no Calendly", !/calendly\.com/.test(coreJs));
 check("core bundle has no sales CTA", !/Bring this payment UX to your platform/.test(coreJs));

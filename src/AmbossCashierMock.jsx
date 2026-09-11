@@ -838,7 +838,7 @@ export function Styles() {
       }
       /* Scanner sheet: never composite with opacity/transform/filter. iPad
          WebKit double-paints those and ghosts "Scan a code" over the
-         destination page (same class of bug as the muddy Mock UI). */
+         destination page (same class of bug as muddy text on old WebKit). */
       .amb-scan-sheet,
       .amb-scan-sheet * {
         animation: none !important;

@@ -1,8 +1,8 @@
-import "./polyfills.js";
+import "../polyfills.js";
 
 import React from "react";
 import { createRoot } from "react-dom/client";
-import App from "./shell.jsx";
+import App from "./live-app.jsx";
 
 function boot() {
   var host = document.getElementById("root");

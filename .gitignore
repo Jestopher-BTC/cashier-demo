@@ -2,7 +2,10 @@ node_modules/
 .qr-enc-test.mjs
 .env
 .env.local
+.env.*
+!.env.example
 public/
+public-core/
 offline/
 *.log
 .DS_Store

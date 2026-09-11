@@ -1,5 +1,5 @@
 /* Snippets in Code View must match @ambosstech/payments, not the React mock. */
-import { DOCS, MAP_LINE, SANDBOX_META, SNIPPETS, snippetIdForAction } from "./src/sdk-guide.js";
+import { DOCS, MAP_LINE, SANDBOX_META, SNIPPETS, snippetIdForAction } from "./src/booth/sdk-guide.js";
 
 let pass = 0, fail = 0;
 const check = (n, ok, d) => { ok ? (pass++, console.log("  ok  ", n)) : (fail++, console.log("  FAIL", n, d ?? "")); };

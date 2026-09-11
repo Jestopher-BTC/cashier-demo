@@ -2,19 +2,18 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 
 import {
   BOOTH,
-  DiscoveryInvite,
   PaymentsProvider,
   Styles,
   WalletView,
   DepositFlow,
   WithdrawFlow,
   usePayments,
-} from "./AmbossCashierMock.jsx";
-import { SHOW_DISCOVERY_CTA } from "./booth-sales.js";
+} from "../AmbossCashierMock.jsx";
+import { DiscoveryInvite, SHOW_DISCOVERY_CTA, cashOutDiscovery } from "./booth-sales.js";
 import { SECTIONS, SOURCE } from "./generated-sections.js";
 import { highlight } from "./highlight.js";
-import { AmbossLetter, AmbossLogo } from "./AmbossLogo.jsx";
-import { createLiveApi } from "./live-api.js";
+import { AmbossLetter, AmbossLogo } from "../AmbossLogo.jsx";
+import { createLiveApi } from "../live-api.js";
 import { DOCS, MAP_LINE, SANDBOX_META, SNIPPETS, snippetById, snippetIdForAction } from "./sdk-guide.js";
 
 const HOST = (typeof window !== "undefined" && window.__CASHIER__) || { live: false };
@@ -90,7 +89,12 @@ function Screens({ onDemoAction, staff, compact, showWalletDiscovery }) {
 function MockMode({ theme, onDemoAction }) {
   return (
     <div className="stage">
-      <PaymentsProvider defaultTheme={theme} demo={true} initialBalanceUsd={1247.85}>
+      <PaymentsProvider
+        defaultTheme={theme}
+        demo={true}
+        initialBalanceUsd={1247.85}
+        cashOutSuccessExtra={SHOW_DISCOVERY_CTA ? cashOutDiscovery : null}
+      >
         <Screens onDemoAction={onDemoAction} compact showWalletDiscovery={SHOW_DISCOVERY_CTA} />
       </PaymentsProvider>
       <p className="stage-note">Amboss Payments cashier for iGaming. Deposit and cash out in dollars.</p>
@@ -676,6 +680,7 @@ function LiveMode({ theme, onDemoAction }) {
           withdrawMin: cfg.minWithdrawUsd,
           invoiceSeconds: cfg.invoiceSeconds,
         }}
+        cashOutSuccessExtra={SHOW_DISCOVERY_CTA ? cashOutDiscovery : null}
       >
         <Screens
           onDemoAction={onDemoAction}

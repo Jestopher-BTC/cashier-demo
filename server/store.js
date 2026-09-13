@@ -1,4 +1,5 @@
 import { config, round2 } from "./config.js";
+import { newSecretId, pinMatches } from "./security.js";
 
 /* ---------------------------------------------------------------- rate --- */
 /* A stablecoin wallet needs no rate to price a dollar amount (that IS the
@@ -109,7 +110,7 @@ export function floatState() {
 
 export function newSession() {
   sweep();
-  const id = "s_" + Math.random().toString(36).slice(2, 12);
+  const id = newSecretId("s");
   const session = { id, balanceUsd: 0, transactions: [], createdAt: Date.now(), pending: new Map() };
   sessions.set(id, session);
   return session;
@@ -130,7 +131,7 @@ function sweep() {
 export function fundSession(session, pin) {
   rollFloat();
   if (!config.fundEnabled) return { error: "Funding is off." };
-  if (String(pin || "") !== config.operatorPin) return { error: "Wrong pin." };
+  if (!pinMatches(pin, config.operatorPin)) return { error: "Wrong pin." };
   const amount = config.sessionStartUsd;
   if (float.grantedUsd + amount > config.dailyFloatUsd)
     return { error: `Daily demo float of $${config.dailyFloatUsd} is used up.` };
@@ -163,6 +164,10 @@ export function publicState(session) {
   return {
     sessionId: session.id,
     balanceUsd: round2(session.balanceUsd),
-    transactions: session.transactions.slice(0, 25),
+    transactions: session.transactions.slice(0, 25).map((tx) => {
+      const out = { ...tx };
+      delete out.error;
+      return out;
+    }),
   };
 }

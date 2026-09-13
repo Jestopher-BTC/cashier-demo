@@ -41,10 +41,22 @@ export function resolveFundEnabled(operatorPin, fundFlag) {
 
 const operatorPin = String(env("OPERATOR_PIN", "")).trim();
 const fundEnabled = resolveFundEnabled(operatorPin, parseFundEnabledFlag(process.env.FUND_ENABLED));
+const cashierPackage = String(env("CASHIER_PACKAGE", "booth")).trim().toLowerCase();
+if (cashierPackage !== "booth" && cashierPackage !== "core")
+  throw new Error(`CASHIER_PACKAGE must be booth or core, got "${cashierPackage}"`);
 
 export const config = {
   port: num("PORT", 8080),
+  /* Production (NODE_ENV=production, including the systemd unit) binds
+     loopback so Caddy is the only public door. Override with BIND_HOST. */
+  bindHost: env("BIND_HOST", process.env.NODE_ENV === "production" ? "127.0.0.1" : "0.0.0.0"),
   mock: bool("MOCK_AMBOSS", false),
+  /* booth = conference 3-mode app (default, boltda.sh). core = Live-only cashier. */
+  cashierPackage,
+  /* Optional. When set, GET /healthz?token=... (or X-Healthz-Token) returns
+     wallet id, balances, and float remaining. Leave blank: those details are
+     only on a direct loopback request, not through Caddy. */
+  healthzToken: env("HEALTHZ_TOKEN", ""),
 
   graphqlUrl: env("AMBOSS_GRAPHQL_URL", "https://app.amboss.tech/graphql"),
   apiKey: env("AMBOSS_API_KEY", ""),
@@ -112,6 +124,10 @@ export function assertReady() {
     );
   if (config.asset === "BTC" && config.rateSource === "static" && config.usdPerBtc === 100000)
     console.warn("[warn] RATE_SOURCE=static with the default USD_PER_BTC. Set a real rate.");
+  if (config.mock && process.env.NODE_ENV === "production")
+    console.warn("[warn] MOCK_AMBOSS=1 with NODE_ENV=production. /api/dev/settle is disabled. Do not demo this as live.");
+  if (config.fundEnabled && config.operatorPin.length < 6)
+    console.warn("[warn] OPERATOR_PIN is shorter than 6 characters. A public Fund endpoint will not survive a brute-force. Use 6+ digits.");
 }
 
 /* --------------------------------------------------------------- money --- */

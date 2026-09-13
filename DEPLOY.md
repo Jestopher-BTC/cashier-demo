@@ -191,6 +191,7 @@ cd /opt/cashier
 sudo -u cashier cp .env.example .env
 sudo -u cashier $EDITOR .env          # paste the Amboss key, wallet id, operator pin
 sudo chmod 600 /opt/cashier/.env
+# Leave CASHIER_PACKAGE unset (booth). Do not set core on boltda.sh.
 
 sudo -u cashier npm ci                # full install, the build step needs devDependencies
 sudo -u cashier npm run build
@@ -223,8 +224,15 @@ curl -s https://boltda.sh/cashier/healthz | jq
 ```
 
 `ok: true` means the API answered, the wallet is ready, and a real BTC/USD
-spot is available (Coinbase, then CoinGecko). That rate is required even when
-`AMBOSS_ASSET=USDT`, because BOLT11 invoice cash-outs are sat-denominated.
+spot is available (Coinbase, then CoinGecko). From the public URL the payload
+is **redacted** (no wallet id, no balances, no remaining float). For the
+full operator view, on the box:
+
+```bash
+curl -s http://127.0.0.1:8080/healthz | jq
+```
+
+Or set `HEALTHZ_TOKEN` in `.env` and pass `?token=...` / `X-Healthz-Token`.
 `usdPerBtc: 1` with `source: "n/a"` is a bug, not a stablecoin shortcut.
 Anything else prints which check failed and why.
 

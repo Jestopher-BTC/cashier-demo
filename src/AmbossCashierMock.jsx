@@ -17,10 +17,9 @@ import {
   startCamera,
   stopStream,
 } from "./qr-scan.js";
-import { BOOTH_SALES, SHOW_DISCOVERY_CTA } from "./booth-sales.js";
 
 /* ============================================================================
-   Amboss Payments SDK - iGaming cashier mock, v2
+   Amboss Payments SDK - iGaming cashier, v2
 
    The player sees dollars and nothing else. They deposit dollars, hold
    dollars, and cash out to a Cash App cashtag. Bitcoin is the rail underneath
@@ -31,6 +30,9 @@ import { BOOTH_SALES, SHOW_DISCOVERY_CTA } from "./booth-sales.js";
    The one place sats surface is the deposit invoice, because a Lightning
    wallet will display sats and the two numbers have to reconcile. Cash App is
    one Lightning wallet among many; cashtags are Lightning addresses.
+
+   Conference sales chrome (Calendly QR, Mock/Code View, Fund giveaway) lives
+   in src/booth/. This file is the core cashier an integrator copies.
 
    Exports
      PaymentsProvider   shared state; takes usdPerBtc as a prop
@@ -97,15 +99,11 @@ const MONO =
   'ui-monospace, SFMono-Regular, Menlo, Monaco, "Roboto Mono", "Courier New", monospace';
 const NUM = { fontVariantNumeric: "tabular-nums" };
 
-/* Product + demo copy. Sales / Calendly chrome is gated in booth-sales.js
-   (SHOW_DISCOVERY_CTA). Flip that flag to strip QR + CTA for a handoff.
-   tagline is Mock-only, louder under the modes bar (data-booth-tagline):
-   bigger + bolder, same line, no subtitle. Live stays clean on the wallet.
-   Cash-out success still shows CTA + QR outside the success card. */
+/* Demo copy used by the mock wallet. Conference tagline and Calendly live in
+   src/booth/booth-sales.js, not here. */
 export const BOOTH = {
   sampleCashtag: "$jestoph",
   tagline: "Pay in Bitcoin, deal in dollars.",
-  paymentsDiscoveryUrl: BOOTH_SALES.url,
 };
 
 
@@ -449,7 +447,7 @@ function qrMatrix(text) {
 
 export { qrMatrix };
 
-function QrCode({ value, size = 224, quiet = 3, label = "Lightning invoice QR code" }) {
+export function QrCode({ value, size = 224, quiet = 3, label = "Lightning invoice QR code" }) {
   const path = useMemo(() => {
     const m = qrMatrix(value);
     if (!m) return null;
@@ -716,6 +714,7 @@ export function PaymentsProvider({
   limits: limitOverrides,
   defaultTheme = "dark",
   demo = true,
+  cashOutSuccessExtra = null,
 }) {
   const limits = useMemo(() => Object.assign({}, LIMITS, limitOverrides || {}), [limitOverrides]);
   const [themeName, setThemeName] = useState(defaultTheme);
@@ -796,11 +795,12 @@ export function PaymentsProvider({
       transactions,
       limits: limits,
       demo,
+      cashOutSuccessExtra,
       creditDeposit,
       debitWithdrawal,
       reset,
     }),
-    [themeName, balance, api, capabilities, limits, usdPerBtc, transactions, demo, creditDeposit, debitWithdrawal, reset]
+    [themeName, balance, api, capabilities, limits, usdPerBtc, transactions, demo, cashOutSuccessExtra, creditDeposit, debitWithdrawal, reset]
   );
 
   return <PaymentsContext.Provider value={value}>{children}</PaymentsContext.Provider>;
@@ -838,7 +838,7 @@ export function Styles() {
       }
       /* Scanner sheet: never composite with opacity/transform/filter. iPad
          WebKit double-paints those and ghosts "Scan a code" over the
-         destination page (same class of bug as the muddy Mock UI). */
+         destination page (same class of bug as muddy text on old WebKit). */
       .amb-scan-sheet,
       .amb-scan-sheet * {
         animation: none !important;
@@ -1616,57 +1616,6 @@ function TxDetail({ theme, tx, onClose }) {
   );
 }
 
-export function DiscoveryInvite({ theme, size = 168, showCta, placement }) {
-  if (!SHOW_DISCOVERY_CTA) return null;
-  const stage = placement === "stage";
-  const qrSize = size || (stage ? 152 : 168);
-  return (
-    <div
-      className={stage ? "discovery-box" : undefined}
-      data-discovery-qr
-      data-discovery-placement={stage ? "stage" : "flow"}
-      data-discovery-url={BOOTH.paymentsDiscoveryUrl}
-      style={
-        stage
-          ? undefined
-          : {
-              marginTop: 16,
-              padding: "18px 16px 16px",
-              background: theme.surface,
-              border: `1px solid ${theme.border}`,
-              borderRadius: 16,
-              textAlign: "center",
-            }
-      }
-    >
-      {showCta ? (
-        <p className="discovery-cta" data-discovery-cta>
-          {BOOTH_SALES.cta}
-        </p>
-      ) : null}
-      <div
-        className="discovery-plate"
-        style={{
-          background: "#FFFFFF",
-          padding: stage ? 8 : 10,
-          borderRadius: 14,
-          lineHeight: 0,
-          display: "inline-block",
-        }}
-      >
-        <QrCode
-          value={BOOTH.paymentsDiscoveryUrl}
-          size={qrSize}
-          label="Payments discovery booking QR code"
-        />
-      </div>
-      <p className="discovery-hint" style={stage ? undefined : { color: theme.muted, fontSize: 13.5, marginTop: 12, lineHeight: 1.45 }}>
-        {BOOTH_SALES.hint}
-      </p>
-    </div>
-  );
-}
-
 export function WalletView({ onDeposit, onWithdraw, staff, compact }) {
   const { theme, balance, transactions } = usePayments();
   const [filter, setFilter] = useState("all");
@@ -2138,7 +2087,7 @@ function DestinationPill({ theme, dest, onChange }) {
 }
 
 export function WithdrawFlow({ onExit, onDone }) {
-  const { theme, balance, rate, limits, demo, api, capabilities, debitWithdrawal } = usePayments();
+  const { theme, balance, rate, limits, demo, api, capabilities, debitWithdrawal, cashOutSuccessExtra } = usePayments();
   const [step, setStep] = useState("destination"); // destination | amount | review | sending | sent | pending | failed
   const [raw, setRaw] = useState("");
   const [dest, setDest] = useState(null);
@@ -2426,7 +2375,7 @@ export function WithdrawFlow({ onExit, onDone }) {
           </div>
         </Card>
 
-        <DiscoveryInvite theme={theme} size={168} placement="flow" showCta />
+        {typeof cashOutSuccessExtra === "function" ? cashOutSuccessExtra(theme) : cashOutSuccessExtra}
       </div>
     );
 

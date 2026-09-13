@@ -143,7 +143,7 @@ check("mock wallet invite copy", /Scan to book a payments discovery meeting/.tes
 check("mock discovery sits in its own box", Boolean(mockWalletQr && mockWalletQr.classList.contains("discovery-box")));
 check("mock tightens card-to-QR gap", /\.app-mock \.discovery-box\s*\{[^}]*margin-top:\s*10px/.test(css));
 check("mock transaction list is the compact target", Boolean(d.querySelector("[data-tx-list='mock']")));
-const salesSrc = fs.readFileSync(new URL("./src/booth-sales.js", import.meta.url), "utf8");
+const salesSrc = fs.readFileSync(new URL("./src/booth/booth-sales.js", import.meta.url), "utf8");
 check("sales chrome is gated in booth-sales.js", /export const SHOW_DISCOVERY_CTA = true/.test(salesSrc) && /Bring this payment UX to your platform!/.test(salesSrc));
 
 console.log("\nbalance + pay status spacing");

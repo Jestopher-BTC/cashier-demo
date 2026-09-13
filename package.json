@@ -5,7 +5,9 @@
   "scripts": {
     "build": "node build.mjs",
     "start": "node server/server.js",
-    "dev": "MOCK_AMBOSS=1 node server/server.js"
+    "start:core": "CASHIER_PACKAGE=core node server/server.js",
+    "dev": "MOCK_AMBOSS=1 node server/server.js",
+    "dev:core": "MOCK_AMBOSS=1 CASHIER_PACKAGE=core node server/server.js"
   },
   "devDependencies": {
     "@babel/core": "^7.24.0",

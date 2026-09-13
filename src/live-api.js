@@ -73,9 +73,10 @@ export function createLiveApi(options) {
     var body = opts.body;
     if (body && sessionId) body = Object.assign({ sessionId: sessionId }, body);
 
-    var fetchOpts = { method: opts.method || "GET" };
+    var fetchOpts = { method: opts.method || "GET", headers: {} };
+    if (sessionId) fetchOpts.headers["X-Cashier-Session"] = sessionId;
     if (body) {
-      fetchOpts.headers = { "content-type": "application/json" };
+      fetchOpts.headers["content-type"] = "application/json";
       fetchOpts.body = JSON.stringify(body);
     }
     return http(url, fetchOpts).then(readPayload);

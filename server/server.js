@@ -19,12 +19,37 @@ import {
   floatState,
   reference,
 } from "./store.js";
+import {
+  clientIp,
+  createPinGuard,
+  createRateLimiter,
+  healthzTokenOk,
+  htmlSecurityHeaders,
+  isDirectLoopback,
+  newSecretId,
+  publicErrorMessage,
+  redactHealth,
+  resolvePublicFile,
+  SECURITY_HEADERS,
+} from "./security.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const PUBLIC_DIR = path.join(here, "..", "public");
+const PUBLIC_DIR = path.join(
+  here,
+  "..",
+  config.cashierPackage === "core" ? "public-core" : "public"
+);
 const api = config.mock ? mockAmboss : liveAmboss;
+const rateLimited = createRateLimiter();
+const pinGuard = createPinGuard();
+const mockSettleAllowed = config.mock && process.env.NODE_ENV !== "production";
 
 assertReady();
+if (!fs.existsSync(PUBLIC_DIR)) {
+  console.warn(
+    `[warn] ${PUBLIC_DIR} is missing. Run npm run build before serving ${config.cashierPackage}.`
+  );
+}
 
 /* ------------------------------------------------------------ plumbing --- */
 
@@ -44,6 +69,7 @@ function send(res, status, body, headers = {}) {
   res.writeHead(status, {
     "content-type": "application/json; charset=utf-8",
     "cache-control": "no-store",
+    ...SECURITY_HEADERS,
     ...headers,
   });
   res.end(payload);
@@ -73,21 +99,19 @@ function readBody(req) {
   });
 }
 
-/* Crude per-IP limiter. Enough to keep a bored attendee from hammering it. */
-const buckets = new Map();
-function rateLimited(ip, cost = 1, perMinute = 60) {
-  const now = Date.now();
-  const b = buckets.get(ip) || { tokens: perMinute, at: now };
-  const refill = ((now - b.at) / 60000) * perMinute;
-  b.tokens = Math.min(perMinute, b.tokens + refill);
-  b.at = now;
-  if (b.tokens < cost) {
-    buckets.set(ip, b);
-    return true;
-  }
-  b.tokens -= cost;
-  buckets.set(ip, b);
-  return false;
+function requestHeader(req, name) {
+  const raw = req.headers && req.headers[name];
+  if (Array.isArray(raw)) return raw[0];
+  return raw || "";
+}
+
+function sessionIdFrom(req, url, body) {
+  return (
+    (body && body.sessionId) ||
+    requestHeader(req, "x-cashier-session") ||
+    url.searchParams.get("s") ||
+    ""
+  );
 }
 
 /* ------------------------------------------------------- destinations --- */
@@ -166,7 +190,7 @@ const pendingDeposits = new Map(); // txId -> { sessionId, amountUsd, rate }
 const pendingWithdrawals = new Map(); // txId -> { sessionId, amountUsd, localId }
 
 async function handleApi(req, res, url) {
-  const ip = req.socket.remoteAddress || "unknown";
+  const ip = clientIp(req);
   const method = req.method;
   const route = url.pathname.replace(/^\/api/, "") || "/";
 
@@ -208,14 +232,16 @@ async function handleApi(req, res, url) {
 
   const body = method === "POST" ? await readBody(req).catch(() => null) : {};
   if (body === null) return fail(res, 400, "Body is not JSON.");
-  /* Mock-only test hook, deliberately ahead of the session gate. */
-  if (route.startsWith("/dev/settle/") && method === "POST" && config.mock) {
+  /* Mock-only test hook, deliberately ahead of the session gate.
+     Disabled when NODE_ENV=production even if MOCK_AMBOSS=1. */
+  if (route.startsWith("/dev/settle/") && method === "POST") {
+    if (!mockSettleAllowed) return fail(res, 404, "No such endpoint.");
     const target = decodeURIComponent(route.slice("/dev/settle/".length));
     const settled = target === "all" ? mockAmboss.settleAll(body) : mockAmboss.settle(target, body);
     return send(res, 200, { ok: true, settled });
   }
 
-  const sessionId = body.sessionId || url.searchParams.get("s");
+  const sessionId = sessionIdFrom(req, url, body);
   const session = sessionId ? getSession(sessionId) : null;
 
   if (route !== "/health" && !session) return fail(res, 409, "Session expired. Start a new one.");
@@ -223,9 +249,15 @@ async function handleApi(req, res, url) {
   if (route === "/state" && method === "GET") return send(res, 200, publicState(session));
 
   if (route === "/session/fund" && method === "POST") {
-    if (rateLimited(ip, 1, 30)) return fail(res, 429, "Slow down.");
+    if (rateLimited(ip, 1, 20)) return fail(res, 429, "Slow down.");
+    const gate = pinGuard.allowed(ip);
+    if (!gate.ok) return fail(res, 429, "Too many PIN attempts. Try later.");
     const result = fundSession(session, String(body.pin || ""));
-    if (result.error) return fail(res, 403, result.error);
+    if (result.error) {
+      if (result.error === "Wrong pin.") pinGuard.fail(ip);
+      return fail(res, 403, result.error);
+    }
+    pinGuard.ok(ip);
     return send(res, 200, publicState(session));
   }
 
@@ -258,7 +290,7 @@ async function handleApi(req, res, url) {
       });
     } catch (e) {
       console.error("[deposit]", e.message);
-      return fail(res, 502, e.message);
+      return fail(res, 502, publicErrorMessage(e, "Could not create a deposit invoice. Try again."));
     }
   }
 
@@ -286,7 +318,7 @@ async function handleApi(req, res, url) {
       return send(res, 200, { status, balanceUsd: round2(session.balanceUsd) });
     } catch (e) {
       console.error("[deposit poll]", e.message);
-      return send(res, 200, { status: "pending", warning: e.message });
+      return send(res, 200, { status: "pending" });
     }
   }
 
@@ -346,7 +378,7 @@ async function handleApi(req, res, url) {
 
     /* Debit first, refund on failure. */
     session.balanceUsd = round2(session.balanceUsd - amountUsd);
-    const localId = "w_" + Math.random().toString(36).slice(2, 10);
+    const localId = newSecretId("w");
     const entry = {
       id: localId,
       ref: reference(),
@@ -401,7 +433,7 @@ async function handleApi(req, res, url) {
           "This wallet pays invoices only. Ask for an invoice with an amount on it."
         );
       }
-      return fail(res, 502, e.message);
+      return fail(res, 502, publicErrorMessage(e, "Cash out did not go through. Nothing left this account."));
     }
   }
 
@@ -419,11 +451,11 @@ async function handleApi(req, res, url) {
         finalizeWithdrawal(session, entry, "failed", record.amountUsd, tx.error);
       return send(res, 200, {
         status: status === "completed" ? "complete" : status === "failed" ? "failed" : "pending",
-        error: tx.error || null,
         balanceUsd: round2(session.balanceUsd),
       });
     } catch (e) {
-      return send(res, 200, { status: "pending", warning: e.message });
+      console.error("[withdraw poll]", e.message);
+      return send(res, 200, { status: "pending" });
     }
   }
 
@@ -434,7 +466,7 @@ function finalizeWithdrawal(session, entry, status, amountUsd, error) {
   entry.status = status;
   if (status === "failed") {
     entry.note = "Returned to your balance";
-    entry.error = error || null;
+    if (error) console.error("[withdraw fail]", error);
     session.balanceUsd = round2(session.balanceUsd + amountUsd);
   } else {
     recordPayout(amountUsd);
@@ -443,13 +475,15 @@ function finalizeWithdrawal(session, entry, status, amountUsd, error) {
 
 /* ------------------------------------------------------------- health --- */
 
-async function health(res) {
+async function health(req, res, url) {
   const out = {
     ok: false,
     asset: config.asset,
     mock: config.mock,
+    package: config.cashierPackage,
     addressPayouts: addressPayoutState(),
     float: floatState(),
+    fundEnabled: Boolean(config.fundEnabled),
     checks: {},
   };
   try {
@@ -476,29 +510,37 @@ async function health(res) {
     out.checks.send = { ok: false, error: e.message };
   }
   out.ok = Object.values(out.checks).every((c) => c.ok);
-  return send(res, out.ok ? 200 : 503, out);
+  const detailed = isDirectLoopback(req) || healthzTokenOk(req, config.healthzToken, url);
+  return send(res, out.ok ? 200 : 503, detailed ? out : redactHealth(out));
 }
 
 /* ------------------------------------------------------------- static --- */
 
 function serveStatic(req, res, url) {
-  let rel = decodeURIComponent(url.pathname);
-  if (rel.endsWith("/")) rel += "index.html";
-  const file = path.join(PUBLIC_DIR, path.normalize(rel).replace(/^(\.\.[/\\])+/, ""));
-  if (!file.startsWith(PUBLIC_DIR)) return fail(res, 403, "No.");
+  const file = resolvePublicFile(PUBLIC_DIR, url.pathname);
+  if (!file) return fail(res, 403, "No.");
+  const headersFor = (target) => {
+    const type = MIME[path.extname(target)] || "application/octet-stream";
+    const html = target.endsWith(".html");
+    return {
+      "content-type": type,
+      "cache-control": html ? "no-store" : "public, max-age=300",
+      ...(html ? htmlSecurityHeaders() : SECURITY_HEADERS),
+    };
+  };
 
   fs.readFile(file, (err, data) => {
     if (err) {
-      if (rel !== "/index.html") return serveStatic(req, res, new URL("/", "http://x"));
-      return fail(res, 404, "Not found.");
+      if (url.pathname === "/" || url.pathname === "/index.html") return fail(res, 404, "Not found.");
+      const index = resolvePublicFile(PUBLIC_DIR, "/index.html");
+      if (!index) return fail(res, 404, "Not found.");
+      return fs.readFile(index, (e2, html) => {
+        if (e2) return fail(res, 404, "Not found.");
+        res.writeHead(200, headersFor(index));
+        res.end(html);
+      });
     }
-    const type = MIME[path.extname(file)] || "application/octet-stream";
-    res.writeHead(200, {
-      "content-type": type,
-      "cache-control": file.endsWith(".html") ? "no-store" : "public, max-age=300",
-      "permissions-policy": "camera=(self)",
-      "feature-policy": "camera 'self'",
-    });
+    res.writeHead(200, headersFor(file));
     res.end(data);
   });
 }
@@ -508,7 +550,7 @@ function serveStatic(req, res, url) {
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host || "localhost"}`);
   try {
-    if (url.pathname === "/healthz") return await health(res);
+    if (url.pathname === "/healthz") return await health(req, res, url);
     if (url.pathname.startsWith("/api/")) return await handleApi(req, res, url);
     if (req.method !== "GET" && req.method !== "HEAD") return fail(res, 405, "Method not allowed.");
     return serveStatic(req, res, url);
@@ -518,8 +560,9 @@ const server = http.createServer(async (req, res) => {
   }
 });
 
-server.listen(config.port, () => {
-  console.log(`cashier demo on :${config.port}`);
+server.listen(config.port, config.bindHost, () => {
+  console.log(`cashier demo on ${config.bindHost}:${config.port}`);
+  console.log(`  package          ${config.cashierPackage} (${PUBLIC_DIR})`);
   console.log(`  asset            ${config.asset}${config.mock ? " (mock Amboss)" : ""}`);
   console.log(`  address payouts  ${config.addressPayouts ? "on" : "off, invoices only"}`);
   console.log(

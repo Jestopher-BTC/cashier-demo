@@ -16,12 +16,14 @@ Everything below is built, tested, and packaged. Nothing is half-finished.
 
 | Piece | Where | State |
 |---|---|---|
-| Cashier components | `src/AmbossCashierMock.jsx` (single file) | done |
-| Booth sales / discovery | `src/booth-sales.js` (`SHOW_DISCOVERY_CTA`) | done |
-| Three-mode booth app | `src/shell.jsx` → `public/` | done |
-| Offline single file | `offline/cashier-offline.html` | done |
+| Cashier widget (core) | `src/AmbossCashierMock.jsx` | done |
+| Live-only package | `src/core/` → `public-core/` | done |
+| Booth sales / discovery | `src/booth/booth-sales.js` (`SHOW_DISCOVERY_CTA`) | done |
+| Three-mode booth app | `src/booth/shell.jsx` → `public/` (default, boltda.sh) | done |
+| Offline single file | `offline/cashier-offline.html` | done (booth bundle) |
 | Demo server | `server/` | done; live payouts use `@ambosstech/payments` |
 | Deploy kit | `deploy/`, `DEPLOY.md` | done |
+| Security overview | `SECURITY.md` | done |
 | Address-payout probe | `probe-address-payout.mjs` | written, **never run against the real API** |
 
 Tests, all green: `test-api` 36, `test-browser` 33, `test-session` 7,
@@ -64,24 +66,26 @@ rather than "Sorry, something went wrong."
 
 ```
 src/
-  AmbossCashierMock.jsx   the deliverable. Provider + 3 flows + QR encoder.
-  booth-sales.js          SHOW_DISCOVERY_CTA: Calendly QR + sales CTA. Flip off to strip.
-  shell.jsx               booth chrome: Mock UI / Code View / Live UI
-  sdk-guide.js            official SDK snippets shown by default in Code View
+  AmbossCashierMock.jsx   core cashier. Provider + 3 flows + QR encoder.
   live-api.js             browser client implementing the seams against /api
-  polyfills.js            hand-rolled ES5 gaps + XHR fetch, no core-js
-  highlight.js            tokeniser for Code View
-  page.html               chrome CSS, both themes
-  generated-sections.js   BUILD ARTEFACT. Never edit; build.mjs rewrites it.
-                          Full mock source lives behind "Show full mock source".
+  core/                   Live-only entry (no Mock/Code/CTA/Fund UI)
+  booth/
+    index.jsx             booth entry (default build → public/)
+    shell.jsx             Mock UI / Code View / Live UI
+    booth-sales.js        SHOW_DISCOVERY_CTA + Calendly QR
+    sdk-guide.js          official SDK snippets in Code View
+    highlight.js          tokeniser for Code View
+    generated-sections.js BUILD ARTEFACT. Never edit; build.mjs rewrites it.
+    page.html             chrome CSS, both themes
 server/
   server.js               routes, caps, session gate, capability detection
+  security.js             PIN lockout, client IP, public errors, static paths
   amboss.js               GraphQL receive/poll + official SDK send path
   config.js               every env knob, plus minor-unit maths
   store.js                rate cache, sessions, daily float
   mock-amboss.js          fake API for dry runs (MOCK_AMBOSS=1)
 deploy/                   Caddyfile, systemd unit, push.sh
-build.mjs                 sections → esbuild → Babel ES5 → two HTML outputs
+build.mjs                 sections → esbuild → Babel ES5 → public/ + public-core/
 ```
 
 Also in the delivery, outside this repo: `amboss-cashier-integrator.html`, a
@@ -188,13 +192,17 @@ supports.
 
 ```bash
 npm install
-npm run build          # rewrites generated-sections.js, public/, offline/
-npm run dev            # MOCK_AMBOSS=1, no key, no money, port 8080
-npm start              # real API, needs .env
+npm run build          # public/ (booth) + public-core/ (Live-only)
+npm run dev            # MOCK_AMBOSS=1, booth UI, port 8080
+npm run dev:core       # same mock server, Live-only UI
+npm start              # real API, needs .env, booth UI
+npm run start:core     # real API, Live-only UI
 
 node test-api.mjs              # server flow: caps, credits, refunds, validation
 node test-browser.mjs          # three modes in jsdom against a live server
 node test-session.mjs          # a reload resumes the balance
+node test-security.mjs         # PIN lockout, healthz redaction, session ids
+node test-core-split.mjs       # core bundle has no booth sales chrome
 node test-theme.mjs            # chrome and card switch theme together
 node test-usdt-send-amount.mjs # $1 USDT cash-out is 1e6 minor units, not btc/100
 node test-sdk-guide.mjs        # official SDK snippets, not the React mock API
@@ -230,9 +238,10 @@ source. Default Code View is the official SDK cheat-sheet in `sdk-guide.js`.
   resumes on load; `newSession()` is the only thing that clears it.
 - **The mock-only `/api/dev/settle/*` route must sit above the session gate** in
   `server.js`, or it 409s before it can settle anything.
-- **Rate limits are per IP and the whole booth is one IP.** They are set
-  generously (30 to 40 per minute) on purpose. Tightening them throttles the
-  operator, not an attacker; the caps and the session model are the real control.
+- **Rate limits are per client IP.** Behind Caddy the socket is localhost, so
+  the limiter reads `X-Forwarded-For` (rightmost hop). Tightening them still
+  throttles the booth operator on the venue NAT. Caps and the session model
+  are the real money control. PIN lockout is separate (8 fails / 15 min).
 - **QR format-info bits.** The encoder was verified against a reference
   implementation and round-trip decoded with jsQR. Two bugs lived here: the
   15 format bits are placed MSB first, and copy 2 splits 7 bits down the column
@@ -294,7 +303,8 @@ would serve the player better. That instinct is the reason this version is
 smaller than the first one and better.
 
 Booth sales chrome (Calendly QR + "Bring this payment UX to your platform!")
-is not mixed into the cashier card. It lives in `src/booth-sales.js` behind
+is not mixed into the cashier card. It lives in `src/booth/booth-sales.js` behind
 `SHOW_DISCOVERY_CTA`. Set that to false to hand the cashier off without hunting
 layout. Mock shows the CTA outside the main card. Live stays clean on the
 wallet. Cash-out success shows CTA + QR outside the success card.
+Core (`src/core/`, `CASHIER_PACKAGE=core`) never imports that file.

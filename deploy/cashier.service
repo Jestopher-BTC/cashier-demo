@@ -18,6 +18,7 @@ PrivateTmp=true
 ProtectSystem=strict
 ProtectHome=true
 ReadWritePaths=/opt/cashier
+Environment=NODE_ENV=production
 
 [Install]
 WantedBy=multi-user.target

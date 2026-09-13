@@ -76,7 +76,7 @@ src/
     sdk-guide.js          official SDK snippets in Code View
     highlight.js          tokeniser for Code View
     generated-sections.js BUILD ARTEFACT. Never edit; build.mjs rewrites it.
-    page.html             chrome CSS, both themes
+    page.html             chrome CSS, both themes. Live flag is cashier-config.js.
 server/
   server.js               routes, caps, session gate, capability detection
   security.js             PIN lockout, client IP, public errors, static paths

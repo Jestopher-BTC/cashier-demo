@@ -132,18 +132,28 @@ async function buildBundle(entry) {
 
 /* --------------------------------------------------------------- pages --- */
 
-function page(bootstrap, hostConfig) {
-  return fs
-    .readFileSync(p("src", "booth", "page.html"), "utf8")
-    .replace("__HOST_CONFIG__", JSON.stringify(hostConfig))
-    .replace("__BOOTSTRAP__", bootstrap);
+/* Same-origin file so CSP script-src 'self' can set the Live flag.
+   Do not put this back in an inline <script> in index.html. */
+function cashierConfigJs(hostConfig) {
+  return "window.__CASHIER__ = " + JSON.stringify(hostConfig) + ";\n";
+}
+
+function page(bootstrap) {
+  return fs.readFileSync(p("src", "booth", "page.html"), "utf8").replace("__BOOTSTRAP__", bootstrap);
 }
 
 function writeSite(dir, bundle, { check } = {}) {
   fs.mkdirSync(dir, { recursive: true });
   fs.writeFileSync(path.join(dir, "app.js"), bundle);
-  fs.writeFileSync(path.join(dir, "index.html"), page('<script src="app.js"></script>', { live: true }));
-  if (check) fs.writeFileSync(path.join(dir, "check.html"), CHECK);
+  fs.writeFileSync(path.join(dir, "cashier-config.js"), cashierConfigJs({ live: true }));
+  fs.writeFileSync(
+    path.join(dir, "index.html"),
+    page('<script src="cashier-config.js"></script>\n<script src="app.js"></script>')
+  );
+  if (check) {
+    fs.writeFileSync(path.join(dir, "check.js"), CHECK_JS);
+    fs.writeFileSync(path.join(dir, "check.html"), CHECK);
+  }
   fs.copyFileSync(p("src", "assets", "logo_gradient.svg"), path.join(dir, "logo_gradient.svg"));
   fs.copyFileSync(p("src", "assets", "letter_gradient.svg"), path.join(dir, "letter_gradient.svg"));
   fs.copyFileSync(p("src", "assets", "letter_black.svg"), path.join(dir, "letter_black.svg"));
@@ -172,8 +182,9 @@ const CHECK = `<!DOCTYPE html>
   <span id="cam-status" style="display:block;margin-top:10px"></span>
   Grant Camera to this page, then Add to Home Screen, then grant Camera again to the home-screen app (Settings → Cashier → Camera → Allow) before turning on Guided Access. iOS will not show the permission prompt once Guided Access is locked. Safari and the home-screen app are different switches.
 </p>
-<script>
-function row(name, pass, detail, soft) {
+<script src="check.js"></script></body></html>`;
+
+const CHECK_JS = `function row(name, pass, detail, soft) {
   var tr = document.createElement('tr');
   var cls = pass ? 'ok' : (soft ? 'meh' : 'no');
   tr.innerHTML = '<td>' + name + (detail ? '<br><span style="color:#5C6E8D;font-size:12px">' + detail + '</span>' : '') +
@@ -247,7 +258,7 @@ try {
   x.onerror = function () { row('Server', false, 'no answer from healthz, offline file only'); };
   x.send();
 } catch (e) {}
-</script></body></html>`;
+`;
 
 /* ---------------------------------------------------------------- main --- */
 
@@ -260,7 +271,7 @@ writeSite(p("public"), boothBundle, { check: true });
 writeSite(p("public-core"), coreBundle, { check: false });
 fs.writeFileSync(
   p("offline", "cashier-offline.html"),
-  page("<script>" + boothBundle + "</script>", { live: false })
+  page("<script>" + cashierConfigJs({ live: false }) + boothBundle + "</script>")
 );
 
 const kb = (n) => Math.round(n / 1024) + " KB";

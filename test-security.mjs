@@ -165,7 +165,12 @@ check("index resolves", resolvePublicFile(tmp, "/index.html").startsWith(path.re
 const escaped = resolvePublicFile(tmp, "/../../etc/passwd");
 check("root escape stays inside the public dir", escaped === null || escaped.startsWith(path.resolve(tmp) + path.sep) || escaped === path.resolve(tmp, "etc/passwd"));
 const idx = await fetch(BASE + "/");
-check("HTML sends CSP", /default-src 'self'/.test(idx.headers.get("content-security-policy") || ""), idx.headers.get("content-security-policy"));
+const idxCsp = idx.headers.get("content-security-policy") || "";
+const idxHtml = await idx.text();
+check("HTML sends CSP", /default-src 'self'/.test(idxCsp), idxCsp);
+const idxScriptSrc = ((idxCsp.match(/script-src\s+([^;]+)/) || [])[1] || "").trim();
+check("HTML CSP script-src is 'self' without unsafe-inline", idxScriptSrc === "'self'", idxScriptSrc);
+check("HTML has no inline boot script", !/<script(?![^>]*\bsrc=)/i.test(idxHtml));
 check("HTML denies framing", idx.headers.get("x-frame-options") === "DENY");
 check("nosniff", idx.headers.get("x-content-type-options") === "nosniff");
 check("camera policy", /camera=\(self\)/.test(idx.headers.get("permissions-policy") || ""));

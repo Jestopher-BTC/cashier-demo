@@ -91,7 +91,7 @@ the Node process to **loopback** (`BIND_HOST=127.0.0.1`). Do not open port
 
 | Surface | Auth | Notes |
 |---|---|---|
-| `GET /` static UI | None | CSP, `X-Frame-Options: DENY`, `nosniff`. Camera policy is `self` for cash-out scan. |
+| `GET /` static UI | None | CSP (`script-src 'self'`, no `unsafe-inline`), `X-Frame-Options: DENY`, `nosniff`. Camera policy is `self` for cash-out scan. Live flag is `cashier-config.js` on the same origin — not an inline `<script>` (that is blocked and the UI falls back to `{ live: false }`). |
 | `GET /api/config` | None | Caps, asset, `fundEnabled`. No secrets. |
 | `POST /api/session` | None | Creates an unguessable session id (`s_` + 32 hex from `crypto.randomBytes`). |
 | `GET /api/state` | Session id | Header `X-Cashier-Session`, body, or `?s=` (logs may still see `?s=`). |
@@ -235,6 +235,7 @@ values.
 ```bash
 npm run build
 node test-security.mjs
+node test-live-csp.mjs
 node test-fund-gate.mjs
 node test-session.mjs
 node test-api.mjs

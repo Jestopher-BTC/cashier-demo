@@ -200,6 +200,10 @@ export const SECURITY_HEADERS = {
   "x-dns-prefetch-control": "off",
 };
 
+/* script-src is 'self' only. Live boot is cashier-config.js on the same
+   origin (public/ and public-core/). Do not add 'unsafe-inline' to paper
+   over an inline window.__CASHIER__ tag. style-src keeps 'unsafe-inline'
+   because the booth chrome CSS is in a <style> block. */
 export function htmlSecurityHeaders() {
   return {
     ...SECURITY_HEADERS,

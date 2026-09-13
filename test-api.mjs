@@ -173,8 +173,13 @@ check("config exposes the same rate to Live UI", cfgRate.json.usdPerBtc === 1000
 
 console.log("\nstatic");
 const index = await fetch(BASE + "/");
-check("index served", index.status === 200 && (await index.text()).includes("__CASHIER__"));
+const indexHtml = await index.text();
+check("index served", index.status === 200 && indexHtml.includes("cashier-config.js"), indexHtml.slice(0, 200));
+check("index has no inline __CASHIER__ script", !/<script(?![^>]*\bsrc=)[^>]*>[^<]*__CASHIER__/.test(indexHtml));
 check("camera permission policy", /camera=\(self\)/.test(index.headers.get("permissions-policy") || ""), index.headers.get("permissions-policy"));
+const cfgJs = await fetch(BASE + "/cashier-config.js");
+const cfgText = await cfgJs.text();
+check("cashier-config served", cfgJs.status === 200 && /"live"\s*:\s*true/.test(cfgText), cfgText);
 const appjs = await fetch(BASE + "/app.js");
 check("bundle served", appjs.status === 200);
 

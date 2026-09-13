@@ -13,6 +13,8 @@ import {
 import { AmbossLetter, AmbossLogo } from "../AmbossLogo.jsx";
 import { createLiveApi } from "../live-api.js";
 
+/* Hosted builds set this from same-origin cashier-config.js. Do not put the
+   live flag back in an inline <script> — CSP script-src is 'self' only. */
 const HOST = (typeof window !== "undefined" && window.__CASHIER__) || { live: false };
 const BUILD_ID = typeof __BUILD__ === "string" ? __BUILD__ : "dev";
 

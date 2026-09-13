@@ -16,6 +16,8 @@ import { AmbossLetter, AmbossLogo } from "../AmbossLogo.jsx";
 import { createLiveApi } from "../live-api.js";
 import { DOCS, MAP_LINE, SANDBOX_META, SNIPPETS, snippetById, snippetIdForAction } from "./sdk-guide.js";
 
+/* Hosted builds set this from same-origin cashier-config.js. Do not put the
+   live flag back in an inline <script> — CSP script-src is 'self' only. */
 const HOST = (typeof window !== "undefined" && window.__CASHIER__) || { live: false };
 /* Injected by build.mjs. typeof of an undeclared identifier is safe. */
 const BUILD_ID = typeof __BUILD__ === "string" ? __BUILD__ : "dev";

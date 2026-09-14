@@ -1,13 +1,13 @@
 # Core Live cashier
 
-This folder is the **production** package: Live-only Amboss Payments cashier.
-No Mock UI, Code View, Calendly QR, sales CTA, or Fund giveaway chrome.
+This folder is the **production** package: Live-only Amboss Payments cashier
+for an iGaming / house-ledger style balance. No Mock UI, Code View, Calendly
+QR, sales CTA, or Fund giveaway chrome.
 
 ```bash
 npm run build
-npm run dev:core    # mock API, http://localhost:8080
-# or, with a real .env:
-CASHIER_PACKAGE=core npm start
+npm run dev:core       # MOCK_AMBOSS=1, http://localhost:8080
+npm run start:core     # real Amboss, needs .env (CASHIER_PACKAGE=core)
 ```
 
 Copy `src/AmbossCashierMock.jsx` plus `src/live-api.js` / `server/` if you are

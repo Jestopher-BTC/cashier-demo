@@ -1,5 +1,9 @@
 # Cashier demo: deploy and run it at a booth
 
+Worked runbook for `boltda.sh/cashier`. Integrators: swap domain, path, app
+dir, and system user. Secrets stay in `/opt/cashier/.env` on the box, never
+in git. Go-public scan: [docs/PUBLIC_RELEASE.md](docs/PUBLIC_RELEASE.md).
+
 Three modes behind one URL. **Mock UI** needs nothing. **Code View** is the
 integration story. **Live UI** moves real money through the Amboss Payments API.
 

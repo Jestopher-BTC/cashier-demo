@@ -1,6 +1,7 @@
 # Booth demo package
 
-Conference / sales wrapper around the core cashier.
+Conference / sales wrapper around the core cashier. Not the production path
+(`CASHIER_PACKAGE=core` is).
 
 - Mock UI, Code View, Live UI
 - Calendly discovery CTA (`SHOW_DISCOVERY_CTA` in `booth-sales.js`)
@@ -18,4 +19,4 @@ npm start           # live Amboss, needs .env
 ```
 
 Set `SHOW_DISCOVERY_CTA` to `false` to hide the Calendly QR and sales line
-without switching packages.
+without switching packages. Leave booth entirely with `CASHIER_PACKAGE=core`.

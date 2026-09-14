@@ -7,7 +7,9 @@ public** before SBC Lisbon (29 Sep–1 Oct 2026). Treat anything facing
 
 Nothing in git history on this clone contained a live Amboss key, team
 password, operator PIN, or SSH private key. Rotate production secrets anyway
-before the repo is public. See [Jesse actions](#jesse-actions-before-public-mit).
+before the repo is public. Go-public checklist and the 2026-09-14 rescan:
+[docs/PUBLIC_RELEASE.md](docs/PUBLIC_RELEASE.md). See also
+[Jesse actions](#jesse-actions-before-public-mit).
 
 ---
 
@@ -23,13 +25,15 @@ before the repo is public. See [Jesse actions](#jesse-actions-before-public-mit)
 | GitHub deploy key | `/opt/cashier/.ssh/deploy_key` on the droplet, **read-only** on this repo | No. Never copy it into the repo. |
 | SSH keys to the droplet | Operator laptops / cloud console | No |
 
-`.gitignore` ignores `.env`, `.env.local`, and `.env.*` (except `.env.example`).
+`.gitignore` ignores `.env`, `.env.local`, `.env.*` (except `.env.example`),
+plus `*.pem` / `*.key` / `*.macaroon` / `deploy_key*` / `.ssh/`.
 `deploy/push.sh` and `deploy/pull-deploy.sh` never copy or overwrite `.env`.
 
-**Git history (this clone, all 68 commits):** the only env file ever added is
-`.env.example`, with blank `AMBOSS_API_KEY` / `AMBOSS_TEAM_PASSWORD` /
-`OPERATOR_PIN`. Test fixtures use obviously fake values (`amb_live_fake`,
-`4242`, `booth-team-password`). No `BEGIN * PRIVATE KEY` blobs.
+**Git history (this clone, 73 commits as of the 2026-09-14 rescan):** the
+only env file ever added is `.env.example`, with blank `AMBOSS_API_KEY` /
+`AMBOSS_TEAM_PASSWORD` / `OPERATOR_PIN`. Test fixtures use obviously fake
+values (`amb_live_fake`, `4242`, `booth-team-password`). No
+`BEGIN * PRIVATE KEY` blobs. Details: [docs/PUBLIC_RELEASE.md](docs/PUBLIC_RELEASE.md).
 
 That does **not** prove a key was never pasted into a GitHub issue, a Slack
 thread, or an old droplet image. Rotate before going public.
@@ -226,6 +230,9 @@ values.
 - [ ] `curl -s https://boltda.sh/cashier/healthz` must **not** show wallet id or balances. On the box, `curl -s http://127.0.0.1:8080/healthz` still can.
 - [ ] Optional: set `HEALTHZ_TOKEN` in `.env` for a private full-health URL; do not paste it into this repo.
 - [ ] Flip the GitHub repo to public only after the checklist above.
+      Full scan notes and history-rewrite steps (only if needed):
+      [docs/PUBLIC_RELEASE.md](docs/PUBLIC_RELEASE.md). Do not have an agent
+      flip visibility.
 - [ ] Keep `CASHIER_PACKAGE` unset (booth) on boltda.sh until you explicitly want core.
 
 ---

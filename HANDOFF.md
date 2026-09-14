@@ -24,6 +24,7 @@ Everything below is built, tested, and packaged. Nothing is half-finished.
 | Demo server | `server/` | done; live payouts use `@ambosstech/payments` |
 | Deploy kit | `deploy/`, `DEPLOY.md` | done |
 | Security overview | `SECURITY.md` | done |
+| Public MIT checklist | `docs/PUBLIC_RELEASE.md` | done (scan + rotate list) |
 | Address-payout probe | `probe-address-payout.mjs` | written, **never run against the real API** |
 
 Tests, all green: `test-api` 36, `test-browser` 33, `test-session` 7,
@@ -85,12 +86,13 @@ server/
   store.js                rate cache, sessions, daily float
   mock-amboss.js          fake API for dry runs (MOCK_AMBOSS=1)
 deploy/                   Caddyfile, systemd unit, push.sh
+docs/PUBLIC_RELEASE.md    secret scan + go-public checklist
 build.mjs                 sections → esbuild → Babel ES5 → public/ + public-core/
 ```
 
-Also in the delivery, outside this repo: `amboss-cashier-integrator.html`, a
-standalone side-by-side code/UI page from an earlier step. It compiles the JSX in
-the browser with Babel from cdnjs. The booth app superseded it.
+Also at repo root: `amboss-cashier-integrator.html`, a standalone side-by-side
+code/UI page from an earlier step. It compiles the JSX in the browser with Babel
+from cdnjs. The booth app superseded it. Not the production path.
 
 ---
 
@@ -281,10 +283,8 @@ source. Default Code View is the official SDK cheat-sheet in `sdk-guide.js`.
    Send the printed report to the Amboss team either way: the docs page needs
    correcting if it succeeds. This decides whether the booth can run on USDT,
    which is the better story since the balance is then genuinely dollars.
-2. **SSH access to the droplet is unresolved.** `root@boltda.sh` returns
-   `Permission denied (publickey)` from Jesse's MacBook Air, though the host key
-   is already known under `157.230.85.239`. Next step is `ssh -v` output, or
-   adding the key through the DigitalOcean web console. Nothing is deployed yet.
+2. **Booth host SSH.** Confirm you can reach the box in `DEPLOY.md` before
+   the event. Do not record host IPs or laptop key names in this file.
 3. **The iPad has not been identified.** Run `check.html` on it before relying on
    it.
 4. **Not yet tested against the real API at all.** Everything green so far is

@@ -7,14 +7,15 @@ Conference / sales wrapper around the core cashier.
 - Staff **Fund** / **New visitor** on Live (PIN + `FUND_ENABLED` gates)
 - Device check page, offline HTML, booth copy
 
-This is the **default** `npm run build` output in `public/`, and the
-`boltda.sh/cashier` deploy path. Do not change that until you set
-`CASHIER_PACKAGE=core` on purpose.
+This is the **default** `npm run build` output in `public/`, served at `/`
+(and `boltda.sh/cashier`). Core is served from the same process at `/core/`
+when `public-core/` exists. Do not set `CASHIER_PACKAGE=core` on boltda.sh.
 
 ```bash
 npm run build
-npm run dev         # MOCK_AMBOSS=1
+npm run dev         # MOCK_AMBOSS=1, booth at /, core at /core/
 npm start           # live Amboss, needs .env
+npm run start:booth # booth only (CASHIER_PACKAGE=booth)
 ```
 
 Set `SHOW_DISCOVERY_CTA` to `false` to hide the Calendly QR and sales line

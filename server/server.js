@@ -32,24 +32,31 @@ import {
   resolvePublicFile,
   SECURITY_HEADERS,
 } from "./security.js";
+import {
+  coreSlashRedirectLocation,
+  dirHasIndex,
+  isApiPath,
+  isHealthzPath,
+  publicDirFor,
+  resolveHostLayout,
+  splitMount,
+} from "./hosts.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const PUBLIC_DIR = path.join(
-  here,
-  "..",
-  config.cashierPackage === "core" ? "public-core" : "public"
-);
+const BOOTH_DIR = path.join(here, "..", "public");
+const CORE_DIR = path.join(here, "..", "public-core");
+const hostLayout = resolveHostLayout({
+  requested: config.cashierPackage,
+  boothExists: dirHasIndex(BOOTH_DIR),
+  coreExists: dirHasIndex(CORE_DIR),
+});
 const api = config.mock ? mockAmboss : liveAmboss;
 const rateLimited = createRateLimiter();
 const pinGuard = createPinGuard();
 const mockSettleAllowed = config.mock && process.env.NODE_ENV !== "production";
 
 assertReady();
-if (!fs.existsSync(PUBLIC_DIR)) {
-  console.warn(
-    `[warn] ${PUBLIC_DIR} is missing. Run npm run build before serving ${config.cashierPackage}.`
-  );
-}
+if (hostLayout.warning) console.warn(`[warn] ${hostLayout.warning}`);
 
 /* ------------------------------------------------------------ plumbing --- */
 
@@ -480,7 +487,11 @@ async function health(req, res, url) {
     ok: false,
     asset: config.asset,
     mock: config.mock,
-    package: config.cashierPackage,
+    package: hostLayout.mode,
+    packages: {
+      booth: { available: Boolean(hostLayout.booth.available), path: hostLayout.booth.path },
+      core: { available: Boolean(hostLayout.core.available), path: hostLayout.core.path },
+    },
     addressPayouts: addressPayoutState(),
     float: floatState(),
     fundEnabled: Boolean(config.fundEnabled),
@@ -516,8 +527,8 @@ async function health(req, res, url) {
 
 /* ------------------------------------------------------------- static --- */
 
-function serveStatic(req, res, url) {
-  const file = resolvePublicFile(PUBLIC_DIR, url.pathname);
+function serveStatic(req, res, url, publicDir) {
+  const file = resolvePublicFile(publicDir, url.pathname);
   if (!file) return fail(res, 403, "No.");
   const headersFor = (target) => {
     const type = MIME[path.extname(target)] || "application/octet-stream";
@@ -532,7 +543,7 @@ function serveStatic(req, res, url) {
   fs.readFile(file, (err, data) => {
     if (err) {
       if (url.pathname === "/" || url.pathname === "/index.html") return fail(res, 404, "Not found.");
-      const index = resolvePublicFile(PUBLIC_DIR, "/index.html");
+      const index = resolvePublicFile(publicDir, "/index.html");
       if (!index) return fail(res, 404, "Not found.");
       return fs.readFile(index, (e2, html) => {
         if (e2) return fail(res, 404, "Not found.");
@@ -550,10 +561,27 @@ function serveStatic(req, res, url) {
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host || "localhost"}`);
   try {
-    if (url.pathname === "/healthz") return await health(req, res, url);
-    if (url.pathname.startsWith("/api/")) return await handleApi(req, res, url);
+    const dual = hostLayout.mode === "dual";
+    const split = dual
+      ? splitMount(url.pathname)
+      : { mount: "root", rest: url.pathname, trailingSlashRedirect: false };
+
+    if (dual && split.trailingSlashRedirect && (req.method === "GET" || req.method === "HEAD")) {
+      res.writeHead(308, {
+        location: coreSlashRedirectLocation(),
+        ...SECURITY_HEADERS,
+      });
+      return res.end();
+    }
+
+    const routed = new URL(url);
+    routed.pathname = split.rest;
+    const publicDir = publicDirFor(hostLayout, split.mount, BOOTH_DIR, CORE_DIR);
+
+    if (isHealthzPath(routed.pathname)) return await health(req, res, routed);
+    if (isApiPath(routed.pathname)) return await handleApi(req, res, routed);
     if (req.method !== "GET" && req.method !== "HEAD") return fail(res, 405, "Method not allowed.");
-    return serveStatic(req, res, url);
+    return serveStatic(req, res, routed, publicDir);
   } catch (e) {
     console.error("[unhandled]", e);
     return fail(res, 500, "Something broke on the server.");
@@ -562,7 +590,11 @@ const server = http.createServer(async (req, res) => {
 
 server.listen(config.port, config.bindHost, () => {
   console.log(`cashier demo on ${config.bindHost}:${config.port}`);
-  console.log(`  package          ${config.cashierPackage} (${PUBLIC_DIR})`);
+  console.log(`  package          ${hostLayout.mode}`);
+  if (hostLayout.booth.available)
+    console.log(`  booth            ${hostLayout.booth.path} (${BOOTH_DIR})`);
+  if (hostLayout.core.available)
+    console.log(`  core             ${hostLayout.core.path} (${CORE_DIR})`);
   console.log(`  asset            ${config.asset}${config.mock ? " (mock Amboss)" : ""}`);
   console.log(`  address payouts  ${config.addressPayouts ? "on" : "off, invoices only"}`);
   console.log(
@@ -578,4 +610,4 @@ server.listen(config.port, config.bindHost, () => {
   console.log(`  daily float      $${config.dailyFloatUsd}`);
 });
 
-export { server };
+export { server, hostLayout };

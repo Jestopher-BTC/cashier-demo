@@ -91,14 +91,17 @@ the Node process to **loopback** (`BIND_HOST=127.0.0.1`). Do not open port
 
 | Surface | Auth | Notes |
 |---|---|---|
-| `GET /` static UI | None | CSP (`script-src 'self'`, no `unsafe-inline`), `X-Frame-Options: DENY`, `nosniff`. Camera policy is `self` for cash-out scan. Live flag is `cashier-config.js` on the same origin — not an inline `<script>` (that is blocked and the UI falls back to `{ live: false }`). |
+| `GET /` static UI | None | Booth package. CSP (`script-src 'self'`, no `unsafe-inline`), `X-Frame-Options: DENY`, `nosniff`. Camera policy is `self` for cash-out scan. Live flag is `cashier-config.js` on the same origin — not an inline `<script>` (that is blocked and the UI falls back to `{ live: false }`). |
+| `GET /core/` static UI | None | Core (Live-only) package from `public-core/`. Same CSP. Same `cashier-config.js` Live boot. Relative `api` calls go to `/core/api`. |
 | `GET /api/config` | None | Caps, asset, `fundEnabled`. No secrets. |
 | `POST /api/session` | None | Creates an unguessable session id (`s_` + 32 hex from `crypto.randomBytes`). |
 | `GET /api/state` | Session id | Header `X-Cashier-Session`, body, or `?s=` (logs may still see `?s=`). |
 | `POST /api/deposit` | Session + dollar cap | Mints a real invoice when not in mock. |
 | `POST /api/withdraw` | Session + balance + cap | Pays a cashtag, Lightning address, or BOLT11. This **moves wallet funds**. |
 | `POST /api/session/fund` | Session + PIN + Fund gates | Giveaway. |
-| `GET /healthz` | None (redacted) | Booleans + public BTC/USD rate. Wallet id, balances, float remaining, and raw errors only on **direct loopback** or `HEALTHZ_TOKEN`. |
+| `GET /healthz` | None (redacted) | Booleans + public BTC/USD rate + which packages/paths. Wallet id, balances, float remaining, and raw errors only on **direct loopback** or `HEALTHZ_TOKEN`. |
+| `GET /core/healthz` | None (redacted) | Same handler as `/healthz`. |
+| `GET /core/api/*` | Same as `/api/*` | Prefix stripped; shared sessions and Fund gates. |
 | `POST /api/dev/settle/*` | Mock only | 404 when `NODE_ENV=production`, even if `MOCK_AMBOSS=1`. |
 
 **CORS.** The API does not send `Access-Control-Allow-Origin`. Browser JS on
@@ -111,7 +114,8 @@ does not fetch attacker URLs; Amboss does LNURL resolution. `AMBOSS_GRAPHQL_URL`
 is env-only. Do not point it at an internal host.
 
 **Path traversal.** Static files resolve under `public/` or `public-core/` with
-`path.relative` confinement. SPA fallback is `index.html` only.
+`path.relative` confinement. Dual-serve strips `/core` before resolve. SPA
+fallback is `index.html` only.
 
 **Injection.** JSON body parse, no SQL, no shell. GraphQL variables are
 server-built (wallet id and amounts from config / caps), not raw user GraphQL.
@@ -130,7 +134,9 @@ session. Deposit/withdraw poll `warning` fields are gone.
 ## 4. Client exposure
 
 The browser bundle must not contain `AMBOSS_API_KEY`, the team password, or
-the operator PIN. Live calls go to same-origin `/api`.
+the operator PIN. Live calls go to same-origin relative `api` (so `/` hits
+`/api` and `/core/` hits `/core/api`). Do not switch that to root-relative
+`/api`: behind Caddy that would leave `/cashier/` and miss the Node process.
 
 What **is** in the booth bundle, on purpose:
 
@@ -226,7 +232,21 @@ values.
 - [ ] `curl -s https://boltda.sh/cashier/healthz` must **not** show wallet id or balances. On the box, `curl -s http://127.0.0.1:8080/healthz` still can.
 - [ ] Optional: set `HEALTHZ_TOKEN` in `.env` for a private full-health URL; do not paste it into this repo.
 - [ ] Flip the GitHub repo to public only after the checklist above.
-- [ ] Keep `CASHIER_PACKAGE` unset (booth) on boltda.sh until you explicitly want core.
+- [ ] Keep `CASHIER_PACKAGE` unset (dual) on boltda.sh. Booth stays at
+      `/cashier/`; core is `/cashier/core/`. Do not set `core` on that box.
+
+---
+
+## Public release notes (dual URLs)
+
+Before this repo goes public, the hosted app should already be dual-serve:
+
+- `https://boltda.sh/cashier/` — booth (SBC). Do not break this.
+- `https://boltda.sh/cashier/core/` — Live-only reference, same wallet.
+- No Caddy edit if `/cashier/` is already `handle_path` → `127.0.0.1:8080`.
+- `CASHIER_PACKAGE=booth|core` remains as a single-tree fallback for
+  integrators; dual is the default when both `public/` and `public-core/`
+  exist.
 
 ---
 
@@ -237,6 +257,8 @@ npm run build
 node test-security.mjs
 node test-live-csp.mjs
 node test-fund-gate.mjs
+node test-dual-static.mjs
+node test-core-split.mjs
 node test-session.mjs
 node test-api.mjs
 node test-core-split.mjs

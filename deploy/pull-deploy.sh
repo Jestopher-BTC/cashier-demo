@@ -48,4 +48,6 @@ systemctl restart "$SERVICE"
 systemctl status "$SERVICE" --no-pager --lines 5
 
 echo
-echo "Done. Check: curl -s https://boltda.sh/cashier/healthz | jq"
+echo "Done. Check:"
+echo "  curl -s https://boltda.sh/cashier/healthz | jq '{ok, package, packages}'"
+echo "  curl -sI https://boltda.sh/cashier/core/ | head"

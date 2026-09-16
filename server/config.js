@@ -41,9 +41,17 @@ export function resolveFundEnabled(operatorPin, fundFlag) {
 
 const operatorPin = String(env("OPERATOR_PIN", "")).trim();
 const fundEnabled = resolveFundEnabled(operatorPin, parseFundEnabledFlag(process.env.FUND_ENABLED));
-const cashierPackage = String(env("CASHIER_PACKAGE", "booth")).trim().toLowerCase();
-if (cashierPackage !== "booth" && cashierPackage !== "core")
-  throw new Error(`CASHIER_PACKAGE must be booth or core, got "${cashierPackage}"`);
+
+/* dual (default) = booth at / and core at /core/ when both builds exist.
+   booth / core = single static tree at / (the old CASHIER_PACKAGE flip). */
+export function parseCashierPackage(raw) {
+  const v = String(raw == null ? "" : raw).trim().toLowerCase();
+  if (!v || v === "dual" || v === "both") return "dual";
+  if (v === "booth" || v === "core") return v;
+  throw new Error(`CASHIER_PACKAGE must be dual, booth, or core, got "${raw}"`);
+}
+
+const cashierPackage = parseCashierPackage(env("CASHIER_PACKAGE", ""));
 
 export const config = {
   port: num("PORT", 8080),
@@ -51,7 +59,8 @@ export const config = {
      loopback so Caddy is the only public door. Override with BIND_HOST. */
   bindHost: env("BIND_HOST", process.env.NODE_ENV === "production" ? "127.0.0.1" : "0.0.0.0"),
   mock: bool("MOCK_AMBOSS", false),
-  /* booth = conference 3-mode app (default, boltda.sh). core = Live-only cashier. */
+  /* dual = booth at / and core at /core/ (default when both builds exist).
+     booth / core = single-tree fallback; core is then served at /. */
   cashierPackage,
   /* Optional. When set, GET /healthz?token=... (or X-Healthz-Token) returns
      wallet id, balances, and float remaining. Leave blank: those details are

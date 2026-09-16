@@ -277,6 +277,6 @@ fs.writeFileSync(
 const kb = (n) => Math.round(n / 1024) + " KB";
 console.log("sections   ", sections.length, "covering", lines, "lines");
 console.log("build id   ", BUILD_ID);
-console.log("booth app  ", kb(boothBundle.length), "→ public/ (boltda.sh default)");
-console.log("core app   ", kb(coreBundle.length), "→ public-core/ (CASHIER_PACKAGE=core)");
+console.log("booth app  ", kb(boothBundle.length), "→ public/ (/, boltda.sh/cashier/)");
+console.log("core app   ", kb(coreBundle.length), "→ public-core/ (served at /core/ by default)");
 console.log("offline    ", kb(fs.statSync(p("offline", "cashier-offline.html")).size));

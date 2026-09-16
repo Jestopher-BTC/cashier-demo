@@ -17,9 +17,9 @@ Everything below is built, tested, and packaged. Nothing is half-finished.
 | Piece | Where | State |
 |---|---|---|
 | Cashier widget (core) | `src/AmbossCashierMock.jsx` | done |
-| Live-only package | `src/core/` → `public-core/` | done |
+| Live-only package | `src/core/` → `public-core/` at `/core/` | done |
 | Booth sales / discovery | `src/booth/booth-sales.js` (`SHOW_DISCOVERY_CTA`) | done |
-| Three-mode booth app | `src/booth/shell.jsx` → `public/` (default, boltda.sh) | done |
+| Three-mode booth app | `src/booth/shell.jsx` → `public/` at `/` (boltda.sh/cashier) | done |
 | Offline single file | `offline/cashier-offline.html` | done (booth bundle) |
 | Demo server | `server/` | done; live payouts use `@ambosstech/payments` |
 | Deploy kit | `deploy/`, `DEPLOY.md` | done |
@@ -67,7 +67,7 @@ rather than "Sorry, something went wrong."
 ```
 src/
   AmbossCashierMock.jsx   core cashier. Provider + 3 flows + QR encoder.
-  live-api.js             browser client implementing the seams against /api
+  live-api.js             browser client; relative `api` so /core/ hits /core/api
   core/                   Live-only entry (no Mock/Code/CTA/Fund UI)
   booth/
     index.jsx             booth entry (default build → public/)
@@ -78,7 +78,8 @@ src/
     generated-sections.js BUILD ARTEFACT. Never edit; build.mjs rewrites it.
     page.html             chrome CSS, both themes. Live flag is cashier-config.js.
 server/
-  server.js               routes, caps, session gate, capability detection
+  server.js               routes, dual static (/ + /core/), caps, session gate
+  hosts.js                CASHIER_PACKAGE layout, /core mount strip
   security.js             PIN lockout, client IP, public errors, static paths
   amboss.js               GraphQL receive/poll + official SDK send path
   config.js               every env knob, plus minor-unit maths
@@ -192,17 +193,19 @@ supports.
 
 ```bash
 npm install
-npm run build          # public/ (booth) + public-core/ (Live-only)
-npm run dev            # MOCK_AMBOSS=1, booth UI, port 8080
-npm run dev:core       # same mock server, Live-only UI
-npm start              # real API, needs .env, booth UI
-npm run start:core     # real API, Live-only UI
+npm run build          # public/ (booth at /) + public-core/ (core at /core/)
+npm run dev            # MOCK_AMBOSS=1, dual URLs, port 8080
+npm run dev:core       # same mock server, Live-only UI at /
+npm run dev:booth      # booth only at /
+npm start              # real API, needs .env, dual URLs
+npm run start:core     # real API, Live-only UI at /
 
 node test-api.mjs              # server flow: caps, credits, refunds, validation
 node test-browser.mjs          # three modes in jsdom against a live server
 node test-session.mjs          # a reload resumes the balance
 node test-security.mjs         # PIN lockout, healthz redaction, session ids
 node test-core-split.mjs       # core bundle has no booth sales chrome
+node test-dual-static.mjs      # booth at /, core at /core/, shared API
 node test-theme.mjs            # chrome and card switch theme together
 node test-usdt-send-amount.mjs # $1 USDT cash-out is 1e6 minor units, not btc/100
 node test-sdk-guide.mjs        # official SDK snippets, not the React mock API
@@ -307,4 +310,5 @@ is not mixed into the cashier card. It lives in `src/booth/booth-sales.js` behin
 `SHOW_DISCOVERY_CTA`. Set that to false to hand the cashier off without hunting
 layout. Mock shows the CTA outside the main card. Live stays clean on the
 wallet. Cash-out success shows CTA + QR outside the success card.
-Core (`src/core/`, `CASHIER_PACKAGE=core`) never imports that file.
+Core (`src/core/`) never imports that file. Dual-serve puts it at `/core/`;
+`CASHIER_PACKAGE=core` puts it at `/`.

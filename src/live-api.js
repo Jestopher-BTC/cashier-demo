@@ -60,6 +60,8 @@ function readPayload(res) {
 }
 
 export function createLiveApi(options) {
+  /* Relative "api", not "/api". From / that is /api; from /core/ it is
+     /core/api. Root-relative /api would miss the Caddy /cashier prefix. */
   var base = (options && options.base) || "api";
   var onEvent = (options && options.onEvent) || function () {};
   var sessionId = null;

@@ -10,8 +10,9 @@ delete process.env.CASHIER_PACKAGE;
 
 import { spawn } from "node:child_process";
 import { JSDOM } from "jsdom";
-import { parseCashierPackage } from "./server/config.js";
-import {
+
+const { parseCashierPackage } = await import("./server/config.js");
+const {
   CORE_MOUNT,
   coreSlashRedirectLocation,
   publicDirFor,
@@ -19,9 +20,9 @@ import {
   splitMount,
   isApiPath,
   isHealthzPath,
-} from "./server/hosts.js";
-import { resolvePublicFile } from "./server/security.js";
-import { server, hostLayout } from "./server/server.js";
+} = await import("./server/hosts.js");
+const { resolvePublicFile } = await import("./server/security.js");
+const { server, hostLayout } = await import("./server/server.js");
 
 const BASE = "http://127.0.0.1:8201";
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -169,8 +170,18 @@ const boothDom = await JSDOM.fromURL(BASE + "/", {
   pretendToBeVisual: true,
 });
 await sleep(1600);
-check("booth still has mode tabs", boothDom.window.document.querySelectorAll(".mode").length >= 3);
-check("booth still has Fund chrome", Boolean(boothDom.window.document.querySelector("[data-fund]")));
+const boothDoc = boothDom.window.document;
+check("booth still has mode tabs", boothDoc.querySelectorAll(".mode").length >= 3);
+const liveBtn = Array.from(boothDoc.querySelectorAll("button")).find((b) => b.textContent.trim().indexOf("Live UI") === 0);
+if (liveBtn) {
+  liveBtn.dispatchEvent(new boothDom.window.MouseEvent("click", { bubbles: true }));
+  await sleep(1200);
+}
+check(
+  "booth Live still has Fund chrome",
+  Boolean(boothDoc.querySelector("[data-fund]")),
+  boothDoc.body.textContent.slice(0, 180)
+);
 
 const coreDom = await JSDOM.fromURL(BASE + "/core/", {
   runScripts: "dangerously",

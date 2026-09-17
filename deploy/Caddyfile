@@ -6,7 +6,8 @@
 #
 # The cashier only uses relative URLs, so it doesn't care that it's served
 # from a path instead of its own domain. handle_path strips the /cashier
-# prefix before proxying.
+# prefix before proxying. Node then serves booth at / and core at /core/
+# (boltda.sh/cashier/ and boltda.sh/cashier/core/). No extra Caddy route.
 
 	redir /cashier /cashier/
 

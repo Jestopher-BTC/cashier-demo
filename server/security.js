@@ -164,6 +164,20 @@ export function redactHealth(full) {
     asset: full.asset,
     mock: Boolean(full.mock),
     package: full.package,
+    ...(full.packages
+      ? {
+          packages: {
+            booth: {
+              available: Boolean(full.packages.booth && full.packages.booth.available),
+              path: full.packages.booth ? full.packages.booth.path : null,
+            },
+            core: {
+              available: Boolean(full.packages.core && full.packages.core.available),
+              path: full.packages.core ? full.packages.core.path : null,
+            },
+          },
+        }
+      : {}),
     addressPayouts: {
       supported: Boolean(full.addressPayouts && full.addressPayouts.supported),
       verified: Boolean(full.addressPayouts && full.addressPayouts.verified),

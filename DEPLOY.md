@@ -3,9 +3,51 @@
 Three modes behind one URL. **Mock UI** needs nothing. **Code View** is the
 integration story. **Live UI** moves real money through the Amboss Payments API.
 
-    boltda.sh/cashier          the demo
+    boltda.sh/cashier              booth (Mock/Code/Live, sales CTA, Fund) — SBC
+    boltda.sh/cashier/core/        Live-only reference, same wallet
     boltda.sh/cashier/check.html   device check, run this first on the iPad
-    boltda.sh/cashier/healthz      is the wallet reachable and funded
+    boltda.sh/cashier/healthz      wallet, float, and which packages/paths
+
+---
+
+## Dual URLs: paste this on boltdash
+
+One Node process serves both UIs. **Caddy does not change.** Existing
+`handle_path /cashier/*` already forwards `/cashier/core/` to Node as `/core/`.
+
+After this commit is on `main`:
+
+```bash
+ssh boltdash
+sudo /opt/cashier/deploy/pull-deploy.sh
+
+# Dual-serve needs CASHIER_PACKAGE unset (or =dual). If an older .env copied
+# CASHIER_PACKAGE=booth, /cashier/core/ will not be the Live-only app:
+sudo grep -n CASHIER_PACKAGE /opt/cashier/.env || true
+# If that printed CASHIER_PACKAGE=booth, comment it out or set dual:
+#   sudo -u cashier nano /opt/cashier/.env
+#   sudo systemctl restart cashier
+
+echo "--- healthz packages ---"
+curl -s https://boltda.sh/cashier/healthz | jq '{ok, package, packages}'
+
+echo "--- booth (SBC) ---"
+curl -sI https://boltda.sh/cashier/ | head -n 8
+curl -s https://boltda.sh/cashier/cashier-config.js
+
+echo "--- core ---"
+curl -sI https://boltda.sh/cashier/core/ | head -n 8
+curl -s https://boltda.sh/cashier/core/cashier-config.js
+```
+
+Expect `package: "dual"`, booth path `"/"`, core path `"/core/"`, and both
+`cashier-config.js` bodies to contain `"live":true`. Booth at
+`https://boltda.sh/cashier/` must still be Mock/Code/Live + Fund. Core at
+`https://boltda.sh/cashier/core/` is Live-only. Same wallet; Fund gates
+unchanged.
+
+Single-tree fallback (not for boltda.sh): `CASHIER_PACKAGE=booth` or `core`
+serves only that package at `/`.
 
 ---
 
@@ -191,10 +233,15 @@ cd /opt/cashier
 sudo -u cashier cp .env.example .env
 sudo -u cashier $EDITOR .env          # paste the Amboss key, wallet id, operator pin
 sudo chmod 600 /opt/cashier/.env
-# Leave CASHIER_PACKAGE unset (booth). Do not set core on boltda.sh.
+# Leave CASHIER_PACKAGE unset (dual: booth at /, core at /core/).
+# Do not set core on boltda.sh.
 
 sudo -u cashier npm ci                # full install, the build step needs devDependencies
 sudo -u cashier npm run build
+
+# Dual-serve is the default (booth at /, core at /core/). Leave
+# CASHIER_PACKAGE unset. Do not set core on boltda.sh — that would
+# replace the SBC booth UI with Live-only at /cashier/.
 
 sudo cp deploy/cashier.service /etc/systemd/system/
 sudo systemctl daemon-reload
@@ -217,10 +264,14 @@ a copy-paste reference):
 ```
 
 Bolt Dash listens on port 3000; the cashier defaults to 8080. No collision.
+**No extra Caddy route for `/cashier/core/`.** `handle_path` already forwards
+that to Node as `/core/`, and the app serves `public-core/` there.
 
 ```bash
 sudo systemctl reload caddy
-curl -s https://boltda.sh/cashier/healthz | jq
+curl -s https://boltda.sh/cashier/healthz | jq '.ok, .package, .packages'
+curl -sI https://boltda.sh/cashier/ | head -n 5
+curl -sI https://boltda.sh/cashier/core/ | head -n 5
 ```
 
 `ok: true` means the API answered, the wallet is ready, and a real BTC/USD
@@ -254,7 +305,13 @@ sudo /opt/cashier/deploy/pull-deploy.sh
 That script does `git fetch` + `git reset --hard origin/main`, `npm ci`,
 `npm run build`, and restarts the `cashier` service, running the git/npm steps
 as the `cashier` user (so file ownership stays correct) and the restart as
-root (systemd needs it). It never touches `.env`.
+root (systemd needs it). It never touches `.env`. After restart, booth stays
+at `/cashier/` and core is at `/cashier/core/` from the same process.
+
+If `/opt/cashier/.env` still has `CASHIER_PACKAGE=booth` (copied from an older
+`.env.example`), dual-serve is off and `/cashier/core/` is not the Live-only
+app. Comment that line out or set `CASHIER_PACKAGE=dual`, then
+`sudo systemctl restart cashier`.
 
 The footer on Mock and Live shows a compact build id (`build a1b2c3d`). After
 deploy, a screenshot of boltda.sh/cashier is enough to confirm the box is on
@@ -398,7 +455,8 @@ npm run build
 npm run dev      # MOCK_AMBOSS=1, no key and no money
 ```
 
-Then open `http://localhost:8080`. In mock mode, settle a deposit by hand:
+Then open `http://localhost:8080` (booth) and `http://localhost:8080/core/`
+(Live-only). In mock mode, settle a deposit by hand:
 
 ```bash
 curl -X POST localhost:8080/api/dev/settle/all -d '{}' -H 'content-type: application/json'
@@ -411,6 +469,7 @@ node test-api.mjs       # server flow: caps, credits, refunds, validation
 node test-browser.mjs   # all three modes in jsdom against a live server
 node test-session.mjs   # a reload resumes the balance instead of dropping it
 node test-theme.mjs     # chrome and card switch theme together
+node test-dual-static.mjs  # booth at /, core at /core/, shared /api
 ```
 
 ---

@@ -107,6 +107,10 @@ const full = {
   asset: "BTC",
   mock: true,
   package: "booth",
+  packages: {
+    booth: { available: true, path: "/" },
+    core: { available: true, path: "/core/" },
+  },
   fundEnabled: true,
   addressPayouts: { supported: true, verified: false, lastError: "secret" },
   float: { day: "2026-09-11", grantedUsd: 8, paidOutUsd: 4, capUsd: 25, remainingUsd: 17 },
@@ -122,6 +126,7 @@ check("redacted health drops balance", red.checks.wallet.balance === undefined);
 check("redacted health drops float remaining", red.float.remainingUsd === undefined && red.float.grantedUsd === undefined);
 check("redacted health drops lastError", red.addressPayouts.lastError === undefined);
 check("redacted health keeps rate", red.checks.rate.usdPerBtc === 100000);
+check("redacted health keeps package paths", red.packages.core.path === "/core/" && red.packages.booth.path === "/");
 
 const proxied = await fetch(BASE + "/healthz", { headers: { "X-Forwarded-For": "203.0.113.9" } });
 const proxiedJson = await proxied.json();

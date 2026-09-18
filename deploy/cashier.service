@@ -1,6 +1,6 @@
 # /etc/systemd/system/cashier.service
 [Unit]
-Description=Amboss cashier conference demo
+Description=Amboss Payments cashier
 After=network-online.target
 Wants=network-online.target
 

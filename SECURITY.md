@@ -1,13 +1,14 @@
 # Security overview
 
 This repo is a small Amboss Payments cashier: a static UI plus a Node server
-that mints invoices and sends Lightning payouts. It is meant to go **MIT /
-public** before SBC Lisbon (29 Sep–1 Oct 2026). Treat anything facing
-`boltda.sh/cashier` as internet-reachable.
+that mints invoices and sends Lightning payouts. Treat any internet-facing
+deploy as hostile. The reference kiosk is `boltda.sh/cashier`.
 
 Nothing in git history on this clone contained a live Amboss key, team
 password, operator PIN, or SSH private key. Rotate production secrets anyway
-before the repo is public. See [Jesse actions](#jesse-actions-before-public-mit).
+before the repo is public. Go-public checklist:
+[docs/PUBLIC_RELEASE.md](docs/PUBLIC_RELEASE.md). See also
+[before public MIT](#before-this-repository-is-public).
 
 ---
 
@@ -20,19 +21,20 @@ before the repo is public. See [Jesse actions](#jesse-actions-before-public-mit)
 | `AMBOSS_TEAM_PASSWORD` / `TEAM_PASSWORD` | `.env`. Decrypts the node macaroon **in-process** via `@ambosstech/payments`. Never sent to Amboss GraphQL as plaintext. | No |
 | `OPERATOR_PIN` | `.env`. Fund is off when this is blank. | No. Typed into the PIN dialog, POSTed to `/api/session/fund`. |
 | `HEALTHZ_TOKEN` | Optional `.env`. Unlocks full `/healthz` through Caddy. | Only if you put it in a bookmark or chat. |
-| GitHub deploy key | `/opt/cashier/.ssh/deploy_key` on the droplet, **read-only** on this repo | No. Never copy it into the repo. |
-| SSH keys to the droplet | Operator laptops / cloud console | No |
+| GitHub deploy key | `/opt/cashier/.ssh/deploy_key` on the server, **read-only** on this repo | No. Never copy it into the repo. |
+| SSH keys to the host | Operator laptops / cloud console | No |
 
-`.gitignore` ignores `.env`, `.env.local`, and `.env.*` (except `.env.example`).
+`.gitignore` ignores `.env`, `.env.local`, `.env.*` (except `.env.example`),
+plus `*.pem` / `*.key` / `*.macaroon` / `deploy_key*` / `.ssh/`.
 `deploy/push.sh` and `deploy/pull-deploy.sh` never copy or overwrite `.env`.
 
-**Git history (this clone, all 68 commits):** the only env file ever added is
-`.env.example`, with blank `AMBOSS_API_KEY` / `AMBOSS_TEAM_PASSWORD` /
-`OPERATOR_PIN`. Test fixtures use obviously fake values (`amb_live_fake`,
-`4242`, `booth-team-password`). No `BEGIN * PRIVATE KEY` blobs.
+**Git history:** the only env file ever added is `.env.example`, with blank
+`AMBOSS_API_KEY` / `AMBOSS_TEAM_PASSWORD` / `OPERATOR_PIN`. Test fixtures use
+obviously fake values (`amb_live_fake`, `4242`, `booth-team-password`). No
+`BEGIN * PRIVATE KEY` blobs. Details: [docs/PUBLIC_RELEASE.md](docs/PUBLIC_RELEASE.md).
 
 That does **not** prove a key was never pasted into a GitHub issue, a Slack
-thread, or an old droplet image. Rotate before going public.
+thread, or an old disk image. Rotate before going public.
 
 ### What must be rotated
 
@@ -43,10 +45,10 @@ thread, or an old droplet image. Rotate before going public.
    and `424242` — those are fixtures, never a production PIN).
 4. **GitHub deploy key** only if you ever committed it or enabled write access.
    Read-only is correct; making the repo public does not leak the private half
-   unless it left the droplet.
-5. Droplet `authorized_keys` if a laptop key was shared too widely.
+   unless it left the server.
+5. Host `authorized_keys` if a laptop key was shared too widely.
 
-Do not put replacements in this repo. Put them in `/opt/cashier/.env` only.
+Do not put replacements in this repo. Put them in `.env` on the box only.
 
 ---
 
@@ -84,10 +86,10 @@ digits and stand next to the iPad.
 
 ## 3. Public attack surface
 
-Default deploy: Caddy on `boltda.sh` reverse-proxies `/cashier/*` to
-`127.0.0.1:8080`. The systemd unit now sets `NODE_ENV=production`, which binds
-the Node process to **loopback** (`BIND_HOST=127.0.0.1`). Do not open port
-8080 on the public interface.
+Default production bind: the systemd unit sets `NODE_ENV=production`, which
+binds the Node process to **loopback** (`BIND_HOST=127.0.0.1`). Put a reverse
+proxy in front. Do not open port 8080 on the public interface. The reference
+kiosk uses Caddy `handle_path /cashier/*` → `127.0.0.1:8080`.
 
 | Surface | Auth | Notes |
 |---|---|---|
@@ -202,31 +204,30 @@ Lockfile is committed. Deploy with `npm ci`. The `cashier` system user owns
 
 | Issue | Plan |
 |---|---|
-| Session id still accepted as `?s=` (log / Referer leak) | Header is primary; drop the query param after the booth iPad is confirmed on a build that sends `X-Cashier-Session` only. |
+| Session id still accepted as `?s=` (log / Referer leak) | Header is primary; drop the query param after clients send `X-Cashier-Session` only. |
 | Short PIN still allowed | Boot warns. Optionally refuse to enable Fund if `OPERATOR_PIN.length < 6`. |
-| In-memory sessions / float (restart = wipe, no audit log) | Acceptable for a booth. Production integrators should persist and log payouts on their side. |
-| No webhook signature path (polling only) | Documented. Add Amboss webhooks when this outgrows a kiosk. |
+| In-memory sessions / float (restart = wipe, no audit log) | Acceptable for a kiosk. Production integrators should persist and log payouts on their side. |
+| No webhook signature path (polling only) | Documented. Add Amboss webhooks when this outgrows polling. |
 | esbuild moderate (dev) | Wait for a minor bump; not in the runtime image. |
-| `amboss-cashier-integrator.html` at repo root | Older Babel-in-browser artifact. Not the booth path. Move to `docs/` or drop in a follow-up. |
 | Offline HTML is a full booth bundle | Intentional for venue wifi death. Do not put secrets in it. |
 
 ---
 
-## Jesse actions before public MIT
+## Before this repository is public
 
-Do these on the Amboss dashboard and the droplet. Do **not** commit the new
-values.
+Do these on the Amboss dashboard and the host. Do **not** commit the new
+values. Full scan notes: [docs/PUBLIC_RELEASE.md](docs/PUBLIC_RELEASE.md).
 
 - [ ] Mint a new Amboss API key; revoke the previous one.
 - [ ] Confirm `AMBOSS_TEAM_PASSWORD` was never in git, tickets, or screenshots; change it if unsure.
 - [ ] Set a new 6+ digit `OPERATOR_PIN`, or leave it blank to disable Fund.
 - [ ] `chmod 600 /opt/cashier/.env` and confirm it is not world-readable.
-- [ ] Confirm the GitHub deploy key is **read-only** and its private half is only on the droplet.
+- [ ] Confirm the GitHub deploy key is **read-only** and its private half is only on the server.
 - [ ] After `NODE_ENV=production` lands, confirm `ss -lntp | grep 8080` shows `127.0.0.1` only.
-- [ ] `curl -s https://boltda.sh/cashier/healthz` must **not** show wallet id or balances. On the box, `curl -s http://127.0.0.1:8080/healthz` still can.
+- [ ] Public `/healthz` must **not** show wallet id or balances. On the box, `curl -s http://127.0.0.1:8080/healthz` still can.
 - [ ] Optional: set `HEALTHZ_TOKEN` in `.env` for a private full-health URL; do not paste it into this repo.
-- [ ] Flip the GitHub repo to public only after the checklist above.
-- [ ] Keep `CASHIER_PACKAGE` unset (booth) on boltda.sh until you explicitly want core.
+- [ ] Flip the GitHub repo to public only after the checklist above. Do not have an agent flip visibility.
+- [ ] Keep `CASHIER_PACKAGE` unset (booth) on the kiosk host until you explicitly want core.
 
 ---
 

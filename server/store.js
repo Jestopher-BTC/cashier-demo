@@ -79,8 +79,7 @@ export async function getRate() {
    stablecoin wallet. Using the getRate() "1" shortcut here was a real bug: it
    let an invoice worth hundreds of real dollars pass a $1-$100 cap check that
    thought it cost a fraction of a cent, because 1,000,000 sats / 1e8 * 1 came
-   out to $0.01 instead of ~$811 at the real rate. See HANDOFF.md if this file
-   moves. */
+   out to $0.01 instead of ~$811 at the real rate. */
 export async function getInvoiceUsdRate() {
   const rate = await fetchBtcUsdRate();
   if (!isUsableBtcRate(rate)) throw new Error("No usable BTC/USD rate.");

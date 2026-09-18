@@ -10,8 +10,7 @@
    to reuse that same "1" to price invoices too. That let a 1,000,000-sat
    invoice (really ~$1,000 at a real rate) compute as $0.01 and sail through
    a $0.01-$5 cap check, while Amboss went on to attempt the real ~$1,000
-   Lightning payment underneath it. See HANDOFF.md / DEPLOY.md for the full
-   incident writeup. */
+   Lightning payment underneath it. */
 
 process.env.MOCK_AMBOSS = "1";
 process.env.PORT = process.env.PORT || "8189";

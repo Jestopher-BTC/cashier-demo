@@ -9,3 +9,17 @@ public-core/
 offline/
 *.log
 .DS_Store
+
+# Credential material that must never be committed
+*.pem
+*.key
+*.p12
+*.pfx
+*.macaroon
+id_rsa
+id_rsa.pub
+id_ed25519
+id_ed25519.pub
+deploy_key
+deploy_key.pub
+.ssh/

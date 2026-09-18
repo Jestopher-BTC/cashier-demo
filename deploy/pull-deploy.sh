@@ -6,7 +6,7 @@
 #
 #   sudo /opt/cashier/deploy/pull-deploy.sh
 #
-# Requires: the repo already cloned into APP_DIR (see DEPLOY.md section 3),
+# Requires: the repo already cloned into APP_DIR (see DEPLOY.md),
 # APP_USER already owning that checkout, and .env already in place — this
 # script never touches .env.
 #
@@ -29,7 +29,7 @@ if [ ! -f "$APP_DIR/package.json" ] || ! grep -q '"name": "cashier-demo"' "$APP_
   exit 1
 fi
 if [ ! -d "$APP_DIR/.git" ]; then
-  echo "$APP_DIR is not a git checkout. Clone it first (DEPLOY.md section 3.4)." >&2
+  echo "$APP_DIR is not a git checkout. Clone it first (DEPLOY.md)." >&2
   exit 1
 fi
 

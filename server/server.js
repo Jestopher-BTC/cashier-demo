@@ -24,6 +24,7 @@ import {
   createPinGuard,
   createRateLimiter,
   healthzTokenOk,
+  allowsSpaFallback,
   htmlSecurityHeaders,
   isDirectLoopback,
   newSecretId,
@@ -55,7 +56,7 @@ if (!fs.existsSync(PUBLIC_DIR)) {
 
 const MIME = {
   ".html": "text/html; charset=utf-8",
-  ".js": "text/javascript; charset=utf-8",
+  ".js": "application/javascript; charset=utf-8",
   ".css": "text/css; charset=utf-8",
   ".json": "application/json; charset=utf-8",
   ".svg": "image/svg+xml",
@@ -531,7 +532,7 @@ function serveStatic(req, res, url) {
 
   fs.readFile(file, (err, data) => {
     if (err) {
-      if (url.pathname === "/" || url.pathname === "/index.html") return fail(res, 404, "Not found.");
+      if (!allowsSpaFallback(url.pathname)) return fail(res, 404, "Not found.");
       const index = resolvePublicFile(PUBLIC_DIR, "/index.html");
       if (!index) return fail(res, 404, "Not found.");
       return fs.readFile(index, (e2, html) => {

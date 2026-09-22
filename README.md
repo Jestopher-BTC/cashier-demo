@@ -115,6 +115,7 @@ node test-security.mjs
 node test-core-split.mjs
 node test-fund-gate.mjs
 node test-live-csp.mjs
+node test-static-fallback.mjs
 node test-session.mjs
 ```
 

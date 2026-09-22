@@ -212,6 +212,18 @@ export function htmlSecurityHeaders() {
   };
 }
 
+/* SPA fallback is for extensionless client routes only. check.html, check.js,
+   cashier-config.js, app.js, and other static assets must 404 when missing.
+   Returning index.html for those paths serves the cashier document as
+   text/html and the diagnostics script never loads. */
+const STATIC_ASSET_PATH = /\.(?:html?|js|mjs|css|json|svg|png|ico|webmanifest|map|txt|woff2?)$/i;
+
+export function allowsSpaFallback(urlPath) {
+  const pathOnly = String(urlPath || "/").split("?")[0].split("#")[0];
+  if (pathOnly === "/" || pathOnly === "/index.html") return false;
+  return !STATIC_ASSET_PATH.test(pathOnly);
+}
+
 export function resolvePublicFile(publicDir, urlPath) {
   let rel = String(urlPath || "/");
   try {

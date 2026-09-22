@@ -142,7 +142,7 @@ function page(bootstrap) {
   return fs.readFileSync(p("src", "booth", "page.html"), "utf8").replace("__BOOTSTRAP__", bootstrap);
 }
 
-function writeSite(dir, bundle, { check } = {}) {
+function writeSite(dir, bundle) {
   fs.mkdirSync(dir, { recursive: true });
   fs.writeFileSync(path.join(dir, "app.js"), bundle);
   fs.writeFileSync(path.join(dir, "cashier-config.js"), cashierConfigJs({ live: true }));
@@ -150,10 +150,11 @@ function writeSite(dir, bundle, { check } = {}) {
     path.join(dir, "index.html"),
     page('<script src="cashier-config.js"></script>\n<script src="app.js"></script>')
   );
-  if (check) {
-    fs.writeFileSync(path.join(dir, "check.js"), CHECK_JS);
-    fs.writeFileSync(path.join(dir, "check.html"), CHECK);
-  }
+  /* Both trees. The kiosk serves public-core/ when CASHIER_PACKAGE=core.
+     Omitting check.* there made /check.html and /check.js fall through to
+     index.html (text/html), so the iPad diagnostics page never loaded. */
+  fs.writeFileSync(path.join(dir, "check.js"), CHECK_JS);
+  fs.writeFileSync(path.join(dir, "check.html"), CHECK);
   fs.copyFileSync(p("src", "assets", "logo_gradient.svg"), path.join(dir, "logo_gradient.svg"));
   fs.copyFileSync(p("src", "assets", "letter_gradient.svg"), path.join(dir, "letter_gradient.svg"));
   fs.copyFileSync(p("src", "assets", "letter_black.svg"), path.join(dir, "letter_black.svg"));
@@ -174,7 +175,13 @@ const CHECK = `<!DOCTYPE html>
  code{color:#E8EEF9}
 </style></head><body>
 <h1>Cashier device check</h1>
-<p class="sub">Run this on the booth iPad before the doors open.</p>
+<p class="sub">Run this on the booth iPad before the doors open. The table fills in when JavaScript runs.</p>
+<div class="note" id="static-help">
+  <p><b>If the table below stays empty, this Safari did not run the check.</b> Old iPad WebKit (about iOS 11 and earlier) cannot boot the cashier, so that page stays black. Google.com can still load. Use a newer iPad. iOS 12 is the floor, and iOS 15 and later looks right. Or run the demo from a laptop.</p>
+</div>
+<noscript>
+  <p class="note"><b>JavaScript is off.</b> This browser will not start the cashier. Enable JavaScript, or open the demo on a newer iPad.</p>
+</noscript>
 <table id="t"></table>
 <div class="note" id="verdict"></div>
 <p class="note" style="margin-top:18px">
@@ -267,8 +274,8 @@ const boothBundle = await buildBundle(p("src", "booth", "index.jsx"));
 const coreBundle = await buildBundle(p("src", "core", "index.jsx"));
 
 fs.mkdirSync(p("offline"), { recursive: true });
-writeSite(p("public"), boothBundle, { check: true });
-writeSite(p("public-core"), coreBundle, { check: false });
+writeSite(p("public"), boothBundle);
+writeSite(p("public-core"), coreBundle);
 fs.writeFileSync(
   p("offline", "cashier-offline.html"),
   page("<script>" + cashierConfigJs({ live: false }) + boothBundle + "</script>")

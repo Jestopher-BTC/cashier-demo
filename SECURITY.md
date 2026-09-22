@@ -113,7 +113,10 @@ does not fetch attacker URLs; Amboss does LNURL resolution. `AMBOSS_GRAPHQL_URL`
 is env-only. Do not point it at an internal host.
 
 **Path traversal.** Static files resolve under `public/` or `public-core/` with
-`path.relative` confinement. SPA fallback is `index.html` only.
+`path.relative` confinement. SPA fallback is `index.html` for extensionless
+paths only. `check.html`, `check.js`, `cashier-config.js`, `app.js`, and any
+other static asset 404 when the file is missing, so the cashier document is
+never returned in their place.
 
 **Injection.** JSON body parse, no SQL, no shell. GraphQL variables are
 server-built (wallet id and amounts from config / caps), not raw user GraphQL.

@@ -48,4 +48,8 @@ systemctl restart "$SERVICE"
 systemctl status "$SERVICE" --no-pager --lines 5
 
 echo
-echo "Done. Check: curl -s https://boltda.sh/cashier/healthz | jq"
+echo "Done. Check:"
+echo "  curl -s https://boltda.sh/cashier/healthz | jq"
+echo "  curl -sI https://boltda.sh/cashier/check.html    # content-type: text/html"
+echo "  curl -sI https://boltda.sh/cashier/check.js      # content-type: application/javascript"
+echo "A text/html check.js means the SPA index was served. Rebuild before retrying."

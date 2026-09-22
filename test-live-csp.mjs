@@ -67,9 +67,16 @@ const offlineHost = offlineAssign ? JSON.parse(offlineAssign[1]) : { live: true 
 check("offline HTML still sets live false", offlineHost.live === false, offlineAssign && offlineAssign[1]);
 
 console.log("\ndevice check page");
-const checkHtml = read("public/check.html");
-check("check.html has no inline script", inlineScripts(checkHtml).length === 0, inlineScripts(checkHtml)[0]);
-check("check.html loads check.js", scriptSrcs(checkHtml).includes("check.js"));
+for (const dir of ["public", "public-core"]) {
+  const checkHtml = read(dir + "/check.html");
+  const checkJs = read(dir + "/check.js");
+  check(dir + " check.html has no inline script", inlineScripts(checkHtml).length === 0, inlineScripts(checkHtml)[0]);
+  check(dir + " check.html loads check.js", scriptSrcs(checkHtml).includes("check.js"));
+  check(dir + " check.html has static old-Safari copy", /id="static-help"/.test(checkHtml) && /Safari/.test(checkHtml));
+  check(dir + " check.html has a noscript explanation", /<noscript>[\s\S]*JavaScript is off/.test(checkHtml));
+  check(dir + " check.html is not the cashier shell", !checkHtml.includes(".topbar") && !checkHtml.includes("cashier-config.js"));
+  check(dir + " check.js is the diagnostics script", checkJs.startsWith("function row") && !checkJs.includes("<!DOCTYPE"));
+}
 
 console.log(`\n${pass} passed, ${fail} failed\n`);
 process.exit(fail ? 1 : 0);

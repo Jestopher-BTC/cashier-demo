@@ -69,7 +69,11 @@ sudo /opt/cashier/deploy/pull-deploy.sh
 sudo grep -n CASHIER_PACKAGE /opt/cashier/.env || true
 # leave unset or booth
 curl -s https://boltda.sh/cashier/healthz | jq
+curl -sI https://boltda.sh/cashier/check.html | grep -i content-type
+curl -sI https://boltda.sh/cashier/check.js | grep -i content-type
 ```
+
+`check.html` must be `text/html` and the diagnostics page (heading "Cashier device check"), not the cashier shell. `check.js` must be `application/javascript`. If `check.js` comes back `text/html`, the SPA index was served and the iPad check will stay blank.
 
 After deploy, the Mock/Live footer shows `build` plus `git rev-parse --short HEAD`
 from `/opt/cashier`.

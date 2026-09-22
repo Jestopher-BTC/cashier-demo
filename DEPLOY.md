@@ -11,7 +11,8 @@ optional: [docs/booth/RUNBOOK.md](docs/booth/RUNBOOK.md).
 
 ## 1. Packages
 
-`npm run build` writes booth → `public/` and core → `public-core/`. The Node
+`npm run build` writes booth → `public/` and core → `public-core/`. Both trees
+include `check.html` and `check.js` (the iPad device check). The Node
 process serves **one** of those trees at `/`:
 
 | `CASHIER_PACKAGE` | UI | Typical use |
@@ -184,3 +185,4 @@ npm run dev:core     # mock API, Live-only UI
 | `Invoice network ... not allowed` | A testnet invoice against a live wallet |
 | Cashtag rejected in Live | A send came back unsupported; server switched to invoice-only. Check logs and run the probe |
 | Balance vanished after a reload | Session expired (6h) or the service restarted |
+| `check.html` looks like the cashier, or `check.js` is `text/html` | The served tree was built without the diagnostics files. `CASHIER_PACKAGE=core` reads `public-core/`. Rebuild (`npm run build` or `pull-deploy.sh`). A missing `.js` or `.html` file 404s; it must not be replaced by `index.html`. |

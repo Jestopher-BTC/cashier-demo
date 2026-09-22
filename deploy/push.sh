@@ -24,8 +24,12 @@ if [ ! -f package.json ] || ! grep -q '"name": "cashier-demo"' package.json; the
   echo "Not in the cashier project (looked in $HERE). Aborting." >&2
   exit 1
 fi
-if [ ! -f public/app.js ]; then
-  echo "public/app.js is missing. Run 'npm run build' first." >&2
+if [ ! -f public/app.js ] || [ ! -f public-core/app.js ]; then
+  echo "public/app.js or public-core/app.js is missing. Run 'npm run build' first." >&2
+  exit 1
+fi
+if [ ! -f public/check.html ] || [ ! -f public/check.js ] || [ ! -f public-core/check.html ] || [ ! -f public-core/check.js ]; then
+  echo "check.html / check.js missing from public/ or public-core/. Run 'npm run build' first." >&2
   exit 1
 fi
 case "$HERE" in

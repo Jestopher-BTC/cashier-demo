@@ -47,9 +47,9 @@
   .app { display: flex; flex-direction: column; height: 100%; }
 
   /* ---- top bar ---- */
-  /* Three flex slots, not grid and not absolute-centering. iPad WebKit
-     (iOS 12 floor) collapses a grid item that is also a flex container
-     in an auto middle column, which hid Mock / Code / Live on landscape. */
+  /* Three flex slots, not grid and not absolute-centering. Old iPad WebKit
+     collapses a grid item that is also a flex container in an auto middle
+     column, which hid Mock / Code / Live on landscape. */
   .topbar {
     display: -webkit-flex; display: flex;
     -webkit-flex-direction: row; flex-direction: row;
@@ -517,8 +517,8 @@
 <body>
 <div id="root"></div>
 <div id="boot-error">
-  <strong style="color:var(--fg)">This browser is too old for the app.</strong>
-  <p>Open the diagnostics page at <code>check.html</code> to see what is missing, or run the demo from a newer device.</p>
+  <strong style="color:var(--fg)">The cashier did not start.</strong>
+  <p>Open <code>check.html</code> on this device. Below the floor (Promise, CSS grid, and flexbox) the app cannot boot. If that check says the app can run, this was a script error, not a missing network.</p>
 </div>
 __BOOTSTRAP__
 </body>

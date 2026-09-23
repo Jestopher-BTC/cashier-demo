@@ -1,11 +1,13 @@
 /* Generators and async functions, once Babel has lowered them for old WebKit.
-   Modern browsers never touch this code path. */
+   Modern browsers never touch this code path. build.mjs declares
+   regeneratorRuntime on the strict bundle so Safari 10 (no globalThis) does
+   not fall through to Function(), which CSP script-src 'self' blocks. */
 import "regenerator-runtime/runtime.js";
 
 /* Just the gaps that matter on old WebKit. Every patch is guarded, so a modern
    browser keeps its native implementation. No core-js: there is nothing here
    we do not use, plus a few APIs that throw "undefined is not an object" on
-   iOS 12 Chrome when Live UI starts. */
+   Safari 10 / iOS 10 class WebKit when Live UI starts. */
 
 if (!Object.assign) {
   Object.defineProperty(Object, "assign", {
@@ -177,12 +179,16 @@ if (typeof TextEncoder === "undefined") {
 }
 
 if (typeof crypto !== "undefined" && typeof crypto.randomUUID !== "function") {
-  crypto.randomUUID = function () {
-    return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
-      var r = (Math.random() * 16) | 0;
-      return (c === "x" ? r : (r & 0x3) | 0x8).toString(16);
-    });
-  };
+  try {
+    crypto.randomUUID = function () {
+      return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
+        var r = (Math.random() * 16) | 0;
+        return (c === "x" ? r : (r & 0x3) | 0x8).toString(16);
+      });
+    };
+  } catch (e) {
+    /* Some old WebKit crypto hosts reject new properties. Live does not need this. */
+  }
 }
 
 if (typeof AbortController === "undefined") {
@@ -290,6 +296,9 @@ function needsFlatPaint() {
   if (ios && Number(ios[1]) > 0 && Number(ios[1]) < 15) return true;
   if (/iP(ad|hone|od)/.test(ua) && !cssSupports("inset", "0px")) return true;
   if (/Macintosh/.test(ua) && "ontouchend" in document && !cssSupports("inset", "0px")) return true;
+  /* Desktop-site iPad UA is Macintosh + Safari and often has no ontouchend.
+     Missing inset is the Safari 14.1 line (flex gap lands with it). */
+  if (/Safari\//.test(ua) && !/Chrome|Chromium|CriOS|Edg\/|OPR\//.test(ua) && !cssSupports("inset", "0px")) return true;
   if (!cssSupports("display", "flex")) return true;
   return false;
 }

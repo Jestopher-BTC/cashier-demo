@@ -34,6 +34,11 @@ Live sends use `@ambosstech/payments` `transactions.send` with
 `AMBOSS_TEAM_PASSWORD`. GraphQL `create_send` alone does not pay a live wallet.
 This demo polls; it has no inbound webhook URL.
 
+Hosted core uses the same ES5 bundle floor as booth: Safari 10 / iOS 10.3
+class WebKit (Promise, CSS grid, flexbox). See the [README](../../README.md)
+browser floor. Deposit QR does not need a camera. Cash out accepts a typed
+cashtag or Lightning address when `getUserMedia` is missing.
+
 ## Theming and copy
 
 - Colours: `THEMES` in `AmbossCashierMock.jsx`. One object, dark and light.

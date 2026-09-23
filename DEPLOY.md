@@ -13,7 +13,6 @@ Optional kiosk steps, if you run the booth package:
 - The process serves **core** (`public-core/`) on loopback.
 - A reverse proxy is the only public door. Port 8080 is not open on a public interface.
 - Public `/healthz` is redacted. The loopback view shows the wallet is ready and `checks.send.ok` is true.
-- Fund is off (`OPERATOR_PIN` blank or `FUND_ENABLED=false`) unless this host runs a staff giveaway.
 
 ---
 
@@ -25,7 +24,7 @@ process serves **one** of those trees at `/`:
 | `CASHIER_PACKAGE` | UI | Use |
 |---|---|---|
 | `core` | Live cashier | Integrators and production |
-| `booth` (default if unset) | Mock / Code / Live, plus Fund | Optional demo chrome |
+| `booth` (default if unset) | Mock / Code / Live | Optional demo chrome |
 
 Set `CASHIER_PACKAGE=core` in `.env` on a new cashier. Leave it unset on a
 host that must keep the booth UI. One process, one package.
@@ -55,7 +54,7 @@ A live wallet needs about 30 minutes before `is_ready` flips.
    `.env`. `TEAM_PASSWORD` is accepted as an alias. The SDK derives an Argon2id
    `password_hash` locally and never sends the raw password.
 
-4. Fund the wallet with a little more than `DAILY_FLOAT_USD` if you use Fund.
+4. Put enough balance on the wallet to cover cash-outs.
 5. Wait for `is_ready`, then confirm `/healthz` (see below). `checks.send.ok`
    must be true on the **unredacted** operator view.
 
@@ -129,8 +128,8 @@ Paste those lines **inside** an existing site block. A copy-paste reference is
 
 ### Health
 
-From the public URL, `/healthz` is **redacted** (no wallet id, no balances, no
-remaining float). The full operator view is loopback, or `HEALTHZ_TOKEN` via
+From the public URL, `/healthz` is **redacted** (no wallet id, no balances).
+The full operator view is loopback, or `HEALTHZ_TOKEN` via
 `?token=` or `X-Healthz-Token`.
 
 ```bash
@@ -156,19 +155,15 @@ Fallback from a laptop (after `npm run build`): `./deploy/push.sh`. The
 default target is the reference host; set `HOST` and `DEST` for yours. It
 refuses to run from `$HOME` and never copies `.env`.
 
-## 5. Sessions, caps, Fund
+## 5. Sessions and caps
 
 A session is a server-side balance with an id. The id lives in the browser’s
 `localStorage` (`cashier.session`); money, caps, and history live in process
 memory.
 
-- Sessions start at **$0**. A player can only cash out what they deposited, or what Fund credited.
-- Idle expiry is **6 hours**. A service restart clears sessions and the daily float.
+- Sessions start at **$0**. A player can only cash out what they deposited.
+- Idle expiry is **6 hours**. A service restart clears sessions.
 - Caps: `MIN_*` / `MAX_*` on deposit and cash-out. Defaults are $1–$5. The deposit screen’s $20 and $100 chips need a higher `MAX_DEPOSIT_USD`.
-- **Fund** is on only when `FUND_ENABLED` is on **and** `OPERATOR_PIN` is non-empty. Every Fund tap asks for the PIN again. Core UI does not show Fund; `/api/session/fund` is still gated. Restart after changing either value.
-
-The day’s giveaway ceiling is `DAILY_FLOAT_USD`. For a public cashier, leave
-`OPERATOR_PIN` blank or set `FUND_ENABLED=false`.
 
 ## 6. Local
 
@@ -192,3 +187,10 @@ Live against Amboss from a laptop: fill `.env`, then
 | `Invoice network ... not allowed` | A testnet invoice against a live wallet |
 | Cashtag rejected in Live | A send came back unsupported; server switched to invoice-only. Check logs and run the probe |
 | Balance vanished after a reload | Session expired (6h) or the service restarted |
+
+## Booth only
+
+Staff Fund is optional booth chrome, not part of a core cashier. Leave it
+unused on a core host. Knobs and the PIN gate:
+[src/booth/README.md](src/booth/README.md) and
+[docs/booth/RUNBOOK.md](docs/booth/RUNBOOK.md).

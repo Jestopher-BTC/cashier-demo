@@ -18,7 +18,7 @@ Someone new to the repo can:
 
 1. Run the Live core cashier locally, against the mock API or a real wallet.
 2. Keep the player experience in the next section when they brand or embed it.
-3. Deploy core behind a reverse proxy, with Fund off, `/healthz` redacted, and caps they chose.
+3. Deploy core behind a reverse proxy, with `/healthz` redacted and caps they chose.
 4. Treat booth as optional demo chrome.
 
 ## Constraints
@@ -28,7 +28,6 @@ Someone new to the repo can:
 - One process serves one package. This tree has no second URL for the other package.
 - Player copy stays **Account balance** and “credited to your account.” Dollars on screen. The only sat figure is a muted hint under a BTC deposit QR.
 - This demo settles by poll. It has no inbound webhook.
-- Fund (a staff giveaway) is off when `OPERATOR_PIN` is blank or `FUND_ENABLED` is false. Core leaves Fund out of the UI. `/api/session/fund` stays gated on both packages.
 - Secrets live in `.env` on the host (`chmod 600`). The systemd unit loads that file. The Node process does not read `.env` by itself, and deploy scripts never copy or overwrite it.
 - A live wallet needs `AMBOSS_API_KEY`, `AMBOSS_WALLET_ID`, and (for `amb_live_` keys) `AMBOSS_TEAM_PASSWORD`. Key scopes: `PAYMENTS: WRITE`, `WALLETS: READ`, `WALLET_CREDENTIALS: READ`.
 
@@ -107,24 +106,13 @@ Live boot is `cashier-config.js` on the same origin
 (`window.__CASHIER__ = { live: true }`). CSP is `script-src 'self'`, so that
 flag stays in the file.
 
-### Fund off on a public cashier
-
-Fund credits `SESSION_START_USD` only when **both** are true: `FUND_ENABLED`
-is on, and `OPERATOR_PIN` is a non-empty PIN. A blank PIN disables Fund. It
-does not skip the prompt. Every Fund tap asks for the PIN again.
-
-Core does not render Fund. For a public cashier, leave `OPERATOR_PIN` blank or
-set `FUND_ENABLED=false`. Use 6+ digits if you run a staff giveaway. Restart
-after changing either value.
-
-### Caps, session, daily float
+### Caps and session
 
 Operator knobs, set in `.env`:
 
 - Caps: `MIN_DEPOSIT_USD`, `MAX_DEPOSIT_USD`, `MIN_WITHDRAW_USD`, `MAX_WITHDRAW_USD`. Deposit entry enforces the deposit pair. Cash-out entry enforces the minimum and the session balance. The server also rejects cash-outs outside the withdraw pair.
-- A session is a server-side balance. The id lives in the browser’s `localStorage` (`cashier.session`). Money, caps, and history live in process memory. Sessions start at **$0**. A player can cash out what they deposited, or what Fund credited.
-- Idle expiry is **6 hours**. A service restart clears sessions and the daily float.
-- `DAILY_FLOAT_USD` is the UTC-day ceiling on Fund credits. Player deposits are separate. Set the float to what you would relax about giving away.
+- A session is a server-side balance. The id lives in the browser’s `localStorage` (`cashier.session`). Money, caps, and history live in process memory. Sessions start at **$0**. A player can cash out what they deposited.
+- Idle expiry is **6 hours**. A service restart clears sessions.
 
 ## Quick start
 
@@ -173,11 +161,7 @@ Every knob is explained in [`server/config.js`](server/config.js) and
 | `CASHIER_PACKAGE` | `core` or `booth`. Default `booth` if unset. |
 | `AMBOSS_ASSET` | `BTC`, `USDT`, or `USDC`. Must match the wallet. |
 | `ADDRESS_PAYOUTS` | Cashtag and Lightning-address cash-out. Default `true`. An unsupported send flips the server to invoice-only until restart. `false` forces that mode from the start. |
-| `FUND_ENABLED` | `false` / `0` / `no` / `off` kills Fund even when a PIN is set. Unset defaults to on, and Fund still stays off while the PIN is blank. |
-| `OPERATOR_PIN` | Blank disables Fund. Use 6+ digits if you run a giveaway. |
 | `MIN_*` / `MAX_*` | Deposit and cash-out caps, in dollars. Defaults are $1–$5. |
-| `DAILY_FLOAT_USD` | Fund ceiling per UTC day. Default $25. |
-| `SESSION_START_USD` | Amount each Fund tap credits. Default $2. |
 | `HEALTHZ_TOKEN` | Optional. Unlocks the full `/healthz` body through the proxy. |
 
 ## Copying the widget
@@ -201,7 +185,7 @@ The cash-out screen includes one demo “recently used” row (`$jestoph`, the
 ## Deploy and security
 
 - [DEPLOY.md](DEPLOY.md) — host, systemd, reverse proxy, healthz, caps.
-- [SECURITY.md](SECURITY.md) — attack surface, Fund gates, `/healthz` redaction.
+- [SECURITY.md](SECURITY.md) — attack surface and `/healthz` redaction.
 - [docs/PUBLIC_RELEASE.md](docs/PUBLIC_RELEASE.md) — go-public checklist.
 
 ## Tests
@@ -225,8 +209,9 @@ Also: `test-theme.mjs`, `test-usdt-send-amount.mjs`, `test-invoice-rate.mjs`,
 ## Optional: booth demo
 
 [`src/booth/`](src/booth/README.md) is conference wrapping around the same
-widget: Mock / Code / Live tabs, a Calendly discovery CTA, staff Fund, and a
-cha-ching on success. You do not need it to ship a cashier.
+widget: Mock / Code / Live tabs, a Calendly discovery CTA, and a cha-ching on
+success. Optional staff Fund (a PIN-gated giveaway) lives only in this chrome.
+You do not need any of it to ship a cashier.
 
 ```bash
 npm run dev          # mock API, booth UI

@@ -20,7 +20,7 @@ Host, systemd, and Amboss key setup: [DEPLOY.md](../../DEPLOY.md).
 ## Before doors open
 
 - `/healthz` is up. On the box, the unredacted loopback view shows wallet balance above the day’s float.
-- A phone wallet is installed, funded, and already on the venue network.
+- A phone wallet is installed, has a spendable balance, and is already on the venue network.
 - One full Live loop: deposit $1, cash out $1, then **New visitor**.
 - Note `DAILY_FLOAT_USD`. After it is used, Live is still deposit-then-cash-out of the player’s own money.
 
@@ -68,4 +68,13 @@ From a laptop: `HOST=root@boltda.sh ./deploy/push.sh` (or set `HOST`).
 
 Set `SHOW_DISCOVERY_CTA` to `false` in
 [`src/booth/booth-sales.js`](../../src/booth/booth-sales.js), rebuild, and
-redeploy. Fund is separate: blank `OPERATOR_PIN` or `FUND_ENABLED=false`.
+redeploy.
+
+## Staff Fund
+
+Optional. The button is booth chrome. It is on only when `FUND_ENABLED` is
+on and `OPERATOR_PIN` is a non-empty PIN. A blank PIN leaves it off. Set
+`FUND_ENABLED=false` to keep it off even if a PIN is still in `.env`. Use 6+
+digits. `SESSION_START_USD` is the credit. `DAILY_FLOAT_USD` is the day’s
+ceiling. Restart after changing either value. Knobs:
+[`src/booth/README.md`](../../src/booth/README.md).

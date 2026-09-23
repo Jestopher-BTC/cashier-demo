@@ -5,7 +5,7 @@ that mints invoices and sends Lightning payouts. Treat any internet-facing
 deploy as hostile.
 
 Nothing in git history on this clone contained a live Amboss key, team
-password, operator PIN, or SSH private key. Rotate production secrets anyway
+password, or SSH private key. Rotate production secrets anyway
 before the repo is public. Checklist:
 [docs/PUBLIC_RELEASE.md](docs/PUBLIC_RELEASE.md).
 
@@ -21,7 +21,6 @@ Integrators run **core** (`CASHIER_PACKAGE=core`). See the
 | `AMBOSS_API_KEY` | `.env` on the box (`chmod 600`), loaded by systemd `EnvironmentFile` | No |
 | `AMBOSS_WALLET_ID` | `.env` | Not in the UI. Public `/healthz` does not echo it. |
 | `AMBOSS_TEAM_PASSWORD` / `TEAM_PASSWORD` | `.env`. Decrypts the node macaroon **in-process** via `@ambosstech/payments`. Never sent to Amboss GraphQL as plaintext. | No |
-| `OPERATOR_PIN` | `.env`. Fund is off when this is blank. | No. Typed into the PIN dialog, POSTed to `/api/session/fund`. |
 | `HEALTHZ_TOKEN` | Optional `.env`. Unlocks full `/healthz` through the proxy. | Only if you put it in a bookmark or chat. |
 | GitHub deploy key | On the server, **read-only** on this repo | No. Never copy it into the repo. |
 | SSH keys to the host | Operator laptops / cloud console | No |
@@ -30,9 +29,9 @@ Integrators run **core** (`CASHIER_PACKAGE=core`). See the
 plus `*.pem` / `*.key` / `*.macaroon` / `deploy_key*` / `.ssh/`.
 `deploy/push.sh` and `deploy/pull-deploy.sh` never copy or overwrite `.env`.
 
-The only env file in git is `.env.example`, with blank `AMBOSS_API_KEY`,
-`AMBOSS_TEAM_PASSWORD`, and `OPERATOR_PIN`. Test fixtures use obviously fake
-values (`amb_live_fake`, `4242`, `booth-team-password`). No `BEGIN * PRIVATE KEY`
+The only env file in git is `.env.example`, with blank `AMBOSS_API_KEY` and
+`AMBOSS_TEAM_PASSWORD`. Test fixtures use obviously fake values
+(`amb_live_fake`, `booth-team-password`). No `BEGIN * PRIVATE KEY`
 blobs. Scan notes: [docs/PUBLIC_RELEASE.md](docs/PUBLIC_RELEASE.md).
 
 That does not prove a key was never pasted into a GitHub issue, a chat, or an
@@ -42,43 +41,14 @@ old disk image. Rotate before going public.
 
 1. **Amboss service API key** (`amb_live_…` / `amb_test_…`). Mint a new one scoped to the cashier wallet; revoke the old one in the Amboss dashboard.
 2. **Amboss team password** if it was ever written down outside `.env`.
-3. **Operator PIN** if it was short or shared. Tests use `4242` and `424242`. Those are fixtures, never a production PIN.
-4. **GitHub deploy key** only if you ever committed it or enabled write access. Read-only is correct. Making the repo public does not leak the private half unless it left the server.
-5. Host `authorized_keys` if a laptop key was shared too widely.
+3. **GitHub deploy key** only if you ever committed it or enabled write access. Read-only is correct. Making the repo public does not leak the private half unless it left the server.
+4. Host `authorized_keys` if a laptop key was shared too widely.
 
 Put replacements in `.env` on the box only.
 
 ---
 
-## 2. AuthZ: Fund / admin / float
-
-There is no operator login. Two controls gate free money:
-
-1. `FUND_ENABLED` — default on if unset. `false` / `0` / `no` / `off` kill Fund even when a PIN is still set.
-2. `OPERATOR_PIN` — blank or missing **disables** Fund. An empty PIN is not “unlocked”.
-
-Both must be on for `/api/session/fund` to credit `SESSION_START_USD`, and
-credits stop at `DAILY_FLOAT_USD` per UTC day. Every Fund click asks for the
-PIN again (no session unlock).
-
-The **core** package never renders Fund. The booth shell shows it only when
-it passes `staff`. The HTTP endpoint still exists on both packages. Leave
-`OPERATOR_PIN` blank on a public cashier.
-
-Request controls on `/api/session/fund`:
-
-- Timing-safe PIN compare (`crypto.timingSafeEqual`).
-- Per-IP lockout after 8 failures / 15 minutes, plus a global 40-failure trip.
-- Dedicated rate limit (20/min), using the forwarded client IP behind the proxy.
-- Boot warning if a live PIN is shorter than 6 characters.
-
-A 6-digit PIN is still brute-forceable from the internet given enough time
-and IPs. For a public cashier, keep Fund off (`OPERATOR_PIN=` or
-`FUND_ENABLED=false`). If you run a giveaway, use 6+ digits.
-
----
-
-## 3. Public attack surface
+## 2. Public attack surface
 
 Default production bind: the systemd unit sets `NODE_ENV=production`, which
 binds the Node process to **loopback** (`BIND_HOST=127.0.0.1`). Put a reverse
@@ -88,13 +58,13 @@ path prefix is Caddy `handle_path /cashier/*` → `127.0.0.1:8080`.
 | Surface | Auth | Notes |
 |---|---|---|
 | `GET /` static UI | None | CSP (`script-src 'self'`, no `unsafe-inline`), `X-Frame-Options: DENY`, `nosniff`. Camera policy is `self` for cash-out scan. Live flag is `cashier-config.js` on the same origin. An inline `<script>` is blocked, and the UI then falls back to `{ live: false }`. |
-| `GET /api/config` | None | Caps, asset, `fundEnabled`. No secrets. |
+| `GET /api/config` | None | Caps and asset. No secrets. |
 | `POST /api/session` | None | Creates an unguessable session id (`s_` + 32 hex from `crypto.randomBytes`). |
 | `GET /api/state` | Session id | Header `X-Cashier-Session`, body, or `?s=` (logs may still see `?s=`). |
 | `POST /api/deposit` | Session + dollar cap | Mints a real invoice when not in mock. |
 | `POST /api/withdraw` | Session + balance + cap | Pays a cashtag, Lightning address, or BOLT11. This **moves wallet funds**. |
-| `POST /api/session/fund` | Session + PIN + Fund gates | Giveaway. |
-| `GET /healthz` | None (redacted) | Booleans + public BTC/USD rate. Wallet id, balances, float remaining, and raw errors only on **direct loopback** or `HEALTHZ_TOKEN`. |
+| `POST /api/session/fund` | Booth staff | Booth-only staff Fund endpoint. Leave it disabled and unused for core. |
+| `GET /healthz` | None (redacted) | Booleans + public BTC/USD rate. Wallet id, balances, and raw errors only on **direct loopback** or `HEALTHZ_TOKEN`. |
 | `POST /api/dev/settle/*` | Mock only | 404 when `NODE_ENV=production`, even if `MOCK_AMBOSS=1`. |
 
 **CORS.** The API does not send `Access-Control-Allow-Origin`. Browser JS on
@@ -126,10 +96,10 @@ on the public session.
 
 ---
 
-## 4. Client exposure
+## 3. Client exposure
 
-The browser bundle must not contain `AMBOSS_API_KEY`, the team password, or
-the operator PIN. Live calls go to same-origin `/api`.
+The browser bundle must not contain `AMBOSS_API_KEY` or the team password.
+Live calls go to same-origin `/api`.
 
 The booth bundle includes, on purpose:
 
@@ -145,12 +115,12 @@ rate or a sat balance. A BTC deposit QR may show a muted sats hint.
 
 ---
 
-## 5. Float / session abuse
+## 4. Session abuse
 
-- Sessions start at $0. The visitor can only withdraw what they deposited, or what Fund credited.
+- Sessions start at $0. The visitor can only withdraw what they deposited.
 - Caps: `MIN_*` / `MAX_*` on deposit and cash-out. BOLT11 amounts are priced with a real BTC/USD feed, including on USDT and USDC wallets.
-- Daily float is in-memory UTC. A restart resets it, and all sessions.
-- Session ids are 128 bits from `crypto.randomBytes`. Guessing a funded session is the main theft path; unguessable ids are the control.
+- Sessions are in process memory. A restart clears them.
+- Session ids are 128 bits from `crypto.randomBytes`. Guessing a session that holds a balance is the main theft path; unguessable ids are the control.
 - Idle expiry: 6 hours. Booth **New visitor** mints a new id. Core resumes the stored id until it expires.
 
 An open browser can cash out that session’s own balance until the session
@@ -158,7 +128,7 @@ expires or the process restarts.
 
 ---
 
-## 6. Dependency / supply chain
+## 5. Dependency / supply chain
 
 Production runtime: Node 20+, `@ambosstech/payments`, plus the static bundle
 (React compiled in, no CDN).
@@ -176,15 +146,15 @@ Lockfile is committed. Deploy with `npm ci`. The `cashier` system user owns
 
 ---
 
-## 7. Residual risk
+## 6. Residual risk
 
 ### In place
 
 | Issue | Control |
 |---|---|
 | Predictable session ids | `crypto.randomBytes` (128 bits) |
-| PIN brute force, timing compare, shared 127.0.0.1 bucket behind the proxy | Timing-safe compare, lockout, forwarded-IP limiter |
-| Unauthenticated `/healthz` leaking wallet id, balance, remaining float, send errors | Redact unless loopback or `HEALTHZ_TOKEN` |
+| Shared 127.0.0.1 bucket behind the proxy | Forwarded-IP limiter |
+| Unauthenticated `/healthz` leaking wallet id, balances, and send errors | Redact unless loopback or `HEALTHZ_TOKEN` |
 | Amboss/GraphQL errors on 502 and on session history | Generic client errors; log server-side |
 | Node listening on `0.0.0.0` in production | `BIND_HOST=127.0.0.1` when `NODE_ENV=production` |
 | `/api/dev/settle` if someone shipped `MOCK_AMBOSS=1` | 404 when `NODE_ENV=production` |
@@ -195,8 +165,7 @@ Lockfile is committed. Deploy with `npm ci`. The `cashier` system user owns
 | Issue | Plan |
 |---|---|
 | Session id still accepted as `?s=` (log / Referer leak) | Header is primary. Drop the query param after clients send `X-Cashier-Session` only. |
-| Short PIN still allowed | Boot warns. Fund can still be enabled with fewer than 6 digits. |
-| In-memory sessions and float (restart wipes them; no audit log) | Fine for this demo. Persist and log payouts on your side in production. |
+| In-memory sessions (restart wipes them; no audit log) | Fine for this demo. Persist and log payouts on your side in production. |
 | No webhook signature path (polling only) | Add Amboss webhooks when this outgrows polling. |
 | esbuild moderate (dev) | Wait for a minor bump. Not in the runtime image. |
 | Booth offline HTML | A full booth bundle for a dead network, with no secrets. Core does not use it as the cashier. |
@@ -210,7 +179,6 @@ Full scan notes: [docs/PUBLIC_RELEASE.md](docs/PUBLIC_RELEASE.md).
 
 - [ ] Mint a new Amboss API key; revoke the previous one.
 - [ ] Confirm `AMBOSS_TEAM_PASSWORD` was never in git, tickets, or screenshots; change it if unsure.
-- [ ] Set a new 6+ digit `OPERATOR_PIN`, or leave it blank to disable Fund.
 - [ ] `chmod 600 /opt/cashier/.env` and confirm it is not world-readable.
 - [ ] Confirm the GitHub deploy key is **read-only** and its private half is only on the server.
 - [ ] Confirm `ss -lntp | grep 8080` shows `127.0.0.1` only.
@@ -220,6 +188,28 @@ Full scan notes: [docs/PUBLIC_RELEASE.md](docs/PUBLIC_RELEASE.md).
 - [ ] On the reference kiosk host, leave `CASHIER_PACKAGE` unset (booth). A new integrator host sets `core`.
 
 ---
+
+## Booth only: staff Fund
+
+`POST /api/session/fund` is a booth-only staff Fund endpoint. Leave it
+disabled and unused for a core cashier.
+
+The booth shell is what shows the button. The route still exists on the
+server for both packages. It credits `SESSION_START_USD` only when
+`FUND_ENABLED` is on **and** `OPERATOR_PIN` is a non-empty PIN. A blank PIN
+leaves it off. An empty PIN does not skip the check. Credits stop at
+`DAILY_FLOAT_USD` per UTC day, in process memory. Every tap asks for the PIN
+again.
+
+Controls on that route: timing-safe compare, per-IP lockout after 8 failures
+/ 15 minutes, a global 40-failure trip, and a 20/minute rate limit. Boot warns
+if the PIN is shorter than 6 characters. A 6-digit PIN is still
+brute-forceable from the internet. Use 6+ digits on a kiosk, or leave the PIN
+blank. Tests use `4242` and `424242`. Those are fixtures.
+
+`.env.example` leaves `OPERATOR_PIN` blank. If a kiosk PIN was short or
+shared, rotate it on that box only. Do not commit the new value. Loopback
+`/healthz` also shows float remaining; the public body does not.
 
 ## Tests
 

@@ -10,7 +10,7 @@ The license is [MIT](../LICENSE). Integrators run **core**
 
 ## Done when
 
-- Production Amboss key, team password, and operator PIN are rotated or confirmed unused outside `.env`.
+- Production Amboss key and team password are rotated or confirmed unused outside `.env`.
 - `.env` on the host is mode `600`, and public `/healthz` is redacted.
 - The GitHub deploy key is read-only, and its private half is only on the server.
 - The repo can be flipped to public from the GitHub UI.
@@ -27,7 +27,6 @@ No live secrets in the working tree:
 | Private keys / macaroons / deploy keys | None. No `BEGIN * PRIVATE KEY`, no `ssh-ed25519` material in tracked files. |
 | Amboss API keys | Fixtures only: `amb_live_fake`, `amb_test_fake`. `.env.example` leaves `AMBOSS_API_KEY=` blank. |
 | Team password | Fixture `booth-team-password` in `test-send-config.mjs`. Example file is blank. |
-| `OPERATOR_PIN` | Blank in `.env.example`. Tests use `4242` / `424242`. |
 | `HEALTHZ_TOKEN` | Blank in `.env.example`. Tests use `test-healthz-token`. |
 | AWS / Stripe / GitHub / Slack tokens | None. |
 | Calendly | Public booking page only: `https://calendly.com/d/cwfn-s48-3b3/payments-discovery`. Booth chrome. Core never ships it. |
@@ -56,7 +55,6 @@ Do this on the Amboss dashboard and the box. Do not commit the new values.
 
 - [ ] Mint a new Amboss API key; revoke the previous one.
 - [ ] Change `AMBOSS_TEAM_PASSWORD` if it was ever written down outside `.env`.
-- [ ] Set a new 6+ digit `OPERATOR_PIN`, or leave it blank to disable Fund.
 - [ ] `chmod 600 /opt/cashier/.env` and confirm it is not world-readable.
 - [ ] Confirm the GitHub deploy key is **read-only** and its private half is only on the server.
 - [ ] Confirm `ss -lntp | grep 8080` shows `127.0.0.1` only.
@@ -76,7 +74,7 @@ Discussions are what you intend.
 **Not required.** Prefer rotate-in-place. Rewrite only if a live secret is
 later found in git.
 
-1. **Rotate first.** A rewritten clone does not save a key that already left the laptop. Revoke the Amboss key, change the team password and PIN, and replace the deploy key if its private half was committed.
+1. **Rotate first.** A rewritten clone does not save a key that already left the laptop. Revoke the Amboss key, change the team password, and replace the deploy key if its private half was committed.
 2. Install [git-filter-repo](https://github.com/newren/git-filter-repo) (preferred) or [BFG](https://rtyley.github.io/bfg-repo-cleaner/).
 3. Mirror, scrub, force-push every ref. Do not put the leaked secret on the command line. Use `--replace-text` from a file you then shred.
 4. Tell anyone with a clone to re-clone. Force-push rewrites SHAs.
@@ -103,3 +101,10 @@ npm run start:core
 ```
 
 Booth is optional demo chrome. One process serves one package.
+
+## Booth only
+
+Staff Fund is kiosk chrome, not part of a core cashier. `.env.example` leaves
+`OPERATOR_PIN` blank. Tests use `4242` and `424242`. If the reference kiosk
+uses that giveaway, rotate the PIN on the box (6+ digits) or leave it blank.
+Do not commit the value. Core hosts leave it unset.

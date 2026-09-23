@@ -2,7 +2,7 @@
 
 Production package: a Live-only Amboss Payments cashier for an iGaming
 account balance (a house-ledger account on the platform). Mock UI, Code View,
-Calendly, cha-ching, and Fund chrome live in the booth package only.
+Calendly, and cha-ching live in the booth package only.
 
 ```bash
 npm run build
@@ -61,9 +61,3 @@ field.
 
 Hosted Live boot reads `window.__CASHIER__` from same-origin
 `cashier-config.js`. CSP is `script-src 'self'`. Keep the flag in that file.
-
-## Fund
-
-Core does not render Fund. `/api/session/fund` still exists and is gated:
-on only when `FUND_ENABLED` is on **and** `OPERATOR_PIN` is non-empty. Leave
-the PIN blank on a public cashier.

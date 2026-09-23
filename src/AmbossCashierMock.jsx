@@ -12,6 +12,7 @@ import {
   attachStream,
   decodeVideoFrame,
   normalizeScannedText,
+  cameraSupport,
   openCameraStream,
   resolveCameraError,
   startCamera,
@@ -2094,6 +2095,7 @@ export function WithdrawFlow({ onExit, onDone }) {
   const [amount, setAmount] = useState("");
   const [final, setFinal] = useState(null);
   const [scanning, setScanning] = useState(false);
+  const [scanNote, setScanNote] = useState("");
   const scanWarmup = useRef(null);
   const alive = useRef(true);
   useEffect(() => () => { alive.current = false; }, []);
@@ -2200,6 +2202,16 @@ export function WithdrawFlow({ onExit, onDone }) {
           />
           <button
             onClick={() => {
+              const support = cameraSupport();
+              if (!support.ok) {
+                setScanNote(
+                  support.reason === "insecure"
+                    ? "Camera needs HTTPS. Type a cashtag or Lightning address."
+                    : "No camera in this browser. Type a $cashtag or Lightning address."
+                );
+                return;
+              }
+              setScanNote("");
               const warmup = openCameraStream();
               warmup.catch(function () {});
               scanWarmup.current = warmup;
@@ -2223,7 +2235,7 @@ export function WithdrawFlow({ onExit, onDone }) {
                 ? `Set amount: ${usd(typed.amountUsd)}`
                 : "You choose the amount next"
               : typed.reason
-            : "Start a cashtag with $."}
+            : scanNote || "Start a cashtag with $."}
         </div>
 
         <div style={{ marginTop: 24 }}>

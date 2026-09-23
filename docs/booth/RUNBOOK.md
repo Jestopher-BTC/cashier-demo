@@ -45,13 +45,21 @@ hotspot). It is mock + code only, no secrets.
 
 ## iPad
 
-1. Open `/cashier/check.html`. Green means go. Amber is cosmetic. Floor is
-   roughly iOS 12; iOS 15+ looks right.
-2. Tap **Test camera** (or Cash out → Scan a code) and allow Camera **before**
-   Guided Access. iOS will not prompt once it is locked.
-3. Open `/cashier`, Share → **Add to Home Screen**. Grant Camera again to the
-   home-screen app (Settings → Cashier → Camera → Allow). Safari and the
-   home-screen icon are different switches.
+1. Open `/cashier/check.html`.
+   - **Good to go** means the floor is met and `getUserMedia` is present.
+   - **App can run. Camera cannot.** means this Safari 10 class device can
+     boot, show a deposit QR, and cash out by typing a cashtag or Lightning
+     address. Do not expect Scan a code. Do not read that as good to go.
+   - **Below the floor** means Promise, CSS grid, or flexbox is missing. The
+     cashier will not boot. Use a newer iPad or a laptop.
+   Floor is Safari 10 / iOS 10.3 class WebKit. iOS 15+ looks right (flex gap,
+   inset, sticky). Amber rows other than the camera are cosmetic.
+2. If the camera API is present, tap **Test camera** (or Cash out → Scan a
+   code) and allow Camera **before** Guided Access. iOS will not prompt once
+   it is locked. If the camera API is missing, skip this and type the cashtag.
+3. Open `/cashier`, Share → **Add to Home Screen**. When the device has a
+   camera API, grant Camera again to the home-screen app (Settings → Cashier
+   → Camera → Allow). Safari and the home-screen icon are different switches.
 4. Auto-Lock: Never. Guided Access on. Brightness high.
 
 `NotFoundError` / empty `enumerateDevices` on iPad is usually permission

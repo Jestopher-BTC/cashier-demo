@@ -127,7 +127,29 @@ async function buildBundle(entry) {
   }).code;
 
   const min = await esbuild.transform(lowered, { minify: true, target: "es5" });
-  return min.code;
+  return anchorOldWebKit(min.code);
+}
+
+/* Safari 10 / iOS 10.3 class WebKit can parse this ES5 bundle, then die
+   before paint. regenerator-runtime assigns an implicit global. The script
+   is strict, so that throws. The catch uses globalThis (missing here) and
+   then Function(), which CSP script-src 'self' rejects. The throw aborts
+   the script, #boot-error stays hidden, and the dark page looks black.
+   Declare the binding so the assignment succeeds and Function() is never
+   called. Also surface a later startup exception instead of an empty root. */
+function anchorOldWebKit(code) {
+  var prelude = "";
+  if (code.indexOf("regeneratorRuntime") !== -1 && !/\b(?:var|let|const)\s+regeneratorRuntime\b/.test(code))
+    prelude += "var regeneratorRuntime;";
+  prelude +=
+    "window.onerror=function(){try{var host=document.getElementById(\"root\");" +
+    "if(host&&host.childNodes&&host.childNodes.length)return;" +
+    "if(host)host.style.display=\"none\";" +
+    "var fallback=document.getElementById(\"boot-error\");" +
+    "if(fallback)fallback.style.display=\"block\";}catch(e){}};";
+  var strict = code.match(/^(['"])use strict\1;?/);
+  if (strict) return code.slice(0, strict[0].length) + prelude + code.slice(strict[0].length);
+  return prelude + code;
 }
 
 /* --------------------------------------------------------------- pages --- */
@@ -177,7 +199,7 @@ const CHECK = `<!DOCTYPE html>
 <h1>Cashier device check</h1>
 <p class="sub">Run this on the booth iPad before the doors open. The table fills in when JavaScript runs.</p>
 <div class="note" id="static-help">
-  <p><b>If the table below stays empty, this Safari did not run the check.</b> Old iPad WebKit (about iOS 11 and earlier) cannot boot the cashier, so that page stays black. Google.com can still load. Use a newer iPad. iOS 12 is the floor, and iOS 15 and later looks right. Or run the demo from a laptop.</p>
+  <p><b>If the table below stays empty, this browser did not run the check.</b> The cashier floor is Promise, CSS grid, and flexbox (Safari 10 / iOS 10.3 class WebKit, and newer). Below that, the cashier stays a dark empty page. Camera scan is separate and is not required to boot.</p>
 </div>
 <noscript>
   <p class="note"><b>JavaScript is off.</b> This browser will not start the cashier. Enable JavaScript, or open the demo on a newer iPad.</p>
@@ -204,10 +226,13 @@ function supports(prop, value) {
   var el = document.createElement('div');
   try { el.style[prop] = value; return el.style[prop] !== ''; } catch (e) { return false; }
 }
+var help = document.getElementById('static-help');
+if (help) help.style.display = 'none';
 var hard = true, soft = true;
-hard = row('Promise', typeof Promise === 'function') && hard;
-hard = row('CSS grid', supports('display', 'grid')) && hard;
-hard = row('Flexbox', supports('display', 'flex')) && hard;
+var cameraOk = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia) || !!(navigator.getUserMedia || navigator.webkitGetUserMedia);
+hard = row('Promise', typeof Promise === 'function', 'Required to boot') && hard;
+hard = row('CSS grid', supports('display', 'grid'), 'Required to boot') && hard;
+hard = row('Flexbox', supports('display', 'flex'), 'Required to boot') && hard;
 soft = row('Flex gap', supports('gap', '10px'), 'Without it a few rows sit closer together', true) && soft;
 soft = row('CSS inset', supports('inset', '0px'), 'Overlays use top/right/bottom/left instead', true) && soft;
 soft = row('fetch', typeof fetch === 'function', 'Live UI talks XHR so a broken native fetch cannot take the booth down', true) && soft;
@@ -220,17 +245,21 @@ soft = row('crypto.randomUUID', !!(typeof crypto !== 'undefined' && crypto.rando
 soft = row('AbortController', typeof AbortController === 'function', 'Not required for Live', true) && soft;
 soft = row('window.prompt', typeof window.prompt === 'function', 'Fund uses an in-page PIN dialog because prompt is silent on iPad Chrome', true) && soft;
 soft = row('Clipboard API', !!(navigator.clipboard && navigator.clipboard.writeText), 'Falls back to execCommand', true) && soft;
-soft = row('Sticky position', supports('position', 'sticky'), '', true) && soft;
+soft = row('Sticky position', supports('position', 'sticky'), 'Unprefixed sticky is cosmetic', true) && soft;
 soft = row('Secure context', window.isSecureContext !== false, 'Camera requires HTTPS or localhost', true) && soft;
-soft = row('getUserMedia', !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia) || !!(navigator.getUserMedia || navigator.webkitGetUserMedia), 'Needed to scan cash-out QR codes', true) && soft;
+soft = row('getUserMedia', cameraOk, cameraOk ? 'Scan a cash-out QR on this device' : 'Missing. Type a cashtag or Lightning address. Deposit QR still works.', true) && soft;
 soft = row('BarcodeDetector', typeof BarcodeDetector === 'function', 'jsQR decodes if this is missing', true) && soft;
 row('Standalone', true, (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) ? 'home screen' : 'browser tab');
 row('Screen', true, window.innerWidth + ' x ' + window.innerHeight + ' css px, dpr ' + (window.devicePixelRatio || 1));
 row('Browser', true, navigator.userAgent);
 var v = document.getElementById('verdict');
-v.innerHTML = hard
-  ? '<b style="color:#14C58F">Good to go.</b> ' + (soft ? 'Everything supported.' : 'Some cosmetic gaps, listed above in amber. The demo still runs.')
-  : '<b style="color:#FF6A5E">This device cannot run the app.</b> Use a newer iPad, or run the demo from a laptop.';
+if (!hard) {
+  v.innerHTML = '<b style="color:#FF6A5E">Below the floor.</b> The cashier needs Promise, CSS grid, and flexbox (Safari 10 / iOS 10.3 class and newer). This browser cannot boot the app.';
+} else if (!cameraOk) {
+  v.innerHTML = '<b style="color:#FFB020">App can run. Camera cannot.</b> Deposit QR works. Cash out by typing a cashtag or Lightning address. Scan a code needs getUserMedia, which this browser does not have.';
+} else {
+  v.innerHTML = '<b style="color:#14C58F">Good to go.</b> ' + (soft ? 'Everything supported.' : 'Some cosmetic gaps, listed above in amber. The demo still runs.');
+}
 function setCam(msg, ok) {
   var el = document.getElementById('cam-status');
   el.textContent = msg;

@@ -79,6 +79,28 @@ file at build time. Live boot is `cashier-config.js` on the same origin
 Player copy is house-ledger on purpose: **Account balance**, “credited to your
 account”, not a custodial wallet. Keep that if you restyle.
 
+## Browser floor
+
+Hosted core and booth boot on **Safari 10 / iOS 10.3 class WebKit** (an iPad
+that reports `AppleWebKit/603` and `Version/10.0 Safari/602`). The floor is
+Promise, CSS grid, and flexbox. Shipped `app.js` is ES5: no optional chaining
+or nullish coalescing. `globalThis` and `Function()` / `eval` are not required.
+CSP stays `script-src 'self'` (Live still comes from `cashier-config.js`).
+
+A dark empty cashier on that iPad was a startup exception, not a dead network.
+`regenerator-runtime` assigns an implicit global; the strict bundle throws;
+the fallback calls `Function()`, which that CSP blocks; React never paints.
+
+`getUserMedia` is **not** on this floor (it shows up around iOS 11). Deposit
+QR still renders; pay from another phone. Cash out by typing a cashtag or
+Lightning address. Scan a code is optional.
+
+Open `check.html` on the device. It says **Good to go** only when the floor
+passes and the camera API is present. Missing `getUserMedia` is called out
+as “App can run. Camera cannot.” Below the floor it says so, and does not
+say good to go. Flex gap, `inset`, and unprefixed `sticky` are cosmetic
+(about iOS 15 / Safari 14.1).
+
 ## Optional booth chrome
 
 [`src/booth/`](src/booth/README.md) is conference demo wrapping, not the
@@ -116,6 +138,7 @@ node test-core-split.mjs
 node test-fund-gate.mjs
 node test-live-csp.mjs
 node test-static-fallback.mjs
+node test-safari-floor.mjs
 node test-session.mjs
 ```
 

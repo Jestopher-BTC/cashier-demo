@@ -2,10 +2,21 @@
    whole, so a brace or an angle bracket inside them is never mistaken for
    syntax. Returns escaped HTML. */
 
-var RE_TAG = /<\/?([A-Za-z][A-Za-z0-9.]*)/y;
-var RE_KW = /(?:import|from|export|default|const|let|var|function|return|if|else|for|while|switch|case|break|continue|new|typeof|instanceof|await|async|try|catch|finally|throw|class|extends|of|in|delete|void|yield|do|null|undefined|true|false)\b/y;
-var RE_FN = /[A-Za-z_$][\w$]*(?=\s*\()/y;
-var RE_NUM = /\d[\d._eE+-]*/y;
+/* Sticky flag is a syntax error on engines that lack it, and a runtime
+   SyntaxError from new RegExp when the flag is rejected. Code view must not
+   take the cashier down if this file is evaluated on that engine. */
+function stickyRegExp(source) {
+  try {
+    return new RegExp(source, "y");
+  } catch (e) {
+    return new RegExp(source);
+  }
+}
+
+var RE_TAG = stickyRegExp("<\\/?([A-Za-z][A-Za-z0-9.]*)");
+var RE_KW = stickyRegExp("(?:import|from|export|default|const|let|var|function|return|if|else|for|while|switch|case|break|continue|new|typeof|instanceof|await|async|try|catch|finally|throw|class|extends|of|in|delete|void|yield|do|null|undefined|true|false)\\b");
+var RE_FN = stickyRegExp("[A-Za-z_$][\\w$]*(?=\\s*\\()");
+var RE_NUM = stickyRegExp("\\d[\\d._eE+-]*");
 var WORD = /[\w$]/;
 
 export function escapeHtml(s) {

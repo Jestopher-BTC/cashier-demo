@@ -4,7 +4,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { config, assertReady, money, addressSendAmounts, round2 } from "./config.js";
-import { normalizeScannedText } from "../src/scan-payload.js";
+import { defaultWalletOfSatoshi, normalizeScannedText } from "../src/scan-payload.js";
 import { amboss as liveAmboss } from "./amboss.js";
 import { mockAmboss } from "./mock-amboss.js";
 import {
@@ -63,6 +63,7 @@ const MIME = {
   ".png": "image/png",
   ".ico": "image/x-icon",
   ".webmanifest": "application/manifest+json",
+  ".mp3": "audio/mpeg",
 };
 
 function send(res, status, body, headers = {}) {
@@ -118,7 +119,7 @@ function sessionIdFrom(req, url, body) {
 /* ------------------------------------------------------- destinations --- */
 
 export function parseDestination(raw) {
-  const input = normalizeScannedText(raw).replace(/^[\uFF04\uFE69]/, "$");
+  const input = defaultWalletOfSatoshi(normalizeScannedText(raw).replace(/^[\uFF04\uFE69]/, "$"));
   if (!input) return { kind: "invalid", reason: "Enter a destination." };
 
   const cashApp = /^(?:https?:\/\/)?(?:www\.)?cash\.app\/\$?([a-z0-9_]{1,20})\/?$/i.exec(input);

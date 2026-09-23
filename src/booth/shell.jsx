@@ -15,6 +15,7 @@ import { highlight } from "./highlight.js";
 import { AmbossLetter, AmbossLogo } from "../AmbossLogo.jsx";
 import { createLiveApi } from "../live-api.js";
 import { DOCS, MAP_LINE, SANDBOX_META, SNIPPETS, snippetById, snippetIdForAction } from "./sdk-guide.js";
+import { playChaChing, primeChaChing } from "./cha-ching.js";
 
 /* Hosted builds set this from same-origin cashier-config.js. Do not put the
    live flag back in an inline <script> — CSP script-src is 'self' only. */
@@ -96,6 +97,7 @@ function MockMode({ theme, onDemoAction }) {
         demo={true}
         initialBalanceUsd={1247.85}
         cashOutSuccessExtra={SHOW_DISCOVERY_CTA ? cashOutDiscovery : null}
+        onPaymentSuccess={playChaChing}
       >
         <Screens onDemoAction={onDemoAction} compact showWalletDiscovery={SHOW_DISCOVERY_CTA} />
       </PaymentsProvider>
@@ -683,6 +685,7 @@ function LiveMode({ theme, onDemoAction }) {
           invoiceSeconds: cfg.invoiceSeconds,
         }}
         cashOutSuccessExtra={SHOW_DISCOVERY_CTA ? cashOutDiscovery : null}
+        onPaymentSuccess={playChaChing}
       >
         <Screens
           onDemoAction={onDemoAction}
@@ -723,6 +726,20 @@ export default function App() {
   const [mode, setMode] = useState("mock");
   const [theme, setTheme] = useTheme();
   const [focusAction, setFocusAction] = useState(null);
+
+  useEffect(function () {
+    function prime() {
+      primeChaChing();
+    }
+    document.addEventListener("touchstart", prime, true);
+    document.addEventListener("mousedown", prime, true);
+    document.addEventListener("click", prime, true);
+    return function () {
+      document.removeEventListener("touchstart", prime, true);
+      document.removeEventListener("mousedown", prime, true);
+      document.removeEventListener("click", prime, true);
+    };
+  }, []);
 
   return (
     <div className={"app" + (mode === "mock" ? " app-mock" : "")}>

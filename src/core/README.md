@@ -48,7 +48,8 @@ cashtag or Lightning address when `getUserMedia` is missing.
 - Balance is an **account**: “Account balance”, “credited to your account.”
 - Cash-out accepts a cashtag, a Lightning address, or a BOLT11 invoice.
   A cashtag is a Lightning address (`$name` → `name@cash.app`) resolved in
-  `parseDestination`.
+  `parseDestination`. A bare username (no `@`, not a `$` cashtag) becomes
+  `name@walletofsatoshi.com`.
 
 ## Fund
 

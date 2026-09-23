@@ -149,6 +149,36 @@ const wrapped = parseDestination("lightning:" + bolt);
 check("lightning: prefix unwraps to an invoice", wrapped.kind === "invoice" && wrapped.bolt11.toLowerCase().indexOf("lnbc") === 0, wrapped);
 const btcUri = parseDestination("bitcoin:?lightning=" + bolt);
 check("bitcoin URI lightning= query is an invoice", btcUri.kind === "invoice", btcUri);
+const bare = parseDestination("MeatyRadish884");
+check(
+  "bare username becomes a Wallet of Satoshi address",
+  bare.kind === "address" && bare.address === "meatyradish884@walletofsatoshi.com" && bare.display === "meatyradish884@walletofsatoshi.com",
+  bare
+);
+const kept = parseDestination("Foo@Bar.com");
+check("full Lightning address is unchanged", kept.kind === "address" && kept.address === "foo@bar.com", kept);
+const cashtag = parseDestination("$jestoph");
+check("cashtag does not gain a Wallet of Satoshi domain", cashtag.address === "jestoph@cash.app" && cashtag.display.toLowerCase() === "$jestoph", cashtag);
+
+console.log("\nbare username withdraw");
+const wos = await call("/api/withdraw", {
+  method: "POST",
+  body: { sessionId: sid, destination: "meatyradish884", amountUsd: 1 },
+});
+check("bare username withdraw accepted", wos.status === 200, wos.json);
+let wosStatus = wos.json.status;
+for (let i = 0; i < 12 && wosStatus === "pending"; i++) {
+  await sleep(400);
+  const poll = await call(`/api/withdraw/${wos.json.id}?s=${sid}`);
+  wosStatus = poll.json.status;
+}
+check("bare username withdraw completes", wosStatus === "complete", wosStatus);
+const wosState = await call(`/api/state?s=${sid}`);
+check(
+  "history shows the Wallet of Satoshi address",
+  wosState.json.transactions[0].destination === "meatyradish884@walletofsatoshi.com",
+  wosState.json.transactions[0]
+);
 check(
   "liquidity errors do not disable address payouts",
   addressSendLooksUnsupported("Liquidity not available") === false

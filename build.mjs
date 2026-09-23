@@ -164,7 +164,7 @@ function page(bootstrap) {
   return fs.readFileSync(p("src", "booth", "page.html"), "utf8").replace("__BOOTSTRAP__", bootstrap);
 }
 
-function writeSite(dir, bundle) {
+function writeSite(dir, bundle, options) {
   fs.mkdirSync(dir, { recursive: true });
   fs.writeFileSync(path.join(dir, "app.js"), bundle);
   fs.writeFileSync(path.join(dir, "cashier-config.js"), cashierConfigJs({ live: true }));
@@ -180,6 +180,10 @@ function writeSite(dir, bundle) {
   fs.copyFileSync(p("src", "assets", "logo_gradient.svg"), path.join(dir, "logo_gradient.svg"));
   fs.copyFileSync(p("src", "assets", "letter_gradient.svg"), path.join(dir, "letter_gradient.svg"));
   fs.copyFileSync(p("src", "assets", "letter_black.svg"), path.join(dir, "letter_black.svg"));
+  /* Cha-ching is booth chrome. Core (public-core/) must not ship the file. */
+  const sound = path.join(dir, "cha-ching.mp3");
+  if (options && options.chaChing) fs.copyFileSync(p("src", "booth", "cha-ching.mp3"), sound);
+  else if (fs.existsSync(sound)) fs.unlinkSync(sound);
 }
 
 const CHECK = `<!DOCTYPE html>
@@ -303,12 +307,13 @@ const boothBundle = await buildBundle(p("src", "booth", "index.jsx"));
 const coreBundle = await buildBundle(p("src", "core", "index.jsx"));
 
 fs.mkdirSync(p("offline"), { recursive: true });
-writeSite(p("public"), boothBundle);
+writeSite(p("public"), boothBundle, { chaChing: true });
 writeSite(p("public-core"), coreBundle);
 fs.writeFileSync(
   p("offline", "cashier-offline.html"),
   page("<script>" + cashierConfigJs({ live: false }) + boothBundle + "</script>")
 );
+fs.copyFileSync(p("src", "booth", "cha-ching.mp3"), p("offline", "cha-ching.mp3"));
 
 const kb = (n) => Math.round(n / 1024) + " KB";
 console.log("sections   ", sections.length, "covering", lines, "lines");

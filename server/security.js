@@ -216,7 +216,7 @@ export function htmlSecurityHeaders() {
    cashier-config.js, app.js, and other static assets must 404 when missing.
    Returning index.html for those paths serves the cashier document as
    text/html and the diagnostics script never loads. */
-const STATIC_ASSET_PATH = /\.(?:html?|js|mjs|css|json|svg|png|ico|webmanifest|map|txt|woff2?)$/i;
+const STATIC_ASSET_PATH = /\.(?:html?|js|mjs|css|json|svg|png|ico|webmanifest|map|txt|woff2?|mp3)$/i;
 
 export function allowsSpaFallback(urlPath) {
   const pathOnly = String(urlPath || "/").split("?")[0].split("#")[0];

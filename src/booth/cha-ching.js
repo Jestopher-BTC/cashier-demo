@@ -1,6 +1,7 @@
 /* Booth-only cash-register chime. The core package does not import this
    module. build.mjs copies cha-ching.mp3 into public/ and leaves it out of
-   public-core/. Playback fails soft if the file or the audio API is missing. */
+   public-core/. Playback fails soft if the file or the audio API is missing.
+   Recording: CC0 1.0, https://www.free-stock-music.com/sound-effects-library-cash-register-sound.html */
 
 const SRC = "cha-ching.mp3";
 const VOLUME = 0.62;

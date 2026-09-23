@@ -1,22 +1,22 @@
-# Booth demo package (optional)
+# Booth (optional)
 
-Conference / sales wrapper around the core cashier. **Not the integrator
-path.** Production is `CASHIER_PACKAGE=core`.
+Conference demo chrome around the core cashier. Integrators use **core**
+(`CASHIER_PACKAGE=core`). This package is what you get when
+`CASHIER_PACKAGE` is unset, so an existing kiosk keeps its current UI.
 
-- Mock UI, Code View, Live UI
+Only this package adds:
+
+- Mock / Code / Live tabs
 - Calendly discovery CTA (`SHOW_DISCOVERY_CTA` in `booth-sales.js`)
-- Staff **Fund** / **New visitor** on Live (PIN + `FUND_ENABLED` gates)
-- Device check page, offline HTML
-
-This is the **default** `npm run build` output in `public/`, so a kiosk that
-already deploys this repo keeps Mock / Code / Fund. Do not set
-`CASHIER_PACKAGE=core` on that box.
+- Staff **Fund** and **New visitor**
+- Cha-ching on a successful payment
+- Offline HTML
 
 ```bash
-npm run build
 npm run dev         # MOCK_AMBOSS=1
-npm start           # live Amboss, needs .env
+npm start           # live Amboss; load .env first, or use systemd
 ```
 
 Set `SHOW_DISCOVERY_CTA` to `false` to hide the Calendly QR and sales line
-without switching packages. Kiosk runbook: [docs/booth/RUNBOOK.md](../../docs/booth/RUNBOOK.md).
+without switching packages. Kiosk steps:
+[docs/booth/RUNBOOK.md](../../docs/booth/RUNBOOK.md).

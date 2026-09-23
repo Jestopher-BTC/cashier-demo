@@ -1,12 +1,12 @@
 # Booth (optional)
 
-Demo chrome for a live kiosk. Not the integrator path.
+Kiosk demo chrome. Not the integrator path.
 
 | Piece | Where |
 |---|---|
 | Package source | [`src/booth/`](../../src/booth/README.md) |
-| Kiosk runbook | [RUNBOOK.md](RUNBOOK.md) |
+| Kiosk steps | [RUNBOOK.md](RUNBOOK.md) |
 | Core cashier | [`src/core/`](../../src/core/README.md) |
 
-`CASHIER_PACKAGE` default is `booth` so an existing kiosk deploy keeps Mock /
-Code / Live. Integrators should run `npm run start:core` instead.
+`CASHIER_PACKAGE` defaults to `booth` when unset, so an existing kiosk deploy
+keeps Mock / Code / Live. A new cashier uses `npm run start:core`.

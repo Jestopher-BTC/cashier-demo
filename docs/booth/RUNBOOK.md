@@ -1,97 +1,71 @@
-# Optional booth kiosk
+# Booth kiosk (optional)
 
-Conference demo chrome around the core cashier: Mock / Code / Live, discovery
-CTA, staff Fund. Integrators do not need this. Production path is
-`CASHIER_PACKAGE=core` (see the [README](../../README.md)).
+Demo chrome for a live kiosk: Mock / Code / Live, a discovery CTA, and staff
+Fund. Integrators use core. See the [README](../../README.md).
 
-This file is the worked kiosk runbook for the reference host. Swap domain,
-path, app dir, and system user if you run the same chrome elsewhere.
+This file is the reference host. Swap domain, path, app dir, and system user
+if you run the same chrome elsewhere.
 
 ```
-https://boltda.sh/cashier              booth UI (keep this)
-https://boltda.sh/cashier/check.html   device check, run first on the iPad
-https://boltda.sh/cashier/healthz      redacted; is the process up
+https://boltda.sh/cashier
+https://boltda.sh/cashier/check.html
+https://boltda.sh/cashier/healthz
 ```
 
-**Do not set `CASHIER_PACKAGE=core` on that box.** Leave it unset or `booth`
-so Mock / Code / Fund stay on the kiosk. `deploy/pull-deploy.sh` is the update
-path; it never touches `.env`.
+Leave `CASHIER_PACKAGE` unset or `booth` on that box so Mock / Code / Fund
+stay on. `deploy/pull-deploy.sh` is the update path. It never touches `.env`.
 
-Generic host, systemd, and Amboss key setup: [DEPLOY.md](../../DEPLOY.md).
-
----
+Host, systemd, and Amboss key setup: [DEPLOY.md](../../DEPLOY.md).
 
 ## Before doors open
 
-- `healthz` green; unredacted loopback view shows wallet balance above the
-  day’s float.
-- Phone wallet installed, funded, and already on venue wifi.
-- One full Live loop: deposit $1, cash out $1. Then **New visitor**.
-- Note `DAILY_FLOAT_USD`. When it is gone, Live is still deposit-then-withdraw
-  your own money.
+- `/healthz` is up. On the box, the unredacted loopback view shows wallet balance above the day’s float.
+- A phone wallet is installed, funded, and already on the venue network.
+- One full Live loop: deposit $1, cash out $1, then **New visitor**.
+- Note `DAILY_FLOAT_USD`. After it is used, Live is still deposit-then-cash-out of the player’s own money.
 
-## The 90 second demo
+## Demo order
 
-1. **Mock UI.** Walk deposit and cash out. The player never sees a rate, a sat,
-   or the word Bitcoin (except the muted sats hint under a BTC deposit QR).
-2. **Code View.** Three official SDK calls: receive, send, webhook. Full mock
-   source is behind **Show full mock source**.
-3. **Live UI.** Deposit a dollar, scan the QR, cash out to a cashtag.
+1. **Mock.** Walk deposit and cash out. The player sees dollars. A BTC deposit QR may add a muted sats hint.
+2. **Code.** Three SDK calls: receive, send, webhook. Full mock source is behind **Show full mock source**.
+3. **Live.** Deposit a dollar, pay the QR, cash out to a cashtag.
 4. **New visitor** before the next person.
 
-If the venue network dies, stay on Mock. If the iPad itself is offline, use
-`offline/cashier-offline.html` (built next to `public/`; AirDrop or a laptop
-hotspot). It is mock + code only, no secrets.
+If the venue network dies, stay on Mock. If the device itself is offline, use
+`offline/cashier-offline.html` (built next to `public/`). It is mock and code
+only, and it contains no secrets.
 
-## iPad
+## On the device
 
 1. Open `/cashier/check.html`.
-   - **Good to go** means the floor is met and `getUserMedia` is present.
-   - **App can run. Camera cannot.** means this Safari 10 class device can
-     boot, show a deposit QR, and cash out by typing a cashtag or Lightning
-     address. Do not expect Scan a code. Do not read that as good to go.
-   - **Below the floor** means Promise, CSS grid, or flexbox is missing. The
-     cashier will not boot. Use a newer iPad or a laptop.
-   Floor is Safari 10 / iOS 10.3 class WebKit. iOS 15+ looks right (flex gap,
-   inset, sticky). Amber rows other than the camera are cosmetic.
-2. If the camera API is present, tap **Test camera** (or Cash out → Scan a
-   code) and allow Camera **before** Guided Access. iOS will not prompt once
-   it is locked. If the camera API is missing, skip this and type the cashtag.
-3. Open `/cashier`, Share → **Add to Home Screen**. When the device has a
-   camera API, grant Camera again to the home-screen app (Settings → Cashier
-   → Camera → Allow). Safari and the home-screen icon are different switches.
+   - **Good to go** — the page floor is met and the camera API is present.
+   - **App can run. Camera cannot.** — the deposit QR works, and cash-out is typed. Scan a code does not.
+   - **Below the floor** — the cashier will not boot. Use another device.
+2. If the camera API is present, allow Camera before Guided Access (Cash out → Scan a code, or **Test camera** on the check page). The OS will not prompt once Guided Access is on.
+3. Open `/cashier`, then Share → **Add to Home Screen**. If you use the camera, allow Camera for the home-screen app as well (Settings → Cashier → Camera). The browser and the home-screen icon are separate switches.
 4. Auto-Lock: Never. Guided Access on. Brightness high.
 
-`NotFoundError` / empty `enumerateDevices` on iPad is usually permission
-denied in standalone, not “no camera.”
+Typed cash-out (cashtag, Lightning address, or invoice) works when the camera
+is unavailable.
 
-## Reference host overlay
+## Reference host
 
-`boltda.sh` already runs another app on Caddy. Add only the two `/cashier`
-lines inside the existing site block ([`deploy/Caddyfile`](../../deploy/Caddyfile)).
-Do not add a second `boltda.sh { }` block.
+`boltda.sh` already runs another app on Caddy. Add only the `/cashier` lines
+inside the existing site block ([`deploy/Caddyfile`](../../deploy/Caddyfile)).
 
 ```bash
 ssh boltdash
 sudo /opt/cashier/deploy/pull-deploy.sh
 sudo grep -n CASHIER_PACKAGE /opt/cashier/.env || true
-# leave unset or booth
 curl -s https://boltda.sh/cashier/healthz | jq
-curl -sI https://boltda.sh/cashier/check.html | grep -i content-type
-curl -sI https://boltda.sh/cashier/check.js | grep -i content-type
 ```
 
-`check.html` must be `text/html` and the diagnostics page (heading "Cashier device check"), not the cashier shell. `check.js` must be `application/javascript`. If `check.js` comes back `text/html`, the SPA index was served and the iPad check will stay blank.
+After deploy, the Mock/Live footer shows the build id.
 
-After deploy, the Mock/Live footer shows `build` plus `git rev-parse --short HEAD`
-from `/opt/cashier`.
+From a laptop: `HOST=root@boltda.sh ./deploy/push.sh` (or set `HOST`).
 
-Laptop fallback: `HOST=root@boltda.sh ./deploy/push.sh` (or override `HOST`).
-If SSH says `Permission denied (publickey)`, that is an operator-laptop key
-problem, not an app bug; use the cloud console to install `authorized_keys`.
-
-## Strip sales chrome, keep the kiosk
+## Hide the sales line
 
 Set `SHOW_DISCOVERY_CTA` to `false` in
-[`src/booth/booth-sales.js`](../../src/booth/booth-sales.js), rebuild, redeploy.
-Fund is independent: blank `OPERATOR_PIN` and/or `FUND_ENABLED=false`.
+[`src/booth/booth-sales.js`](../../src/booth/booth-sales.js), rebuild, and
+redeploy. Fund is separate: blank `OPERATOR_PIN` or `FUND_ENABLED=false`.

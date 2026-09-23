@@ -35,8 +35,21 @@ check("core bundle has no Calendly", !/calendly\.com/.test(coreJs));
 check("core bundle has no sales CTA", !/Bring this payment UX to your platform/.test(coreJs));
 check("core bundle still has the cashier", /Account balance/.test(coreJs));
 check("cashier widget does not import booth-sales", !/from "\.\/booth-sales\.js"/.test(fs.readFileSync(new URL("./src/AmbossCashierMock.jsx", import.meta.url), "utf8")));
+check("booth bundle plays cha-ching", /cha-ching\.mp3/.test(boothJs));
+check("core bundle has no cha-ching", !/cha-ching/.test(coreJs));
+check("booth build ships cha-ching.mp3", fs.existsSync(new URL("./public/cha-ching.mp3", import.meta.url)));
+check("core build omits cha-ching.mp3", !fs.existsSync(new URL("./public-core/cha-ching.mp3", import.meta.url)));
+check("core package does not import the chime", !/cha-ching/.test(fs.readFileSync(new URL("./src/core/live-app.jsx", import.meta.url), "utf8")));
+check("cashier widget does not import the chime", !/cha-ching/.test(fs.readFileSync(new URL("./src/AmbossCashierMock.jsx", import.meta.url), "utf8")));
 
 console.log("\ncore server serves Live-only UI");
+const sound = await fetch("http://127.0.0.1:8198/cha-ching.mp3");
+const soundBody = await sound.text();
+check(
+  "core does not serve cha-ching.mp3",
+  sound.status === 404 && !/<!DOCTYPE/i.test(soundBody),
+  sound.status + " " + soundBody.slice(0, 80)
+);
 const dom = await JSDOM.fromURL("http://127.0.0.1:8198/", {
   runScripts: "dangerously",
   resources: "usable",

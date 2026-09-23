@@ -18,6 +18,7 @@ import {
   startCamera,
   stopStream,
 } from "./qr-scan.js";
+import { defaultWalletOfSatoshi } from "./scan-payload.js";
 
 /* ============================================================================
    Amboss Payments SDK - iGaming cashier, v2
@@ -541,9 +542,10 @@ const reference = () => {
 };
 
 /* Destinations. A cashtag is a Lightning address wearing a costume: strip the
-   dollar sign, append the Cash App domain. The player never sees that. */
+   dollar sign, append the Cash App domain. A name with no @ is a Wallet of
+   Satoshi address. The player never sees the routing. */
 export function parseDestination(raw, rate) {
-  const input = normalizeScannedText(raw).replace(/^[\uFF04\uFE69]/, "$");
+  const input = defaultWalletOfSatoshi(normalizeScannedText(raw).replace(/^[\uFF04\uFE69]/, "$"));
   if (!input) return { kind: "empty" };
 
   const cashApp = /^(?:https?:\/\/)?(?:www\.)?cash\.app\/\$?([a-z0-9_]{1,20})\/?$/i.exec(input);
@@ -683,6 +685,15 @@ function payoutCheck(parsed, capabilities) {
   return parsed;
 }
 
+function notifyPaymentSuccess(onPaymentSuccess) {
+  if (typeof onPaymentSuccess !== "function") return;
+  try {
+    onPaymentSuccess();
+  } catch (e) {
+    /* A booth sound must not block the payment screen. */
+  }
+}
+
 /* --------------------------------------------------------------- state --- */
 
 const PaymentsContext = createContext(null);
@@ -716,6 +727,7 @@ export function PaymentsProvider({
   defaultTheme = "dark",
   demo = true,
   cashOutSuccessExtra = null,
+  onPaymentSuccess = null,
 }) {
   const limits = useMemo(() => Object.assign({}, LIMITS, limitOverrides || {}), [limitOverrides]);
   const [themeName, setThemeName] = useState(defaultTheme);
@@ -797,11 +809,12 @@ export function PaymentsProvider({
       limits: limits,
       demo,
       cashOutSuccessExtra,
+      onPaymentSuccess,
       creditDeposit,
       debitWithdrawal,
       reset,
     }),
-    [themeName, balance, api, capabilities, limits, usdPerBtc, transactions, demo, cashOutSuccessExtra, creditDeposit, debitWithdrawal, reset]
+    [themeName, balance, api, capabilities, limits, usdPerBtc, transactions, demo, cashOutSuccessExtra, onPaymentSuccess, creditDeposit, debitWithdrawal, reset]
   );
 
   return <PaymentsContext.Provider value={value}>{children}</PaymentsContext.Provider>;
@@ -1276,11 +1289,12 @@ export function ThemeToggle() {
 /* -------------------------------------------------------------- deposit --- */
 
 export function DepositFlow({ onExit, onDone }) {
-  const { theme, rate, limits, demo, api, creditDeposit } = usePayments();
+  const { theme, rate, limits, demo, api, creditDeposit, onPaymentSuccess } = usePayments();
   const [step, setStep] = useState("amount"); // amount | request | confirming | added | expired | failed
   const [amount, setAmount] = useState("");
   const [req, setReq] = useState(null);
   const timers = useRef([]);
+  const paidRef = useRef(false);
   useEffect(() => () => timers.current.forEach(clearTimeout), []);
   const later = (fn, ms) => timers.current.push(setTimeout(fn, ms));
 
@@ -1293,16 +1307,20 @@ export function DepositFlow({ onExit, onDone }) {
       : "";
 
   const createRequest = async (amountUsd) => {
+    paidRef.current = false;
     const request = await api.createInvoice({ amountUsd, usdPerBtc: rate });
     setReq(request);
     setStep("request");
   };
 
   const settle = () => {
+    if (paidRef.current) return;
+    paidRef.current = true;
     setStep("confirming");
     later(() => {
       creditDeposit(req.amountUsd);
       setStep("added");
+      notifyPaymentSuccess(onPaymentSuccess);
     }, 1400);
   };
 
@@ -2088,7 +2106,7 @@ function DestinationPill({ theme, dest, onChange }) {
 }
 
 export function WithdrawFlow({ onExit, onDone }) {
-  const { theme, balance, rate, limits, demo, api, capabilities, debitWithdrawal, cashOutSuccessExtra } = usePayments();
+  const { theme, balance, rate, limits, demo, api, capabilities, debitWithdrawal, cashOutSuccessExtra, onPaymentSuccess } = usePayments();
   const [step, setStep] = useState("destination"); // destination | amount | review | sending | sent | pending | failed
   const [raw, setRaw] = useState("");
   const [dest, setDest] = useState(null);
@@ -2138,6 +2156,7 @@ export function WithdrawFlow({ onExit, onDone }) {
     });
     if (!alive.current) return;
     debitWithdrawal(final.amountUsd, final.dest.display, result.status);
+    if (result.status === "complete") notifyPaymentSuccess(onPaymentSuccess);
     setStep(result.status === "complete" ? "sent" : result.status);
   };
 
@@ -2235,7 +2254,7 @@ export function WithdrawFlow({ onExit, onDone }) {
                 ? `Set amount: ${usd(typed.amountUsd)}`
                 : "You choose the amount next"
               : typed.reason
-            : scanNote || "Start a cashtag with $."}
+            : scanNote || "Start a cashtag with $. A name goes to Wallet of Satoshi."}
         </div>
 
         <div style={{ marginTop: 24 }}>

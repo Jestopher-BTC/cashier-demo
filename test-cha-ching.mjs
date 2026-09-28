@@ -90,7 +90,7 @@ await click(btn("Back to wallet"));
 
 console.log("\nmock cash out");
 await click(btn("Cash out"));
-check("helper mentions a bare name", txt().includes("A name goes to Wallet of Satoshi."));
+check("helper mentions a bare name", txt().includes("A name goes to breez.tips."));
 await type(d.querySelector("input"), "foo@bar.com");
 check("full address is accepted as typed", /You choose the amount next/.test(txt()));
 await click(btn("Continue"));
@@ -98,19 +98,19 @@ check("full address is not rewritten", txt().includes("foo@bar.com") && !txt().i
 await click(d.querySelector('[aria-label="Go back"]'));
 await type(d.querySelector("input"), "$jestoph");
 await click(btn("Continue"));
-check("cashtag stays a cashtag", txt().includes("$jestoph") && !txt().includes("jestoph@walletofsatoshi.com"), txt().slice(0, 240));
+check("cashtag stays a cashtag", txt().includes("$jestoph") && !txt().includes("jestoph@breez.tips"), txt().slice(0, 240));
 await click(d.querySelector('[aria-label="Go back"]'));
 await type(d.querySelector("input"), "meatyradish884");
 check("bare name is accepted", /You choose the amount next/.test(txt()), txt().slice(0, 200));
 await click(btn("Continue"));
 check(
-  "bare name shows the Wallet of Satoshi address",
-  txt().includes("meatyradish884@walletofsatoshi.com"),
+  "bare name shows the breez.tips address",
+  txt().includes("meatyradish884@breez.tips"),
   txt().slice(0, 240)
 );
 await type(d.querySelector("input"), "5");
 await click(btn("Review"));
-check("review keeps the Wallet of Satoshi address", txt().includes("meatyradish884@walletofsatoshi.com"), txt().slice(0, 240));
+check("review keeps the breez.tips address", txt().includes("meatyradish884@breez.tips"), txt().slice(0, 240));
 await click(btn("Send"), 2500);
 check("cash-out completes", txt().includes("paid out from your account"), txt().slice(0, 200));
 check("cash-out plays cha-ching once more", audible().length === 2, plays);

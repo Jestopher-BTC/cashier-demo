@@ -151,14 +151,14 @@ const btcUri = parseDestination("bitcoin:?lightning=" + bolt);
 check("bitcoin URI lightning= query is an invoice", btcUri.kind === "invoice", btcUri);
 const bare = parseDestination("MeatyRadish884");
 check(
-  "bare username becomes a Wallet of Satoshi address",
-  bare.kind === "address" && bare.address === "meatyradish884@walletofsatoshi.com" && bare.display === "meatyradish884@walletofsatoshi.com",
+  "bare username becomes a breez.tips address",
+  bare.kind === "address" && bare.address === "meatyradish884@breez.tips" && bare.display === "meatyradish884@breez.tips",
   bare
 );
 const kept = parseDestination("Foo@Bar.com");
 check("full Lightning address is unchanged", kept.kind === "address" && kept.address === "foo@bar.com", kept);
 const cashtag = parseDestination("$jestoph");
-check("cashtag does not gain a Wallet of Satoshi domain", cashtag.address === "jestoph@cash.app" && cashtag.display.toLowerCase() === "$jestoph", cashtag);
+check("cashtag does not gain a breez.tips domain", cashtag.address === "jestoph@cash.app" && cashtag.display.toLowerCase() === "$jestoph", cashtag);
 
 console.log("\nbare username withdraw");
 const wos = await call("/api/withdraw", {
@@ -175,8 +175,8 @@ for (let i = 0; i < 12 && wosStatus === "pending"; i++) {
 check("bare username withdraw completes", wosStatus === "complete", wosStatus);
 const wosState = await call(`/api/state?s=${sid}`);
 check(
-  "history shows the Wallet of Satoshi address",
-  wosState.json.transactions[0].destination === "meatyradish884@walletofsatoshi.com",
+  "history shows the breez.tips address",
+  wosState.json.transactions[0].destination === "meatyradish884@breez.tips",
   wosState.json.transactions[0]
 );
 check(

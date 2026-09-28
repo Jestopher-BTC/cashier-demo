@@ -10,7 +10,7 @@ import {
   normalizeScannedText,
   resolveCameraError,
 } from "./src/qr-scan.js";
-import { defaultWalletOfSatoshi } from "./src/scan-payload.js";
+import { defaultBreezTips } from "./src/scan-payload.js";
 
 let pass = 0;
 let fail = 0;
@@ -112,20 +112,20 @@ check("parseDestination accepts lightning: prefix", parsedLn.kind === "request",
 const parsedPaste = parseDestination(invoice, 100000);
 check("parseDestination still accepts a raw invoice", parsedPaste.kind === "request", parsedPaste);
 
-console.log("\nWallet of Satoshi bare username");
-check("helper appends Wallet of Satoshi", defaultWalletOfSatoshi("meatyradish884") === "meatyradish884@walletofsatoshi.com");
-check("helper lowercases a bare name", defaultWalletOfSatoshi("MeatyRadish884") === "meatyradish884@walletofsatoshi.com");
-check("helper leaves a full address", defaultWalletOfSatoshi("Foo@Bar.com") === "Foo@Bar.com");
-check("helper leaves a cashtag", defaultWalletOfSatoshi("$jestoph") === "$jestoph");
-check("helper leaves an invoice", defaultWalletOfSatoshi(invoice) === invoice);
+console.log("\nbreez.tips bare username");
+check("helper appends breez.tips", defaultBreezTips("meatyradish884") === "meatyradish884@breez.tips");
+check("helper lowercases a bare name", defaultBreezTips("MeatyRadish884") === "meatyradish884@breez.tips");
+check("helper leaves a full address", defaultBreezTips("Foo@Bar.com") === "Foo@Bar.com");
+check("helper leaves a cashtag", defaultBreezTips("$jestoph") === "$jestoph");
+check("helper leaves an invoice", defaultBreezTips(invoice) === invoice);
 check(
   "helper leaves an on-chain address",
-  defaultWalletOfSatoshi("bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4") === "bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4"
+  defaultBreezTips("bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4") === "bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4"
 );
 const bare = parseDestination("meatyradish884", 100000);
 check(
-  "client parser sends a bare name to Wallet of Satoshi",
-  bare.kind === "address" && bare.address === "meatyradish884@walletofsatoshi.com" && bare.amountKnown === false,
+  "client parser sends a bare name to breez.tips",
+  bare.kind === "address" && bare.address === "meatyradish884@breez.tips" && bare.amountKnown === false,
   bare
 );
 const full = parseDestination("foo@bar.com", 100000);

@@ -30,7 +30,7 @@ No live secrets in the working tree:
 | `HEALTHZ_TOKEN` | Blank in `.env.example`. Tests use `test-healthz-token`. |
 | AWS / Stripe / GitHub / Slack tokens | None. |
 | Calendly | Public booking page only: `https://calendly.com/d/cwfn-s48-3b3/payments-discovery`. Booth chrome. Core never ships it. |
-| Personal email in files | None. Examples only (`player@walletofsatoshi.com`, `you@wallet.com`, `jestopher@cash.app`, `root@boltda.sh`). |
+| Personal email in files | None. Examples only (`player@breez.tips`, `you@wallet.com`, `jestopher@cash.app`, `root@boltda.sh`). |
 
 The only env file in git is `.env.example`. Secret fields in it are blank.
 

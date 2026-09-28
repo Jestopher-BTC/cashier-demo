@@ -18,7 +18,7 @@ import {
   startCamera,
   stopStream,
 } from "./qr-scan.js";
-import { defaultWalletOfSatoshi } from "./scan-payload.js";
+import { defaultBreezTips } from "./scan-payload.js";
 
 /* ============================================================================
    Amboss Payments SDK - iGaming cashier, v2
@@ -542,10 +542,10 @@ const reference = () => {
 };
 
 /* Destinations. A cashtag is a Lightning address wearing a costume: strip the
-   dollar sign, append the Cash App domain. A name with no @ is a Wallet of
-   Satoshi address. The player never sees the routing. */
+   dollar sign, append the Cash App domain. A name with no @ is a breez.tips
+   address. The player never sees the routing. */
 export function parseDestination(raw, rate) {
-  const input = defaultWalletOfSatoshi(normalizeScannedText(raw).replace(/^[\uFF04\uFE69]/, "$"));
+  const input = defaultBreezTips(normalizeScannedText(raw).replace(/^[\uFF04\uFE69]/, "$"));
   if (!input) return { kind: "empty" };
 
   const cashApp = /^(?:https?:\/\/)?(?:www\.)?cash\.app\/\$?([a-z0-9_]{1,20})\/?$/i.exec(input);
@@ -2254,7 +2254,7 @@ export function WithdrawFlow({ onExit, onDone }) {
                 ? `Set amount: ${usd(typed.amountUsd)}`
                 : "You choose the amount next"
               : typed.reason
-            : scanNote || "Start a cashtag with $. A name goes to Wallet of Satoshi."}
+            : scanNote || "Start a cashtag with $. A name goes to breez.tips."}
         </div>
 
         <div style={{ marginTop: 24 }}>

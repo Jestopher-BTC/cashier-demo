@@ -68,7 +68,7 @@ The player types a destination. The placeholder is `$cashtag, address, or invoic
 - `$name` and `name@cash.app` are Cash App cashtags (a Lightning address on `cash.app`).
 - `user@domain` is a Lightning address.
 - A `lnbc…` BOLT11 invoice uses the amount on the invoice when it has one.
-- A bare username (no `@`, and not a `$` cashtag) becomes `name@walletofsatoshi.com`. The field hint says: “Start a cashtag with $. A name goes to Wallet of Satoshi.”
+- A bare username (no `@`, and not a `$` cashtag) becomes `name@breez.tips`. The field hint says: “Start a cashtag with $. A name goes to breez.tips.”
 
 **Scan a code** is optional. With no camera, or on plain HTTP, the player still
 types a destination. The widget says so.

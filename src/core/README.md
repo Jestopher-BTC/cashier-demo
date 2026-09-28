@@ -28,7 +28,7 @@ Keep this when you restyle. Fuller notes are in the [README](../../README.md).
 - Dollars on screen. No exchange rate and no sat balance. A BTC deposit QR adds one muted line: “Your app may show this as N sats.”
 - Home card: **Account balance**, “Available to play or cash out”, **Deposit** and **Cash out**.
 - Deposit: amount, quick amounts **$1 / $5 / $20 / $100**, then a Lightning QR. Continue stays disabled outside `MIN_DEPOSIT_USD` / `MAX_DEPOSIT_USD` (defaults $1 and $5). The live client polls. This demo has no webhook.
-- Cash out: typed cashtag, Lightning address, or BOLT11. A bare username becomes `name@walletofsatoshi.com` (`defaultWalletOfSatoshi` in [`src/scan-payload.js`](../scan-payload.js)). Camera scan is optional.
+- Cash out: typed cashtag, Lightning address, or BOLT11. A bare username becomes `name@breez.tips` (`defaultBreezTips` in [`src/scan-payload.js`](../scan-payload.js)). Camera scan is optional.
 - Success copy stays short: “$X added” / “Credited to your account. Ready to play.” and “$X paid out from your account.”
 - Colours: the `THEMES` object in `AmbossCashierMock.jsx`. One object, dark and light. `PaymentsProvider` takes `defaultTheme`.
 

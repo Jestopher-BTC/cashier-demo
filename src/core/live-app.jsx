@@ -42,11 +42,21 @@ function useTheme() {
   return [theme, setTheme];
 }
 
-function Screens() {
+function Screens({ onNavigate }) {
   const [screen, setScreen] = useState("wallet");
+  /* Every screen change goes through here so a stale live error banner
+     (set above this component, outside the phone) cannot outlive the page
+     it was shown on. */
+  const navigate = useCallback(
+    function (next) {
+      setScreen(next);
+      if (onNavigate) onNavigate();
+    },
+    [onNavigate]
+  );
   const toWallet = useCallback(function () {
-    setScreen("wallet");
-  }, []);
+    navigate("wallet");
+  }, [navigate]);
 
   return (
     <div className="cashier-column">
@@ -54,10 +64,10 @@ function Screens() {
         {screen === "wallet" ? (
           <WalletView
             onDeposit={function () {
-              setScreen("deposit");
+              navigate("deposit");
             }}
             onWithdraw={function () {
-              setScreen("withdraw");
+              navigate("withdraw");
             }}
           />
         ) : screen === "deposit" ? (
@@ -204,7 +214,7 @@ function LiveStage({ theme }) {
           invoiceSeconds: cfg.invoiceSeconds,
         }}
       >
-        <Screens />
+        <Screens onNavigate={function () { setNotice(""); }} />
       </PaymentsProvider>
     </div>
   );

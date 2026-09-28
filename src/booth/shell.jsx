@@ -51,12 +51,22 @@ function useTheme() {
 
 /* The three flows behind one router. Identical in Mock and Live: only the api
    object handed to the provider differs. */
-function Screens({ onDemoAction, staff, compact, showWalletDiscovery }) {
+function Screens({ onDemoAction, onNavigate, staff, compact, showWalletDiscovery }) {
   const { theme } = usePayments();
   const [screen, setScreen] = useState("wallet");
+  /* Every screen change goes through here so a stale live error banner
+     (set above this component, outside the phone) cannot outlive the page
+     it was shown on. */
+  const navigate = useCallback(
+    function (next) {
+      setScreen(next);
+      if (onNavigate) onNavigate();
+    },
+    [onNavigate]
+  );
   const toWallet = useCallback(function () {
-    setScreen("wallet");
-  }, []);
+    navigate("wallet");
+  }, [navigate]);
 
   return (
     <div className="cashier-column">
@@ -67,11 +77,11 @@ function Screens({ onDemoAction, staff, compact, showWalletDiscovery }) {
             compact={compact}
             onDeposit={function () {
               if (onDemoAction) onDemoAction("deposit");
-              setScreen("deposit");
+              navigate("deposit");
             }}
             onWithdraw={function () {
               if (onDemoAction) onDemoAction("withdraw");
-              setScreen("withdraw");
+              navigate("withdraw");
             }}
           />
         ) : screen === "deposit" ? (
@@ -689,6 +699,7 @@ function LiveMode({ theme, onDemoAction }) {
       >
         <Screens
           onDemoAction={onDemoAction}
+          onNavigate={function () { setNotice(""); }}
           staff={{ onFund: fund, onNewVisitor: newVisitor, fundEnabled: Boolean(cfg.fundEnabled) }}
         />
       </PaymentsProvider>

@@ -161,6 +161,7 @@ check("sats hint present", /may show this as 3,000 sats/.test(txt()), txt().matc
 await fetch("http://127.0.0.1:8182/api/dev/settle/all", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({}) });
 await sleep(7000);
 check("deposit credited in UI", txt().includes("$3.00 added") && txt().includes("Credited to your account. Ready to play."), txt().slice(0, 200));
+check("deposit success does not show a meet or invoice QR", !d.querySelector("[data-discovery-qr]") && d.querySelectorAll('svg[aria-label="Lightning invoice QR code"]').length === 0);
 await click(btn("Back to wallet"), 600);
 check("balance updated from server", txt().includes("$3.00"), txt().slice(0, 160));
 const liveIcon = d.querySelector("[data-tx-icon]");
@@ -196,6 +197,13 @@ check(
 check("discovery invite copy", /Scan to book a payments discovery meeting/.test(txt()));
 check("success QR sits outside the success card", Boolean(successCard && discovery && !successCard.contains(discovery)));
 check("success QR is a sibling below the success card", Boolean(successCard && successCard.nextElementSibling === discovery));
+check(
+  "cash-out success shows one meet QR",
+  d.querySelectorAll("[data-discovery-qr]").length === 1 &&
+    d.querySelectorAll('svg[aria-label="Payments discovery booking QR code"]').length === 1 &&
+    d.querySelectorAll('svg[aria-label="Lightning invoice QR code"]').length === 0
+);
+check("cash-out success opts into the meet QR layout", d.documentElement.hasAttribute("data-cashout-success"));
 const liveSuccessCta = d.querySelector("[data-discovery-cta]");
 check(
   "live success shows the sales CTA",

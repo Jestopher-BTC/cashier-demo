@@ -29,7 +29,7 @@ export function DiscoveryInvite({ theme, size = 168, showCta, placement }) {
   const qrSize = size || (stage ? 152 : 168);
   return (
     <div
-      className={stage ? "discovery-box" : undefined}
+      className={stage ? "discovery-box" : "discovery-flow"}
       data-discovery-qr
       data-discovery-placement={stage ? "stage" : "flow"}
       data-discovery-url={BOOTH_SALES.url}
@@ -37,7 +37,6 @@ export function DiscoveryInvite({ theme, size = 168, showCta, placement }) {
         stage
           ? undefined
           : {
-              marginTop: 16,
               padding: "18px 16px 16px",
               background: theme.surface,
               border: `1px solid ${theme.border}`,

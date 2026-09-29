@@ -2212,6 +2212,14 @@ export function WithdrawFlow({ onExit, onDone }) {
   const scanWarmup = useRef(null);
   const alive = useRef(true);
   useEffect(() => () => { alive.current = false; }, []);
+  /* Booth page CSS keys off this. Core never passes cashOutSuccessExtra,
+     so deposit success and the plain cashier stay a single column. */
+  useEffect(() => {
+    if (step !== "sent" || !cashOutSuccessExtra) return undefined;
+    const root = document.documentElement;
+    root.setAttribute("data-cashout-success", "");
+    return () => root.removeAttribute("data-cashout-success");
+  }, [step, cashOutSuccessExtra]);
 
   const typed = payoutCheck(parseDestination(raw, rate), capabilities);
   const typedOk = ["cashtag", "address", "request"].includes(typed.kind);
@@ -2487,8 +2495,8 @@ export function WithdrawFlow({ onExit, onDone }) {
 
   if (step === "sent")
     return (
-      <div className="amb-rise" style={{ paddingTop: 8 }}>
-        <Card theme={theme} data-success-card style={{ padding: "22px 18px 20px", textAlign: "center" }}>
+      <div className="amb-rise cashout-success" style={{ paddingTop: 8 }}>
+        <Card theme={theme} className="cashout-success-copy" data-success-card style={{ padding: "22px 18px 20px", textAlign: "center" }}>
           <div style={{ width: 54, height: 54, borderRadius: "50%", background: theme.accentSoft, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 14px" }}>
             <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke={theme.accent} strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
               <path d="M20 6L9 17l-5-5" />

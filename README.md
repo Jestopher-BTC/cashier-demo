@@ -179,8 +179,9 @@ locally; `createLiveApi` implements them against `/api`. Pass either object to
 
 Details: [`src/core/README.md`](src/core/README.md).
 
-The cash-out screen includes one demo “recently used” row (`$jestoph`, the
-`BOOTH.sampleCashtag` constant). Replace that when you brand the widget.
+The cash-out screen includes demo “recently used” rows: `sbcdemo@getalby.com`
+(`BOOTH.sampleAddress`), then `$jestoph` (`BOOTH.sampleCashtag`). Replace
+those when you brand the widget.
 
 ## Deploy and security
 

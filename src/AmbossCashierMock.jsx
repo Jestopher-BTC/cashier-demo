@@ -105,8 +105,27 @@ const NUM = { fontVariantNumeric: "tabular-nums" };
    src/booth/booth-sales.js, not here. */
 export const BOOTH = {
   sampleCashtag: "$jestoph",
+  sampleAddress: "sbcdemo@getalby.com",
   tagline: "Pay in Bitcoin, deal in dollars.",
 };
+
+/* Demo cash-out destinations. Lightning address first, then the sample cashtag. */
+const DEFAULT_PAYOUTS = [
+  {
+    id: "alby",
+    value: BOOTH.sampleAddress,
+    title: BOOTH.sampleAddress,
+    detail: "Lightning address",
+    mark: "@",
+  },
+  {
+    id: "tag",
+    value: BOOTH.sampleCashtag,
+    title: BOOTH.sampleCashtag,
+    detail: "Cash App · used 52m ago",
+    mark: "$",
+  },
+];
 
 
 /* ------------------------------------------------------------ qr encoder --- */
@@ -1290,12 +1309,19 @@ export function ThemeToggle() {
 
 export function DepositFlow({ onExit, onDone }) {
   const { theme, rate, limits, demo, api, creditDeposit, onPaymentSuccess } = usePayments();
-  const [step, setStep] = useState("amount"); // amount | request | confirming | added | expired | failed
+  const [step, setStep] = useState("amount"); // amount | creating | request | confirming | added | expired | failed | create-failed
   const [amount, setAmount] = useState("");
   const [req, setReq] = useState(null);
+  const [createError, setCreateError] = useState("");
   const timers = useRef([]);
   const paidRef = useRef(false);
-  useEffect(() => () => timers.current.forEach(clearTimeout), []);
+  const creatingRef = useRef(false);
+  const lastAmountRef = useRef(0);
+  const alive = useRef(true);
+  useEffect(() => () => {
+    alive.current = false;
+    timers.current.forEach(clearTimeout);
+  }, []);
   const later = (fn, ms) => timers.current.push(setTimeout(fn, ms));
 
   const value = Number(amount || 0);
@@ -1307,10 +1333,25 @@ export function DepositFlow({ onExit, onDone }) {
       : "";
 
   const createRequest = async (amountUsd) => {
+    if (creatingRef.current) return;
+    creatingRef.current = true;
     paidRef.current = false;
-    const request = await api.createInvoice({ amountUsd, usdPerBtc: rate });
-    setReq(request);
-    setStep("request");
+    lastAmountRef.current = amountUsd;
+    setCreateError("");
+    setStep("creating");
+    try {
+      const request = await api.createInvoice({ amountUsd, usdPerBtc: rate });
+      if (!alive.current) return;
+      if (!request || !request.invoice) throw new Error("Could not create a deposit invoice. Try again.");
+      setReq(request);
+      setStep("request");
+    } catch (e) {
+      if (!alive.current) return;
+      setCreateError((e && e.message) || "Could not create a deposit invoice. Try again.");
+      setStep("create-failed");
+    } finally {
+      creatingRef.current = false;
+    }
   };
 
   const settle = () => {
@@ -1379,6 +1420,40 @@ export function DepositFlow({ onExit, onDone }) {
         </div>
         <div style={{ marginTop: 16, fontSize: 11.5, color: theme.faint, textAlign: "center", lineHeight: 1.45 }}>
           No deposit fee. Funds land in seconds.
+        </div>
+      </div>
+    );
+
+  if (step === "creating")
+    return (
+      <div className="amb-rise" style={{ paddingTop: 44, textAlign: "center" }} aria-live="polite">
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 18 }}>
+          <Spinner color={theme.accent} size={30} />
+        </div>
+        <div style={{ fontSize: 17, fontWeight: 700, color: theme.text }}>Fetching invoice…</div>
+        {lastAmountRef.current ? (
+          <div style={{ color: theme.muted, fontSize: 13.5, marginTop: 6 }}>{usd(lastAmountRef.current)}</div>
+        ) : null}
+      </div>
+    );
+
+  if (step === "create-failed")
+    return (
+      <div className="amb-rise">
+        <BackBar theme={theme} title="Deposit" onBack={() => { setCreateError(""); setStep("amount"); }} />
+        <Notice
+          theme={theme}
+          tone="danger"
+          title="Could not create an invoice"
+          body={createError || "Nothing was charged. Try again."}
+        />
+        <div style={{ display: "grid", gridGap: 10, marginTop: 24 }}>
+          <Button theme={theme} full onClick={() => createRequest(lastAmountRef.current)}>
+            Try again
+          </Button>
+          <Button theme={theme} variant="ghost" full onClick={onExit}>
+            Back to wallet
+          </Button>
         </div>
       </div>
     );
@@ -1649,13 +1724,33 @@ export function WalletView({ onDeposit, onWithdraw, staff, compact }) {
   return (
     <div className="amb-rise" data-wallet-compact={compact ? "true" : undefined}>
       <Card theme={theme} style={{ padding: compact ? "14px 16px 12px" : "18px 18px 16px", background: theme.surfaceAlt }}>
-        <span style={{ fontSize: 11, color: theme.faint, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" }}>
-          Account balance
-        </span>
-        <div style={{ fontSize: 38, fontWeight: 700, color: theme.text, marginTop: compact ? 6 : 10, ...NUM }}>{usd(balance)}</div>
-        <div data-balance-caption style={{ fontSize: 12, color: theme.muted, marginTop: compact ? 4 : 8, lineHeight: 1.45 }}>
-          Available to play or cash out
-        </div>
+        <button
+          type="button"
+          data-balance-tap
+          onClick={onDeposit}
+          aria-label="Deposit"
+          className="amb-tap"
+          style={{
+            display: "block",
+            width: "100%",
+            margin: 0,
+            padding: 0,
+            textAlign: "left",
+            background: "transparent",
+            border: "none",
+            cursor: "pointer",
+            fontFamily: FONT,
+            WebkitAppearance: "none",
+          }}
+        >
+          <span style={{ fontSize: 11, color: theme.faint, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" }}>
+            Account balance
+          </span>
+          <div style={{ fontSize: 38, fontWeight: 700, color: theme.text, marginTop: compact ? 6 : 10, ...NUM }}>{usd(balance)}</div>
+          <div data-balance-caption style={{ fontSize: 12, color: theme.muted, marginTop: compact ? 4 : 8, lineHeight: 1.45 }}>
+            Available to play or cash out
+          </div>
+        </button>
 
         <div data-balance-actions style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gridGap: 12, marginTop: compact ? 10 : 16, paddingTop: compact ? 8 : 16 }}>
           <Button theme={theme} onClick={onDeposit} full>
@@ -2268,19 +2363,23 @@ export function WithdrawFlow({ onExit, onDone }) {
             Recently used
           </div>
           <Card theme={theme}>
-            <button
-              onClick={() => accept(BOOTH.sampleCashtag)}
-              className="amb-tap"
-              style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", background: "transparent", border: "none", padding: "12px 14px", minHeight: 44, cursor: "pointer", textAlign: "left", fontFamily: FONT }}
-            >
-              <div style={{ width: 30, height: 30, borderRadius: "50%", background: theme.accentSoft, color: theme.accent, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700 }}>
-                $
-              </div>
-              <div>
-                <div style={{ fontSize: 14, color: theme.text, fontWeight: 600 }}>{BOOTH.sampleCashtag}</div>
-                <div style={{ fontSize: 11.5, color: theme.faint, marginTop: 2 }}>Cash App · used 52m ago</div>
-              </div>
-            </button>
+            {DEFAULT_PAYOUTS.map((row, i) => (
+              <button
+                key={row.id}
+                data-default-payout={row.id}
+                onClick={() => accept(row.value)}
+                className="amb-tap"
+                style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", background: "transparent", border: "none", borderTop: i ? `1px solid ${theme.border}` : "none", padding: "12px 14px", minHeight: 44, cursor: "pointer", textAlign: "left", fontFamily: FONT }}
+              >
+                <div style={{ width: 30, height: 30, borderRadius: "50%", background: theme.accentSoft, color: theme.accent, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, flex: "0 0 auto" }}>
+                  {row.mark}
+                </div>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: 14, color: theme.text, fontWeight: 600, wordBreak: "break-all" }}>{row.title}</div>
+                  <div style={{ fontSize: 11.5, color: theme.faint, marginTop: 2 }}>{row.detail}</div>
+                </div>
+              </button>
+            ))}
           </Card>
         </div>
       </div>

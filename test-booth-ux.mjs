@@ -148,6 +148,12 @@ check("sales chrome is gated in booth-sales.js", /export const SHOW_DISCOVERY_CT
 
 console.log("\nbalance + pay status spacing");
 checkBalanceGap("mock");
+const balanceTap = d.querySelector("[data-balance-tap]");
+check("balance tap target is the account balance", Boolean(balanceTap && /Account balance/.test(balanceTap.textContent)));
+await click(balanceTap);
+check("balance tap opens deposit", /How much do you want credited to your account/.test(txt()));
+await click(d.querySelector('[aria-label="Go back"]'));
+check("back from a balance tap returns to the wallet", Boolean(d.querySelector("[data-balance-tap]")));
 await click(btn("Deposit"));
 const backBar = d.querySelector("[data-back-bar]");
 const backBtn = d.querySelector('[aria-label="Go back"]');
@@ -193,9 +199,23 @@ await click(Array.from(d.querySelectorAll("button")).find((b) => b.getAttribute(
 
 console.log("\ndestination keyboard");
 await click(btn("Cash out"));
+const payouts = Array.from(d.querySelectorAll("[data-default-payout]"));
+check(
+  "default payouts lead with the Alby address, then $jestoph",
+  payouts.length === 2 &&
+    payouts[0].getAttribute("data-default-payout") === "alby" &&
+    /sbcdemo@getalby\.com/.test(payouts[0].textContent) &&
+    payouts[1].getAttribute("data-default-payout") === "tag" &&
+    /\$jestoph/.test(payouts[1].textContent),
+  payouts.map((b) => b.textContent.trim()).join(" | ")
+);
+await click(payouts[0]);
+check("Alby address opens the cash-out amount step", /How much\?/.test(txt()) && /sbcdemo@getalby\.com/.test(d.querySelector(".phone").textContent));
+await click(d.querySelector('[aria-label="Go back"]'));
 const dest = d.querySelector(".phone input");
 check("dest inputmode email", dest && dest.inputMode === "email", dest && dest.inputMode);
 check("dest stays type text", dest && dest.type === "text", dest && dest.type);
+await type(dest, "");
 check("dest helper is short", txt().includes("Start a cashtag with $.") && !/Cash App is one of many/.test(txt()));
 await type(dest, "lnbc1pw");
 check("bolt11 inputmode text", dest.inputMode === "text", dest.inputMode);
@@ -284,10 +304,68 @@ const livePresets = Array.from(d.querySelectorAll(".phone button"))
 check("live deposit presets are $1 $5 $20 $100", livePresets.join(" ") === "$1 $5 $20 $100", livePresets.join(" "));
 await click(Array.from(d.querySelectorAll("button")).find((b) => b.getAttribute("aria-label") === "Go back"));
 checkBalanceGap("live");
+const liveBalanceTap = d.querySelector("[data-balance-tap]");
+await click(liveBalanceTap);
+check("live balance tap opens deposit", /How much do you want credited to your account/.test(txt()));
+await click(d.querySelector('[aria-label="Go back"]'));
 await click(btn("Deposit"));
 await type(d.querySelector(".phone input"), "5");
-await click(btn("Continue"), 1200);
+const origOpen = w.XMLHttpRequest.prototype.open;
+const origSend = w.XMLHttpRequest.prototype.send;
+let depositPosts = 0;
+w.XMLHttpRequest.prototype.open = function (method, url) {
+  this.__cashierMethod = method;
+  this.__cashierUrl = String(url || "");
+  return origOpen.apply(this, arguments);
+};
+w.XMLHttpRequest.prototype.send = function () {
+  const url = (this.__cashierUrl || "").split("?")[0];
+  const method = String(this.__cashierMethod || "").toUpperCase();
+  const isCreate = method === "POST" && /api\/deposit$/.test(url);
+  if (!isCreate) return origSend.apply(this, arguments);
+  depositPosts += 1;
+  const xhr = this;
+  const args = arguments;
+  setTimeout(function () {
+    origSend.apply(xhr, args);
+  }, 600);
+};
+const cont = btn("Continue");
+cont.dispatchEvent(new w.MouseEvent("click", { bubbles: true }));
+cont.dispatchEvent(new w.MouseEvent("click", { bubbles: true }));
+await sleep(200);
+check("confirm deposit shows fetching invoice", /Fetching invoice/.test(txt()));
+check("invoice is hidden until the request returns", !d.querySelector("[data-pay-status]"));
+check("confirm cannot be submitted twice while fetching", depositPosts === 1, depositPosts);
+await sleep(1200);
 checkPayStatus("live");
+await click(d.querySelector('[aria-label="Go back"]'));
+await type(d.querySelector(".phone input"), "5");
+let failDeposit = true;
+w.XMLHttpRequest.prototype.send = function () {
+  const url = (this.__cashierUrl || "").split("?")[0];
+  const method = String(this.__cashierMethod || "").toUpperCase();
+  const isCreate = method === "POST" && /api\/deposit$/.test(url);
+  if (!(isCreate && failDeposit)) return origSend.apply(this, arguments);
+  failDeposit = false;
+  const xhr = this;
+  setTimeout(function () {
+    Object.defineProperty(xhr, "status", { configurable: true, get: function () { return 502; } });
+    Object.defineProperty(xhr, "responseText", {
+      configurable: true,
+      get: function () { return JSON.stringify({ error: "Could not create a deposit invoice. Try again." }); },
+    });
+    if (typeof xhr.onload === "function") xhr.onload();
+  }, 400);
+};
+await click(btn("Continue"), 150);
+check("a failed confirm still shows fetching invoice first", /Fetching invoice/.test(txt()));
+await sleep(700);
+check("a failed invoice clears the spinner and shows the error", /Could not create an invoice/.test(txt()) && !/Fetching invoice/.test(txt()));
+await click(btn("Try again"), 900);
+check("retry after a failed invoice shows the QR", Boolean(d.querySelector("[data-pay-status]")));
+w.XMLHttpRequest.prototype.open = origOpen;
+w.XMLHttpRequest.prototype.send = origSend;
 await click(Array.from(d.querySelectorAll("button")).find((b) => b.getAttribute("aria-label") === "Go back"));
 await click(Array.from(d.querySelectorAll("button")).find((b) => b.getAttribute("aria-label") === "Go back"));
 await click(btn("Fund"), 400);

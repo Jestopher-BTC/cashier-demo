@@ -32,8 +32,9 @@ Keep this when you restyle. Fuller notes are in the [README](../../README.md).
 - Success copy stays short: “$X added” / “Credited to your account. Ready to play.” and “$X paid out from your account.”
 - Colours: the `THEMES` object in `AmbossCashierMock.jsx`. One object, dark and light. `PaymentsProvider` takes `defaultTheme`.
 
-The cash-out screen ships a demo “recently used” row, `$jestoph`
-(`BOOTH.sampleCashtag`). Replace that constant when you brand the widget.
+The cash-out screen ships demo “recently used” rows: `sbcdemo@getalby.com`
+(`BOOTH.sampleAddress`), then `$jestoph` (`BOOTH.sampleCashtag`). Replace
+those constants when you brand the widget.
 
 Core sets `demo={false}`, so the simulate-payment bar stays off. Mock
 development settles with `POST /api/dev/settle/all` (404 in production).

@@ -246,6 +246,24 @@ check(
   "mock success QR is a sibling below the success card",
   Boolean(mockSuccess && mockSuccess.nextElementSibling === mockDiscovery)
 );
+check(
+  "cash-out success shows one meet QR",
+  d.querySelectorAll("[data-discovery-qr]").length === 1 &&
+    d.querySelectorAll('svg[aria-label="Payments discovery booking QR code"]').length === 1 &&
+    d.querySelectorAll('svg[aria-label="Lightning invoice QR code"]').length === 0
+);
+check("cash-out success opts into the meet QR layout", d.documentElement.hasAttribute("data-cashout-success"));
+check(
+  "portrait parks the meet QR at the bottom of cash-out success",
+  /@media \(orientation: portrait\), \(max-width: 900px\)\s*\{[^}]*html\[data-cashout-success\] \.cashout-success\s*\{[^}]*flex-direction:\s*column[^}]*justify-content:\s*space-between[^}]*min-height:\s*calc\(100vh - 220px\)/.test(css)
+);
+check(
+  "landscape puts the meet QR on the left of cash-out success",
+  /@media \(orientation: landscape\) and \(min-width: 1000px\)/.test(css) &&
+    /html\[data-cashout-success\] \.discovery-flow\s*\{[^}]*order:\s*-1/.test(css) &&
+    /html\[data-cashout-success\] \.cashier-column\s*\{[^}]*max-width:\s*960px/.test(css) &&
+    !/html\[data-cashout-success\][^{]*\{[^}]*\bgap\s*:/.test(css)
+);
 const mockSuccessCta = d.querySelector("[data-discovery-cta]");
 check(
   "mock success shows the sales CTA",
@@ -259,6 +277,7 @@ check(
 check("success screen does not own the tagline", Boolean(mockDiscovery && !mockDiscovery.querySelector("[data-booth-tagline]")));
 check("tagline stays under the modes bar on success", Boolean(d.querySelector("[data-booth-tagline]") && d.querySelector("[data-booth-tagline]").previousElementSibling && d.querySelector("[data-booth-tagline]").previousElementSibling.classList.contains("topbar")));
 await click(btn("Back to wallet"));
+check("leaving cash-out success clears the meet QR layout", !d.documentElement.hasAttribute("data-cashout-success"));
 
 console.log("\nlive pin + footer");
 await click(btn("Live UI"), 1400);

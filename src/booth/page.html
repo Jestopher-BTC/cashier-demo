@@ -179,6 +179,64 @@
     color: var(--muted);
   }
   .discovery-plate { line-height: 0; }
+  /* Cash-out success only (html[data-cashout-success]). One meet-with-us QR.
+     Portrait / narrow: confirmation first, QR at the bottom of the page.
+     Landscape iPad: QR on the left, confirmation beside it. Orientation and
+     width together, no flex gap — Safari 10 on the booth iPad. */
+  .discovery-flow { margin-top: 16px; }
+  @media (orientation: portrait), (max-width: 900px) {
+    html[data-cashout-success] .cashout-success {
+      display: -webkit-flex;
+      display: flex;
+      -webkit-flex-direction: column;
+      flex-direction: column;
+      -webkit-justify-content: space-between;
+      justify-content: space-between;
+      min-height: calc(100vh - 220px);
+    }
+    html[data-cashout-success] .discovery-flow {
+      -webkit-order: 0;
+      order: 0;
+      width: auto;
+      margin-top: 16px;
+      -webkit-flex: 0 0 auto;
+      flex: 0 0 auto;
+    }
+  }
+  @media (orientation: landscape) and (min-width: 1000px),
+         (min-width: 1000px) and (max-height: 900px) {
+    html[data-cashout-success] .cashier-column {
+      width: 100%;
+      max-width: 960px;
+    }
+    html[data-cashout-success] .cashout-success {
+      display: -webkit-flex;
+      display: flex;
+      -webkit-flex-direction: row;
+      flex-direction: row;
+      -webkit-align-items: flex-start;
+      align-items: flex-start;
+      -webkit-justify-content: flex-start;
+      justify-content: flex-start;
+      min-height: 0;
+    }
+    html[data-cashout-success] .cashout-success-copy {
+      -webkit-flex: 1 1 auto;
+      flex: 1 1 auto;
+      -webkit-order: 1;
+      order: 1;
+      min-width: 0;
+    }
+    html[data-cashout-success] .discovery-flow {
+      -webkit-order: -1;
+      order: -1;
+      -webkit-flex: 0 0 280px;
+      flex: 0 0 280px;
+      width: 280px;
+      margin-top: 0;
+      margin-right: 16px;
+    }
+  }
   .stage-note {
     max-width: 420px; margin: 18px auto 0; font-size: 12px; line-height: 1.6; color: var(--faint);
     text-align: center;

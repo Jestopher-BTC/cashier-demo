@@ -127,6 +127,7 @@ check("mock txn rows keep the 28px arrow gutter", stylePx(txIcon, "marginRight")
 const mockPhone = d.querySelector(".phone");
 const mockWalletQr = d.querySelector("[data-discovery-qr]");
 const mockCta = d.querySelector("[data-discovery-cta]");
+check("portrait does not mount the landscape meet rail", !d.querySelector("[data-discovery-rail]") && !d.querySelector(".stage-rail"));
 check("mock wallet QR is outside the cashier card", Boolean(mockWalletQr && mockPhone && !mockPhone.contains(mockWalletQr)));
 check(
   "mock wallet QR is a sibling below the card",
@@ -258,11 +259,20 @@ check(
   /@media \(orientation: portrait\), \(max-width: 900px\)\s*\{[^}]*html\[data-cashout-success\] \.cashout-success\s*\{[^}]*flex-direction:\s*column[^}]*justify-content:\s*space-between[^}]*min-height:\s*calc\(100vh - 220px\)/.test(css)
 );
 check(
-  "landscape puts the meet QR on the left of cash-out success",
-  /@media \(orientation: landscape\) and \(min-width: 1000px\)/.test(css) &&
-    /html\[data-cashout-success\] \.discovery-flow\s*\{[^}]*order:\s*-1/.test(css) &&
-    /html\[data-cashout-success\] \.cashier-column\s*\{[^}]*max-width:\s*960px/.test(css) &&
-    !/html\[data-cashout-success\][^{]*\{[^}]*\bgap\s*:/.test(css)
+  "landscape meet rail sits in the gutter and does not restyle the cashier column",
+  /\.discovery-rail\s*\{[^}]*position:\s*absolute/.test(css) &&
+    /\.discovery-rail\s*\{[^}]*right:\s*calc\(50% \+ 230px\)/.test(css) &&
+    /\.discovery-rail\s*\{[^}]*width:\s*200px/.test(css) &&
+    !/\.discovery-rail\s*\{[^}]*\bgap\s*:/.test(css) &&
+    !/\.stage-rail \.cashier-column\s*\{[^}]*margin-left:\s*0/.test(css) &&
+    !/html\[data-cashout-success\] \.cashier-column\s*\{[^}]*max-width:\s*960px/.test(css) &&
+    /\.cashier-column\s*\{[^}]*margin:\s*0 auto/.test(css) &&
+    /\.livebar\s*\{[^}]*margin:\s*0 auto 16px/.test(css)
+);
+const salesHook = fs.readFileSync(new URL("./src/booth/booth-sales.js", import.meta.url), "utf8");
+check(
+  "landscape rail uses the iPad landscape query",
+  /MEET_RAIL_QUERY\s*=\s*"\(orientation: landscape\) and \(min-width: 1000px\), \(min-width: 1000px\) and \(max-height: 900px\)"/.test(salesHook)
 );
 const mockSuccessCta = d.querySelector("[data-discovery-cta]");
 check(
@@ -397,6 +407,124 @@ console.log("\ncode view hides footer");
 await click(btn("Code View"), 400);
 check("no footer on code view", !d.querySelector(".booth-foot"));
 check("no tagline on code view", !d.querySelector("[data-booth-tagline]"));
+check("portrait code view has no meet rail", !d.querySelector("[data-discovery-qr]"));
+
+console.log("\nlandscape meet rail");
+const landDom = await JSDOM.fromURL(BASE, {
+  runScripts: "dangerously",
+  resources: "usable",
+  pretendToBeVisual: true,
+  beforeParse(window) {
+    window.matchMedia = function (query) {
+      const q = String(query || "");
+      const on =
+        q.indexOf("min-width: 1000px") !== -1 &&
+        (q.indexOf("orientation: landscape") !== -1 || q.indexOf("max-height: 900px") !== -1);
+      return {
+        matches: on,
+        media: q,
+        addListener: function () {},
+        removeListener: function () {},
+        addEventListener: function () {},
+        removeEventListener: function () {},
+      };
+    };
+  },
+});
+const lw = landDom.window;
+const ld = lw.document;
+lw.prompt = () => "";
+await sleep(1400);
+const ltxt = () => ld.body.textContent;
+const lbtn = (label) => Array.from(ld.querySelectorAll("button")).find((b) => b.textContent.trim().indexOf(label) === 0);
+const lclick = async (el, ms = 350) => {
+  el.dispatchEvent(new lw.MouseEvent("click", { bubbles: true }));
+  await sleep(ms);
+};
+const ltype = async (el, v) => {
+  const set = Object.getOwnPropertyDescriptor(lw.HTMLInputElement.prototype, "value").set;
+  set.call(el, v);
+  el.dispatchEvent(new lw.Event("input", { bubbles: true }));
+  await sleep(80);
+};
+const oneMeet = (label) => {
+  const codes = ld.querySelectorAll("[data-discovery-qr]");
+  const svgs = ld.querySelectorAll('svg[aria-label="Payments discovery booking QR code"]');
+  check(label + " shows one meet QR", codes.length === 1 && svgs.length === 1, codes.length + " qr / " + svgs.length + " svg");
+  const rail = ld.querySelector("[data-discovery-rail]");
+  const qr = codes[0];
+  const phone = ld.querySelector(".phone");
+  const column = ld.querySelector(".cashier-column");
+  check(
+    label + " meet QR is the left rail",
+    Boolean(rail && qr && rail.contains(qr) && phone && !phone.contains(qr) && qr.getAttribute("data-discovery-placement") === "rail")
+  );
+  check(
+    label + " meet QR is the Calendly",
+    Boolean(qr && qr.getAttribute("data-discovery-url") === "https://calendly.com/d/cwfn-s48-3b3/payments-discovery")
+  );
+  check(
+    label + " cashier column stays in normal flow",
+    Boolean(column && phone && column.contains(phone) && !rail.contains(column))
+  );
+};
+oneMeet("landscape wallet");
+const landTagline = ld.querySelector("[data-booth-tagline]");
+const landPhone = ld.querySelector(".phone");
+check("landscape wallet still has Deposit and Cash out", Boolean(lbtn("Deposit") && lbtn("Cash out")));
+check(
+  "landscape tagline stays full-width chrome above the stage",
+  Boolean(
+    landTagline &&
+      landPhone &&
+      landTagline.parentElement &&
+      landTagline.parentElement.classList.contains("app") &&
+      landTagline.nextElementSibling &&
+      landTagline.nextElementSibling.classList.contains("content") &&
+      !ld.querySelector("[data-discovery-rail]").contains(landTagline)
+  )
+);
+check("landscape wallet has no second stacked meet QR", ld.querySelectorAll(".discovery-box").length === 1);
+await lclick(lbtn("Deposit"));
+oneMeet("landscape deposit");
+check("landscape deposit keeps the amount step", /How much do you want credited to your account/.test(ltxt()));
+check("landscape deposit has no invoice QR yet", ld.querySelectorAll('svg[aria-label="Lightning invoice QR code"]').length === 0);
+await lclick(ld.querySelector('[aria-label="Go back"]'));
+await lclick(lbtn("Cash out"));
+oneMeet("landscape cash-out");
+check("landscape cash-out has no invoice QR", ld.querySelectorAll('svg[aria-label="Lightning invoice QR code"]').length === 0);
+await ltype(ld.querySelector(".phone input"), "$jestoph");
+await lclick(lbtn("Continue"));
+oneMeet("landscape cash-out amount");
+await ltype(ld.querySelector(".phone input"), "5");
+await lclick(lbtn("Review"));
+oneMeet("landscape cash-out review");
+await lclick(lbtn("Send"), 2500);
+oneMeet("landscape cash-out success");
+const landSuccess = ld.querySelector("[data-success-card]");
+const landQr = ld.querySelector("[data-discovery-qr]");
+check("landscape success keeps the confirmation", /paid out from your account/.test(ltxt()));
+check("landscape success QR is not inside the confirmation", Boolean(landSuccess && landQr && !landSuccess.contains(landQr)));
+check("landscape success does not opt into the portrait meet layout", !ld.documentElement.hasAttribute("data-cashout-success"));
+check(
+  "landscape success has no payment QR",
+  ld.querySelectorAll('svg[aria-label="Lightning invoice QR code"]').length === 0
+);
+await lclick(lbtn("Back to wallet"));
+oneMeet("landscape wallet after success");
+await lclick(lbtn("Live UI"), 1400);
+oneMeet("landscape live wallet");
+const landBar = ld.querySelector(".livebar");
+const landCol = ld.querySelector(".cashier-column");
+check(
+  "landscape live banner and cashier column share the stage",
+  Boolean(landBar && landCol && landBar.parentElement === landCol.parentElement && !ld.querySelector("[data-discovery-rail]").contains(landBar))
+);
+check("landscape live wallet is the cashier", /Deposit/.test(ltxt()) && /Cash out/.test(ltxt()));
+check("landscape live tagline stays omitted", !ld.querySelector("[data-booth-tagline]"));
+await lclick(lbtn("Code View"), 400);
+check("landscape code view does not keep the meet rail", ld.querySelectorAll("[data-discovery-qr]").length === 0 && !ld.querySelector("[data-discovery-rail]"));
+landDom.window.close();
 
 console.log(`\n${pass} passed, ${fail} failed\n`);
 server.close();

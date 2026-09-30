@@ -179,10 +179,10 @@
     color: var(--muted);
   }
   .discovery-plate { line-height: 0; }
-  /* Cash-out success only (html[data-cashout-success]). One meet-with-us QR.
-     Portrait / narrow: confirmation first, QR at the bottom of the page.
-     Landscape iPad: QR on the left, confirmation beside it. Orientation and
-     width together, no flex gap — Safari 10 on the booth iPad. */
+  /* Cash-out success in portrait / narrow only (html[data-cashout-success]).
+     Confirmation first, meet QR at the bottom of that screen. Landscape uses
+     the left gutter rail (one QR) and keeps this column at 420px, so the
+     banner and the card stay on one axis. No flex gap — Safari 10. */
   .discovery-flow { margin-top: 16px; }
   @media (orientation: portrait), (max-width: 900px) {
     html[data-cashout-success] .cashout-success {
@@ -203,39 +203,38 @@
       flex: 0 0 auto;
     }
   }
-  @media (orientation: landscape) and (min-width: 1000px),
-         (min-width: 1000px) and (max-height: 900px) {
-    html[data-cashout-success] .cashier-column {
-      width: 100%;
-      max-width: 960px;
-    }
-    html[data-cashout-success] .cashout-success {
-      display: -webkit-flex;
-      display: flex;
-      -webkit-flex-direction: row;
-      flex-direction: row;
-      -webkit-align-items: flex-start;
-      align-items: flex-start;
-      -webkit-justify-content: flex-start;
-      justify-content: flex-start;
-      min-height: 0;
-    }
-    html[data-cashout-success] .cashout-success-copy {
-      -webkit-flex: 1 1 auto;
-      flex: 1 1 auto;
-      -webkit-order: 1;
-      order: 1;
-      min-width: 0;
-    }
-    html[data-cashout-success] .discovery-flow {
-      -webkit-order: -1;
-      order: -1;
-      -webkit-flex: 0 0 280px;
-      flex: 0 0 280px;
-      width: 280px;
-      margin-top: 0;
-      margin-right: 16px;
-    }
+  /* Landscape meet rail. Absolutely positioned in the stage's left gutter,
+     beside the centered 420px column — not a flex sibling. A flex rail
+     shrinks the stage and, if only the card is then pinned left, the Live
+     banner (margin: 0 auto) and the mock tagline (full-width text-align)
+     stay on a different axis. 230px = half of 420 + a 20px gap. The rail
+     never sets margin on .cashier-column or .livebar. No flex gap. */
+  .stage.stage-rail { position: relative; }
+  .discovery-rail {
+    position: absolute;
+    z-index: 2;
+    width: 200px;
+    right: calc(50% + 230px);
+    top: 20px;
+    max-height: calc(100% - 32px);
+    overflow-x: hidden;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    -webkit-transform: none;
+    transform: none;
+  }
+  .discovery-rail .discovery-box {
+    margin-top: 0;
+    box-shadow: none;
+  }
+  .discovery-rail .discovery-cta {
+    font-size: 15px;
+    line-height: 1.25;
+    margin-bottom: 10px;
+  }
+  .discovery-rail .discovery-hint {
+    font-size: 12px;
+    margin-top: 8px;
   }
   .stage-note {
     max-width: 420px; margin: 18px auto 0; font-size: 12px; line-height: 1.6; color: var(--faint);
@@ -243,15 +242,19 @@
   }
   /* Mock-only gutters. Live keeps the roomier stage / phone padding. */
   .app-mock .stage { padding: 10px 16px 12px; }
+  .app-mock .discovery-rail { top: 10px; }
   .app-mock .phone { padding: 12px; }
   .app-mock .stage-note { margin-top: 10px; }
   .app-mock .discovery-box { margin-top: 10px; padding: 14px 12px 12px; }
+  .app-mock .discovery-rail .discovery-box { margin-top: 0; }
+  .app-mock .discovery-rail .discovery-cta { font-size: 15px; margin-bottom: 10px; }
   .app-mock .discovery-cta { margin-bottom: 12px; font-size: 16px; }
   /* ~11" iPad landscape (~834px tall): keep the Calendly QR above the fold.
      Modest chrome trims plus a 3-row txn window; do not shrink Live. */
   @media (orientation: landscape) and (max-height: 900px) {
     .booth-tagline { padding-top: 6px; }
     .app-mock .stage { padding: 6px 16px 8px; }
+    .app-mock .discovery-rail { top: 6px; }
     .app-mock .phone { padding: 10px 12px; }
     .app-mock .stage-note { margin-top: 6px; }
     .app-mock .discovery-box { margin-top: 8px; padding: 12px 12px 10px; }
@@ -261,6 +264,14 @@
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
     }
+    /* The meet QR is in the gutter, so the txn window does not have to
+       shrink to keep a stacked code above the fold. A few pixels come
+       back off the card's bottom padding and the stage note so the note
+       still clears the footer on a 768px-tall iPad. */
+    .app-mock .stage.stage-rail [data-tx-list] { max-height: none; }
+    .app-mock .stage.stage-rail { padding-bottom: 2px; }
+    .app-mock .stage.stage-rail .stage-note { margin-top: 4px; }
+    .app-mock .stage.stage-rail .phone { padding-bottom: 6px; }
   }
 
   /* Persistent booth credit. Compact so older iPads keep the card on screen.

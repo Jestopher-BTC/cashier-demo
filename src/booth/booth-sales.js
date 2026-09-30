@@ -10,7 +10,7 @@
    booth shell. Core builds never import this file.
    ============================================================================ */
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { QrCode } from "../AmbossCashierMock.jsx";
 
 /* Integrators: set this to false to ship the booth app without sales chrome. */
@@ -23,15 +23,60 @@ export const BOOTH_SALES = {
   hint: "Scan to book a payments discovery meeting.",
 };
 
+/* iPad landscape (~1024×768) and other short wide screens. Portrait and
+   narrow landscape stay a single column. The shell uses this to mount one
+   Calendly QR in the left gutter; it must not also mount a second code. */
+export const MEET_RAIL_QUERY =
+  "(orientation: landscape) and (min-width: 1000px), (min-width: 1000px) and (max-height: 900px)";
+
+function meetRailMatches() {
+  if (typeof window === "undefined" || !window.matchMedia) return false;
+  try {
+    return window.matchMedia(MEET_RAIL_QUERY).matches;
+  } catch (e) {
+    return false;
+  }
+}
+
+/* Safari 10: MediaQueryList.addListener, plus resize / orientationchange.
+   matchMedia is missing in some embedded webviews; those keep portrait. */
+export function useLandscapeMeetRail() {
+  const [on, setOn] = useState(meetRailMatches);
+  useEffect(function () {
+    function sync() {
+      setOn(meetRailMatches());
+    }
+    sync();
+    var mql = null;
+    try {
+      mql = window.matchMedia ? window.matchMedia(MEET_RAIL_QUERY) : null;
+    } catch (e) {
+      mql = null;
+    }
+    if (mql && mql.addListener) mql.addListener(sync);
+    else if (mql && mql.addEventListener) mql.addEventListener("change", sync);
+    window.addEventListener("resize", sync);
+    window.addEventListener("orientationchange", sync);
+    return function () {
+      if (mql && mql.removeListener) mql.removeListener(sync);
+      else if (mql && mql.removeEventListener) mql.removeEventListener("change", sync);
+      window.removeEventListener("resize", sync);
+      window.removeEventListener("orientationchange", sync);
+    };
+  }, []);
+  return SHOW_DISCOVERY_CTA && on;
+}
+
 export function DiscoveryInvite({ theme, size = 168, showCta, placement }) {
   if (!SHOW_DISCOVERY_CTA) return null;
-  const stage = placement === "stage";
+  const rail = placement === "rail";
+  const stage = placement === "stage" || rail;
   const qrSize = size || (stage ? 152 : 168);
   return (
     <div
-      className={stage ? "discovery-box" : "discovery-flow"}
+      className={rail ? "discovery-box discovery-rail-card" : stage ? "discovery-box" : "discovery-flow"}
       data-discovery-qr
-      data-discovery-placement={stage ? "stage" : "flow"}
+      data-discovery-placement={rail ? "rail" : stage ? "stage" : "flow"}
       data-discovery-url={BOOTH_SALES.url}
       style={
         stage

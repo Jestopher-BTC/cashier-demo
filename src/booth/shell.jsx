@@ -9,7 +9,7 @@ import {
   WithdrawFlow,
   usePayments,
 } from "../AmbossCashierMock.jsx";
-import { DiscoveryInvite, SHOW_DISCOVERY_CTA, cashOutDiscovery } from "./booth-sales.js";
+import { DiscoveryInvite, SHOW_DISCOVERY_CTA, cashOutDiscovery, useLandscapeMeetRail } from "./booth-sales.js";
 import { SECTIONS, SOURCE } from "./generated-sections.js";
 import { highlight } from "./highlight.js";
 import { AmbossLetter, AmbossLogo } from "../AmbossLogo.jsx";
@@ -99,20 +99,33 @@ function Screens({ onDemoAction, onNavigate, staff, compact, showWalletDiscovery
 
 /* ------------------------------------------------------------- mock mode --- */
 
-function MockMode({ theme, onDemoAction }) {
+function MockMode({ theme, onDemoAction, meetRail }) {
+  /* Landscape already shows the gutter QR. A stage or success code would be a second one. */
+  const discovery = SHOW_DISCOVERY_CTA && !meetRail;
   return (
-    <div className="stage">
+    <div className={"stage" + (meetRail ? " stage-rail" : "")}>
+      {meetRail ? <MeetRail /> : null}
       <PaymentsProvider
         defaultTheme={theme}
         demo={true}
         initialBalanceUsd={1247.85}
-        cashOutSuccessExtra={SHOW_DISCOVERY_CTA ? cashOutDiscovery : null}
+        cashOutSuccessExtra={discovery ? cashOutDiscovery : null}
         onPaymentSuccess={playChaChing}
       >
-        <Screens onDemoAction={onDemoAction} compact showWalletDiscovery={SHOW_DISCOVERY_CTA} />
+        <Screens onDemoAction={onDemoAction} compact showWalletDiscovery={discovery} />
       </PaymentsProvider>
       <p className="stage-note">Amboss Payments cashier for iGaming. Deposit and cash out in dollars.</p>
     </div>
+  );
+}
+
+/* Out of the cashier column's flow. The shell positions it in the left
+   gutter so the banner and the 420px card keep one center axis. */
+function MeetRail() {
+  return (
+    <aside className="discovery-rail" data-discovery-rail aria-label="Payments discovery">
+      <DiscoveryInvite placement="rail" showCta size={152} />
+    </aside>
   );
 }
 
@@ -502,7 +515,7 @@ function PinDialog({ value, error, busy, onChange, onCancel, onSubmit }) {
   );
 }
 
-function LiveMode({ theme, onDemoAction }) {
+function LiveMode({ theme, onDemoAction, meetRail }) {
   const [phase, setPhase] = useState("connecting"); // connecting | ready | error
   const [config, setConfig] = useState(null);
   const [error, setError] = useState(null);
@@ -601,7 +614,8 @@ function LiveMode({ theme, onDemoAction }) {
 
   if (!HOST.live)
     return (
-      <div className="stage">
+      <div className={"stage" + (meetRail ? " stage-rail" : "")}>
+        {meetRail ? <MeetRail /> : null}
         <div className="offline-card">
           <h2>Live mode needs the hosted build</h2>
           <p>
@@ -615,7 +629,8 @@ function LiveMode({ theme, onDemoAction }) {
 
   if (phase === "connecting")
     return (
-      <div className="stage">
+      <div className={"stage" + (meetRail ? " stage-rail" : "")}>
+        {meetRail ? <MeetRail /> : null}
         <div className="offline-card">
           <h2>Connecting</h2>
           <p className="dim">Connecting to Amboss Payments.</p>
@@ -625,7 +640,8 @@ function LiveMode({ theme, onDemoAction }) {
 
   if (phase === "error")
     return (
-      <div className="stage">
+      <div className={"stage" + (meetRail ? " stage-rail" : "")}>
+        {meetRail ? <MeetRail /> : null}
         <div className="offline-card">
           <h2>{error && error.title ? error.title : "No connection to the server"}</h2>
           <p className="dim">{error && error.message ? error.message : ""}</p>
@@ -653,7 +669,8 @@ function LiveMode({ theme, onDemoAction }) {
   var sameCap = depositCap === withdrawCap;
 
   return (
-    <div className="stage">
+    <div className={"stage" + (meetRail ? " stage-rail" : "")}>
+      {meetRail ? <MeetRail /> : null}
       <div className="livebar">
         <div className="live-meta">
           <span className="live-status">
@@ -694,7 +711,7 @@ function LiveMode({ theme, onDemoAction }) {
           withdrawMin: cfg.minWithdrawUsd,
           invoiceSeconds: cfg.invoiceSeconds,
         }}
-        cashOutSuccessExtra={SHOW_DISCOVERY_CTA ? cashOutDiscovery : null}
+        cashOutSuccessExtra={SHOW_DISCOVERY_CTA && !meetRail ? cashOutDiscovery : null}
         onPaymentSuccess={playChaChing}
       >
         <Screens
@@ -737,6 +754,7 @@ export default function App() {
   const [mode, setMode] = useState("mock");
   const [theme, setTheme] = useTheme();
   const [focusAction, setFocusAction] = useState(null);
+  const meetRail = useLandscapeMeetRail();
 
   useEffect(function () {
     function prime() {
@@ -805,11 +823,11 @@ export default function App() {
 
       <main className="content">
         {mode === "mock" ? (
-          <MockMode theme={theme} onDemoAction={setFocusAction} />
+          <MockMode theme={theme} onDemoAction={setFocusAction} meetRail={mode === "mock" && meetRail} />
         ) : mode === "code" ? (
           <CodeMode focusAction={focusAction} />
         ) : (
-          <LiveMode theme={theme} onDemoAction={setFocusAction} />
+          <LiveMode theme={theme} onDemoAction={setFocusAction} meetRail={mode === "live" && meetRail} />
         )}
       </main>
 

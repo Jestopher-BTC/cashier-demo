@@ -316,6 +316,11 @@ check("live transaction list is not height-capped", !d.querySelector("[data-tx-l
 check("staff label marks Fund and New visitor", Boolean(staff && /^Staff/.test(staff.textContent.trim()) && /Fund/.test(staff.textContent) && /New visitor/.test(staff.textContent)), staff && staff.textContent);
 check("staff is inside the phone, not the strip", Boolean(staff && livebar && !livebar.contains(staff) && d.querySelector(".phone") && d.querySelector(".phone").contains(staff)));
 check("LIVE caps stay visitor-facing", Boolean(liveMeta && /LIVE/.test(liveMeta.textContent) && !/Staff/.test(liveMeta.textContent)));
+check(
+  "live bar omits mock api",
+  Boolean(livebar && /LIVE/.test(livebar.textContent) && !/mock\s*api/i.test(livebar.textContent) && /in\/out/.test(livebar.textContent)),
+  livebar && livebar.textContent
+);
 check("livebar wraps instead of crushing", /\.livebar\s*\{[^}]*flex-wrap:\s*wrap/.test(css));
 check("short caps is the visible line", /\.live-caps-full\s*\{[^}]*display:\s*none/.test(css) && /\.live-caps-short\s*\{[^}]*display:\s*inline/.test(css));
 check("caps line does not wrap mid-unit", /\.live-caps\s*\{[^}]*white-space:\s*nowrap/.test(css));

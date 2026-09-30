@@ -118,7 +118,48 @@
   .grow { flex: 1 1 auto; }
 
   /* ---- stage ---- */
-  .content { flex: 1 1 auto; min-height: 0; display: flex; }
+  .content { flex: 1 1 auto; min-height: 0; display: -webkit-flex; display: flex; }
+  /* Landscape meet rail (MEET_RAIL_QUERY, ~1024×768). One Calendly QR on the
+     left; the cashier stays 420px in the leftover width. Class is JS-gated so
+     portrait never mounts this rail. No flex gap — Safari 10. */
+  .content.content-with-rail {
+    -webkit-flex-direction: row;
+    flex-direction: row;
+    -webkit-align-items: stretch;
+    align-items: stretch;
+  }
+  .discovery-rail {
+    -webkit-flex: 0 0 300px;
+    flex: 0 0 300px;
+    width: 300px;
+    margin-right: 12px;
+    -webkit-align-self: flex-start;
+    align-self: flex-start;
+    max-height: 100%;
+    overflow-x: hidden;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-top: 20px;
+    padding-left: 16px;
+    padding-left: calc(16px + constant(safe-area-inset-left));
+    padding-left: calc(16px + env(safe-area-inset-left, 0px));
+  }
+  .app-mock .discovery-rail { padding-top: 10px; }
+  .content-with-rail > .stage {
+    -webkit-flex: 1 1 auto;
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  .content-with-rail .cashier-column {
+    width: 420px;
+    max-width: 100%;
+    margin-left: 0;
+    margin-right: auto;
+  }
+  .content-with-rail .stage-note {
+    margin-left: 0;
+    margin-right: auto;
+  }
   /* Mock-only under the modes bar. Bigger + bolder for booth passersby.
      Same copy, same line, no subtitle. Live omits it. */
   .booth-tagline {
@@ -179,10 +220,9 @@
     color: var(--muted);
   }
   .discovery-plate { line-height: 0; }
-  /* Cash-out success only (html[data-cashout-success]). One meet-with-us QR.
-     Portrait / narrow: confirmation first, QR at the bottom of the page.
-     Landscape iPad: QR on the left, confirmation beside it. Orientation and
-     width together, no flex gap — Safari 10 on the booth iPad. */
+  /* Cash-out success in portrait / narrow only. Confirmation first, meet QR
+     at the bottom of that screen. Landscape uses the left rail (one QR), so
+     this block does not run a second side-by-side code. No flex gap. */
   .discovery-flow { margin-top: 16px; }
   @media (orientation: portrait), (max-width: 900px) {
     html[data-cashout-success] .cashout-success {
@@ -201,40 +241,6 @@
       margin-top: 16px;
       -webkit-flex: 0 0 auto;
       flex: 0 0 auto;
-    }
-  }
-  @media (orientation: landscape) and (min-width: 1000px),
-         (min-width: 1000px) and (max-height: 900px) {
-    html[data-cashout-success] .cashier-column {
-      width: 100%;
-      max-width: 960px;
-    }
-    html[data-cashout-success] .cashout-success {
-      display: -webkit-flex;
-      display: flex;
-      -webkit-flex-direction: row;
-      flex-direction: row;
-      -webkit-align-items: flex-start;
-      align-items: flex-start;
-      -webkit-justify-content: flex-start;
-      justify-content: flex-start;
-      min-height: 0;
-    }
-    html[data-cashout-success] .cashout-success-copy {
-      -webkit-flex: 1 1 auto;
-      flex: 1 1 auto;
-      -webkit-order: 1;
-      order: 1;
-      min-width: 0;
-    }
-    html[data-cashout-success] .discovery-flow {
-      -webkit-order: -1;
-      order: -1;
-      -webkit-flex: 0 0 280px;
-      flex: 0 0 280px;
-      width: 280px;
-      margin-top: 0;
-      margin-right: 16px;
     }
   }
   .stage-note {
@@ -261,7 +267,12 @@
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
     }
+    .app-mock .discovery-rail { padding-top: 6px; }
   }
+  /* Rail owns the meet QR, so the mock txn window does not have to shrink
+     to keep a stacked code above the fold. */
+  .content-with-rail [data-tx-list] { max-height: none; }
+  .discovery-rail .discovery-box { margin-top: 0; }
 
   /* Persistent booth credit. Compact so older iPads keep the card on screen.
      Build id sits in the bottom-right corner, out of the credit flow. */

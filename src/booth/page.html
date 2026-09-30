@@ -265,8 +265,13 @@
       -webkit-overflow-scrolling: touch;
     }
     /* The meet QR is in the gutter, so the txn window does not have to
-       shrink to keep a stacked code above the fold. */
+       shrink to keep a stacked code above the fold. A few pixels come
+       back off the card's bottom padding and the stage note so the note
+       still clears the footer on a 768px-tall iPad. */
     .app-mock .stage.stage-rail [data-tx-list] { max-height: none; }
+    .app-mock .stage.stage-rail { padding-bottom: 2px; }
+    .app-mock .stage.stage-rail .stage-note { margin-top: 4px; }
+    .app-mock .stage.stage-rail .phone { padding-bottom: 6px; }
   }
 
   /* Persistent booth credit. Compact so older iPads keep the card on screen.

@@ -660,7 +660,6 @@ function LiveMode({ theme, onDemoAction }) {
             <span className="live-dot" />
             <span className="live-label">
               LIVE · {cfg.asset || "wallet"}
-              {cfg.mock ? " · mock api" : ""}
             </span>
           </span>
           <span className="live-caps">

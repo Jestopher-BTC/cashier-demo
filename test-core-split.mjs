@@ -63,6 +63,7 @@ check("core has no discovery QR", !dom.window.document.querySelector("[data-disc
 check("core has no Fund button", !/^\s*Fund\s*$/m.test(txt) && !dom.window.document.querySelector("[data-fund]"));
 check("core shows the cashier", /Account balance/.test(txt));
 check("core live status present", /LIVE/.test(txt));
+check("core live status omits mock api", !/mock\s*api/i.test(txt), txt.slice(0, 240));
 
 console.log(`\n${pass} passed, ${fail} failed\n`);
 server.close();
